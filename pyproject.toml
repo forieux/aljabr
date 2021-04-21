@@ -1,0 +1,33 @@
+[tool.poetry]
+name = "linearop"
+version = "0.1.0"
+description = "Linear operators interfaces"
+authors = ["François Orieux <francois.orieux@universite-paris-saclay.fr>"]
+license = "Public Domain"
+classifiers = [
+    "License :: Public Domain",
+    "Topic :: Scientific/Engineering",
+    "Topic :: Scientific/Engineering :: Mathematics",
+    "Intended Audience :: Science/Research",
+    "Intended Audience :: Developers",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: Implementation :: CPython",
+    "Typing :: Typed",
+]
+include = ["py.typed"]
+
+[tool.poetry.dependencies]
+python = ">=3.7,<3.10"
+numpy = "^1.20.2"
+udft = "^2.0.0"
+PyWavelets = "^1.1.1"
+
+[tool.poetry.dev-dependencies]
+ipython = "^7.22.0"
+icecream = "^2.1.0"
+mypy = "^0.812"
+pytype = "^2021.4.15"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
