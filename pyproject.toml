@@ -5,7 +5,6 @@ description = "Linear operators interfaces"
 authors = ["François Orieux <francois.orieux@universite-paris-saclay.fr>"]
 license = "Public Domain"
 classifiers = [
-    "License :: Public Domain",
     "Topic :: Scientific/Engineering",
     "Topic :: Scientific/Engineering :: Mathematics",
     "Intended Audience :: Science/Research",
@@ -19,7 +18,7 @@ include = ["py.typed"]
 [tool.poetry.dependencies]
 python = ">=3.7,<3.10"
 numpy = "^1.20.2"
-udft = {extras = ["fftw"], version = "^3.0.1"}
+udft = {extras = ["fftw"], version = "^3.2.0"}
 PyWavelets = "^1.1.1"
 
 [tool.poetry.dev-dependencies]

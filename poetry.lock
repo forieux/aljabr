@@ -472,7 +472,7 @@ python-versions = "*"
 
 [[package]]
 name = "udft"
-version = "3.1.1"
+version = "3.2.0"
 description = "Unitary discrete Fourier Transform (and related)"
 category = "main"
 optional = false
@@ -860,8 +860,8 @@ typing-extensions = [
     {file = "typing_extensions-3.7.4.3.tar.gz", hash = "sha256:99d4073b617d30288f569d3f13d2bd7548c3a7e4c8de87db09a9d29bb3a4a60c"},
 ]
 udft = [
-    {file = "udft-3.1.1-py3-none-any.whl", hash = "sha256:b9b2c2c5e999cc7db35bd34d7472fed569e38ad8077f60ee5363bdf36af61180"},
-    {file = "udft-3.1.1.tar.gz", hash = "sha256:74626d2bfbb637077dfdf47cd7c831126091e53a4d6c24030f2e392f3444e007"},
+    {file = "udft-3.2.0-py3-none-any.whl", hash = "sha256:51d1f9aeda85ef7bd9f11e278b484cd8b218b40e91a20521a7a60d7ab096d9e7"},
+    {file = "udft-3.2.0.tar.gz", hash = "sha256:20e187e848d59aa70bbcc0f8d2b2f9654fdb7bc8198ef86e242b346aba2839c9"},
 ]
 wcwidth = [
     {file = "wcwidth-0.2.5-py2.py3-none-any.whl", hash = "sha256:beb4802a9cebb9144e99086eff703a642a13d6a0052920003a230f3294bbe784"},
