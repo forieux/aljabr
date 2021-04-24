@@ -37,47 +37,95 @@ matrix. It provides base classes, common operators, and some specialised ones.
 # pylint: disable=bad-continuation
 
 import abc
-from math import floor
-from typing import Callable, Sequence, Tuple, Union
+from typing import Callable, Optional, Sequence, Tuple, TypeVar, Union
 
 import numpy as np
 import pywt  # type: ignore
-import udft  # type: ignore
-from icecream import ic  # type: ignore
+import udft
+# from icecream import ic  # type: ignore
 from numpy import ndarray as array
 from numpy.random import standard_normal as randn
-
-Shape = Tuple[int, ...]
-ArrOrSeq = Union[array, Sequence[array]]
-
-# from scipy.ndimage.filters import convolve
 
 __author__ = "François Orieux"
 __copyright__ = "2011, 2021, F. Orieux <francois.orieux@universite-paris-saclay.fr>"
 __credits__ = ["François Orieux"]
-__license__ = "WTFPL"
-__version__ = "0.9.0"
+__license__ = "Public domain"
+__version__ = "0.1.0"
 __maintainer__ = "François Orieux"
 __email__ = "francois.orieux@universite-paris-saclay.fr"
 __status__ = "beta"
 __url__ = "https://https://github.com/forieux/linearop"
 __keywords__ = "linear operator"
 
+__all__ = [
+    "LinOp",
+    "Adjoint",
+    "Explicit",
+    "FuncLinOp",
+    "ProdOp",
+    "SumOp",
+    "asmatrix",
+    "dottest",
+    "get_broadcast_shape",
+    "Identity",
+    "Diag",
+    "DFT",
+    "RealDFT",
+    "Conv",
+    "Diff",
+    "DWT",
+    "Analysis",
+    "Synthesis",
+]
+
+Shape = Tuple[int, ...]
+ArrOrSeq = Union[array, Sequence[array]]
+ArrOrLinOp = TypeVar("ArrOrLinOp", array, "LinOp")
+
+
+def _vect(point: ArrOrSeq) -> array:
+    if isinstance(point, array):
+        return np.reshape(point, (-1, 1))
+    return np.concatenate((arr.reshape((-1, 1)) for arr in point), axis=0)
+
+
+def _unvect(point: array, shapes: Union[Shape, Sequence[Shape]]) -> ArrOrSeq:
+    if isinstance(shapes[0], tuple):
+        idxs = np.cumsum([0] + [int(np.prod(s)) for s in shapes])
+        return [
+            np.reshape(point[idxs[i] : idxs[i + 1]], s)  # type: ignore
+            for i, s in enumerate(shapes)
+        ]
+    return np.reshape(point, shapes)  # type: ignore
+
 
 class LinOp(abc.ABC):
-    def __init__(
-        self,
-        ishape: Shape,
-        oshape: Union[Shape, Sequence[Shape]],
-        name: str = "_",
-        dtype=np.float64,
-    ):
+    """Base class for linear operator.
+
+    Attributs
+    ---------
+    ishape : tuple of int
+        The shape of the input.
+    oshape : tuple of int
+        The shape of the output.
+    isize : int
+        The input size.
+    osize : int
+        The output size.
+    shape : tuple of two int.
+        The shape of the operator.
+    name : str, optional
+        The name of the operator.
+    dtype : numpy dtype, optional
+        The dtype of the operator.
+    H : LinOp
+        The Adjoint of the operator.
+    """
+
+    def __init__(self, ishape: Shape, oshape: Shape, name: str = "_", dtype=np.float64):
         self.name = name
         self.ishape = ishape
         self.oshape = oshape
-        if isinstance(oshape[0], tuple):
-            self._idxs = np.cumsum([0] + [int(np.prod(s)) for s in oshape])
-
         self.dtype = dtype
 
     @property
@@ -88,8 +136,6 @@ class LinOp(abc.ABC):
     @property
     def osize(self):
         """The output size `M = prod(oshape)`."""
-        if isinstance(self.oshape[0], tuple):
-            return sum(np.prod(s) for s in self.oshape)
         return np.prod(self.oshape)
 
     @property
@@ -108,12 +154,12 @@ class LinOp(abc.ABC):
         return Adjoint(self)
 
     @abc.abstractmethod
-    def forward(self, point: array) -> ArrOrSeq:
+    def forward(self, point: array) -> array:
         """Returns the forward application `A·x`."""
         return NotImplemented
 
     @abc.abstractmethod
-    def adjoint(self, point: ArrOrSeq) -> array:
+    def adjoint(self, point: array) -> array:
         """Returns the adjoint application `Aᴴ·y`."""
         return NotImplemented
 
@@ -122,21 +168,14 @@ class LinOp(abc.ABC):
 
         Apply `forward` on array of shape (N, 1), returns array of shape (M, 1).
         """
-        out = self.forward(np.reshape(point, self.ishape))
-        if isinstance(out, Sequence):
-            return self.vect(out)
-        return np.reshape(out, (-1, 1))
+        return np.reshape(self.forward(np.reshape(point, self.ishape)), (-1, 1))
 
     def rmatvec(self, point: array) -> array:
         """Vectorized adjoint application `Aᴴ·y`.
 
         Apply `adjoint` on array of shape (M, 1), returns array of shape (N, 1).
         """
-        if isinstance(self.oshape[0], tuple):
-            out = self.adjoint(self.unvect(point))
-        else:
-            out = self.adjoint(np.reshape(point, self.oshape))  # type: ignore
-        return np.reshape(out, (-1, 1))
+        return np.reshape(self.adjoint(np.reshape(point, self.oshape)), (-1, 1))
 
     def fwadj(self, point: array) -> array:
         """Apply `Aᴴ·A` operator."""
@@ -146,7 +185,7 @@ class LinOp(abc.ABC):
         """Apply `A` operator"""
         return self.forward(point)
 
-    def hdot(self, point: ArrOrSeq) -> array:
+    def hdot(self, point: array) -> array:
         """Apply the adjoint, i.e. `Aᴴ` operator."""
         return self.adjoint(point)
 
@@ -155,41 +194,38 @@ class LinOp(abc.ABC):
             return SumOp(self, obj)
         raise TypeError("the operand must be a LinOp")
 
-    def __mul__(self, point: Union[array, "LinOp"]) -> Union[ArrOrSeq, "LinOp"]:
+    def __mul__(self, point: ArrOrLinOp) -> ArrOrLinOp:
         if isinstance(point, LinOp):
             return ProdOp(self, point)
         return self.forward(point)
 
-    def __rmul__(self, point: ArrOrSeq) -> array:
+    def __rmul__(self, point: array) -> array:
         return self.adjoint(point)
 
-    def __matmul__(self, point):
+    def __matmul__(self, point: ArrOrLinOp) -> ArrOrLinOp:
         if isinstance(point, LinOp):
             return ProdOp(self, point)
         return self.matvec(point)
 
-    def __rmatmul__(self, point):
+    def __rmatmul__(self, point: array) -> array:
         return self.rmatvec(point)
 
-    def vect(self, point: Sequence[array]) -> array:
-        return np.concatenate((arr.reshape((-1, 1)) for arr in point), axis=0)
-
-    def unvect(self, point: array) -> Sequence[array]:
-        return [
-            np.reshape(point[self._idxs[i] : self._idxs[i + 1]], s)  # type: ignore
-            for i, s in enumerate(self.oshape)
-        ]
-
-    def __call__(self, point):
+    def __call__(self, point: array) -> array:
         return self.forward(point)
 
     def __repr__(self):
         return f"{self.name} ({type(self).__name__}): {self.ishape} → {self.oshape}"
 
 
-#%% \
+#%%\
 class Adjoint(LinOp):
-    """The adjoint `Aᴴ` of a linear operator `A`"""
+    """The adjoint `Aᴴ` of a linear operator `A`.
+
+    Attributs
+    ---------
+    base_linop: LinOp
+        The base linear operator.
+    """
 
     def __new__(cls, linop: LinOp):
         if isinstance(linop, Adjoint):
@@ -197,16 +233,18 @@ class Adjoint(LinOp):
         return super().__new__(cls)
 
     def __init__(self, linop: LinOp):
-        """The adjoint of `linop`."""
+        """The adjoint of `linop`.
+
+        If `linop` is alread an `Adjoint` return the `base_linop`."""
         super().__init__(
             linop.oshape, linop.ishape, f"Adjoint of {linop.name}", linop.dtype
         )
         self.base_linop = linop
 
-    def forward(self, point):
+    def forward(self, point: array) -> array:
         return self.base_linop.adjoint(point)
 
-    def adjoint(self, point):
+    def adjoint(self, point: array) -> array:
         return self.base_linop.forward(point)
 
 
@@ -236,9 +274,7 @@ class Explicit(LinOp):
     def forward(self, point: array) -> array:
         return np.asanyarray(self.mat.dot(point.reshape((-1, 1))))
 
-    def adjoint(self, point: ArrOrSeq) -> array:
-        if isinstance(point, Sequence):
-            raise ValueError("Explicit is imcompatible with list of array")
+    def adjoint(self, point: array) -> array:
         return np.asanyarray(self.mat.transpose().conj().dot(point.reshape((-1, 1))))
 
 
@@ -247,10 +283,10 @@ class FuncLinOp(LinOp):
 
     def __init__(
         self,
-        forward: Callable[[array], ArrOrSeq],
+        forward: Callable[[array], array],
         ishape: Shape,
-        oshape: Union[Shape, Sequence[Shape]],
-        adjoint: Callable[[ArrOrSeq], array] = None,
+        oshape: Shape,
+        adjoint: Callable[[array], array] = None,
         fwadj: Callable[[array], array] = None,
         name: str = "_",
         dtype=np.complex128,
@@ -260,10 +296,10 @@ class FuncLinOp(LinOp):
         self._adjoint = adjoint
         self._fwadj = fwadj
 
-    def forward(self, point: array) -> ArrOrSeq:
+    def forward(self, point: array) -> array:
         return self._forward(point)
 
-    def adjoint(self, point: ArrOrSeq) -> array:
+    def adjoint(self, point: array) -> array:
         if self._adjoint is not None:
             return self._adjoint(point)
         raise NotImplementedError("try to call `adjoint` but not provided.")
@@ -274,27 +310,47 @@ class FuncLinOp(LinOp):
         raise NotImplementedError("try to call `fwadj` but not provided.")
 
 
-#%% \
 class ProdOp(LinOp):
-    def __init__(self, left, right):
+    """The product of two operators."""
+
+    def __init__(self, left: LinOp, right: LinOp):
+        """The sum of two operators.
+        Parameters
+        ----------
+        left: LinOp
+            The left operator.
+        right: LinOp
+            The right operator.
+        """
         if left.ishape != right.oshape:
             raise ValueError("`left` input shape must equal `right` output shape")
         super().__init__(right.ishape, left.oshape, name=f"{left.name} × {right.name})")
         self.left = left
         self.right = right
 
-    def forward(self, point):
+    def forward(self, point: array) -> array:
         return self.left.forward(self.right.forward(point))
 
-    def adjoint(self, point):
+    def adjoint(self, point: array) -> array:
         return self.right.adjoint(self.left.adjoint(point))
 
-    def fwadj(self, point):
+    def fwadj(self, point: array) -> array:
         return self.right.adjoint(self.left.fwadj(self.right.forward(point)))
 
 
 class SumOp(LinOp):
-    def __init__(self, left, right):
+    """The sum of two operators."""
+
+    def __init__(self, left: LinOp, right: LinOp):
+        """The sum of two operators.
+
+        Parameters
+        ----------
+        left: LinOp
+            The left operator.
+        right: LinOp
+            The right operator.
+        """
         if (left.ishape != right.ishape) or (left.oshape != right.oshape):
             raise ValueError("operators must have the same input and output shape")
         super().__init__(
@@ -306,15 +362,15 @@ class SumOp(LinOp):
         self.left = left
         self.right = right
 
-    def forward(self, point):
+    def forward(self, point: array) -> array:
         return self.left.forward(point) + self.right.forward(point)
 
-    def adjoint(self, point):
+    def adjoint(self, point: array) -> array:
         return self.right.adjoint(point) + self.left.adjoint(point)
 
 
 #%% \
-def asmatrix(linop: LinOp):
+def asmatrix(linop: LinOp) -> array:
     """Return the matrix corresponding to the linear operator
 
     Computing the matrix is heavy since it's involve the application of the
@@ -329,7 +385,7 @@ def asmatrix(linop: LinOp):
     return matrix
 
 
-def dottest(linop: LinOp, num=1, rtol=1e-5, atol=1e-8):
+def dottest(linop: LinOp, num: int = 1, rtol: float = 1e-5, atol: float = 1e-8) -> bool:
     """Dot test.
 
     Generate random vectors `u` and `v` and perform the dot-test to verify
@@ -367,74 +423,115 @@ def dottest(linop: LinOp, num=1, rtol=1e-5, atol=1e-8):
     return test
 
 
-def get_broadcast_shape(s1: Sequence[int], s2: Sequence[int]) -> Shape:
+def get_broadcast_shape(shape_a: Sequence[int], shape_b: Sequence[int]) -> Shape:
     """Return the shape of the broacasted result"""
-    s1, s2 = list(s1), list(s2)
-    if len(s1) < len(s2):
-        s1 = (len(s2) - len(s1)) * [1] + s1
-    s2 = (len(s1) - len(s2)) * [1] + s2
-    for idx in range(len(s1)):
-        if s1[idx] == 1 and s2[idx] != 1:
-            s1[idx] = s2[idx]
-        elif s2[idx] == 1 and s1[idx] != 1:
-            s2[idx] = s1[idx]
-        elif s1[idx] != 1 and s2[idx] != 1 and s1[idx] != s2[idx]:
+    shape_a, shape_b = list(shape_a), list(shape_b)
+    if len(shape_a) < len(shape_b):
+        shape_a = (len(shape_b) - len(shape_a)) * [1] + shape_a
+    shape_b = (len(shape_a) - len(shape_b)) * [1] + shape_b
+    out_shape: Shape = tuple()
+    for sha, shb in zip(shape_a, shape_b):
+        if sha == 1 and shb != 1:
+            out_shape += (shb,)
+        elif shb == 1 and sha != 1:
+            out_shape += (sha,)
+        elif sha != 1 and shb != 1 and sha != shb:
             raise ValueError("One of the dimension must equal 1 or both must be equal")
-    return tuple(s1)
+    return out_shape
 
 
 #%% \
 class Identity(LinOp):
-    def __init__(self, shape, name="_"):
+    """Identity operator of specific shape"""
+
+    def __init__(self, shape: Shape, name: str = "_"):
+        """The identity operator.
+
+        Parameters
+        ----------
+        shape : tuple of int
+            The shape of the identity.
+        """
         super().__init__(shape, shape, name=name, dtype=np.float64)
 
-    def forward(self, point):
+    def forward(self, point: array) -> array:
         return point
 
-    def adjoint(self, point):
+    def adjoint(self, point: array) -> array:
         return point
 
 
 class Diag(LinOp):
-    def __init__(self, diag: array, name="_"):
+    """Diagonal operator."""
+
+    def __init__(self, diag: array, name: str = "_"):
+        """A diagonal operator.
+
+        Parameters
+        ----------
+        diag : array
+            The diagonal of the operator. Input and output must of the same shape.
+        """
         super().__init__(diag.shape, diag.shape, name=name)
         self._diag = diag
         self.dtype = diag.dtype
 
-    def forward(self, point):
+    def forward(self, point: array) -> array:
         return self._diag * point
 
-    def adjoint(self, point):
+    def adjoint(self, point: array) -> array:
         return self._diag.conj() * point
 
-    def fwadj(self, point):
+    def fwadj(self, point: array) -> array:
         return np.abs(self._diag) ** 2 * point
 
 
 #%% \
 class DFT(LinOp):
-    def __init__(self, shape, ndim, name="DFT"):
+    """Discrete Fourier Transform."""
+
+    def __init__(self, shape: Shape, ndim: int, name: str = "DFT"):
+        """Unitary discrete Fourier transform.
+
+        Parameters
+        ----------
+        shape : tuple of int
+            The shape of the input
+        ndim : int
+            The number of last axes over which to compute the DFT.
+        """
         super().__init__(shape, shape, name=name, dtype=np.complex128)
-        self.ndim = ndim
+        self.dim = ndim
 
-    def forward(self, point) -> array:
-        return udft.dftn(point, ndim=self.ndim)
+    def forward(self, point: array) -> array:
+        return udft.dftn(point, ndim=self.dim)
 
-    def adjoint(self, point) -> array:
-        return udft.idftn(point, ndim=self.ndim)
+    def adjoint(self, point: array) -> array:
+        return udft.idftn(point, ndim=self.dim)
 
 
 class RealDFT(LinOp):
-    def __init__(self, shape, ndim, name="rDFT"):
+    """Real Discrete Fourier Transform."""
+
+    def __init__(self, shape: Shape, ndim: int, name: str = "rDFT"):
+        """Real unitary discrete Fourier transform.
+
+        Parameters
+        ----------
+        shape : tuple of int
+            The shape of the input
+        ndim : int
+            The number of last axes over which to compute the DFT.
+        """
         super().__init__(
             shape, shape[:-1] + (shape[-1] // 2 + 1,), name=name, dtype=np.complex128
         )
         self._ndim = ndim
 
-    def forward(self, point) -> array:
+    def forward(self, point: array) -> array:
         return udft.rdftn(point, ndim=self._ndim)
 
-    def adjoint(self, point) -> array:
+    def adjoint(self, point: array) -> array:
         return udft.irdftn(point, self.ishape[-self._ndim :])
 
 
@@ -458,54 +555,59 @@ class Conv(LinOp):
 
     """
 
-    def __init__(self, ir: array, ishape: Shape, ndim, name="_", dtype=np.float64):
+    def __init__(
+        self, ir: array, ishape: Shape, dim: int, name: str = "_", dtype=np.float64
+    ):
         """ND convolution on last `N` axis.
 
         Parameters
         ----------
         ir : array
-            The impulse responses. Must be at least of `ndim==2`.
+            The impulse responses. Must be at least of `ndim==dim`.
         ishape : tuple of int
             The shape of the input images. Images are on the last two axis.
-        ndim : int
-            The number of dimension to compute the convolution.
+        dim : int
+            The last `dim` axis where convolution apply.
 
         """
-        self.ndim = ndim
-        oshape = get_broadcast_shape(ishape, ir.shape[:-ndim] + ishape[-ndim:])
-        super().__init__(ishape, oshape, name, dtype)
-        #         slices = [slice(None) for _ in range(arr.ndim)]
-        #         slices[self.axis] = slice(arr.shape[self.axis])
-        self.imp_resp = ir
-        self.freq_resp = udft.ir2fr(ir, self.ishape[-ndim:])
+        super().__init__(
+            ishape,
+            get_broadcast_shape(ishape, ir.shape[:-dim] + ishape[-dim:]),
+            name,
+            dtype,
+        )
 
-        self.margins = ir.shape[-ndim:]
-        self._slices = [slice(None) for _ in range(len(ishape) - ndim)]
-        for axis in range(len(ishape) - ndim, len(ishape)):
-            self._slices += slice(0, ishape[idx] - self.margins[idx] + 1)
+        self.dim = dim
+        self.imp_resp = ir
+        self.freq_resp = udft.ir2fr(ir, self.ishape[-dim:])
+
+        self.margins = ir.shape[-dim:]
+        self._slices = [slice(None) for _ in range(len(ishape) - dim)]
+        for idx in reversed(range(dim)):
+            self._slices.append(
+                slice(
+                    ir.shape[idx] // 2,
+                    ishape[idx] - ir.shape[idx] // 2 + ir.shape[idx] % 2,
+                )
+            )
 
     def _dft(self, point: array) -> array:
-        return udft.rdftn(point, self.ndim)
+        return udft.rdftn(point, self.dim)
 
     def _idft(self, point: array) -> array:
-        return udft.irdftn(point, self.ishape[-self.ndim :])
+        return udft.irdftn(point, self.ishape[-self.dim :])
 
     def forward(self, point: array) -> array:
         return self._idft(self._dft(point) * self.freq_resp)[self._slices]
 
-    def adjoint(self, point: ArrOrSeq) -> array:
-        if isinstance(point, Sequence):
-            raise ValueError("Conv is incompatible with Sequence of array.")
+    def adjoint(self, point: array) -> array:
         out = np.zeros(self.ishape)
-        # out[..., : point.shape[0], : point.shape[1]] = point
         out[self._slices] = point
         return self._idft(self._dft(out) * self.freq_resp.conj())
 
     def fwadj(self, point: array) -> array:
         out = np.zeros_like(point)
         out[self._slices] = self._idft(self._dft(point) * self.freq_resp)[self._slices]
-        # out[-self.margins[0] + 1 :, :] = 0
-        # out[:, -self.margins[1] + 1 :] = 0
         return self._idft(self._dft(out) * self.freq_resp.conj())
 
 
@@ -564,3 +666,146 @@ class Diff(LinOp):
 
         """
         return -np.diff(point, prepend=0, append=0, axis=self.axis)
+
+
+class DWT(LinOp):
+    """Unitary Discrete Wavelet Transform.
+
+    Attributs
+    ---------
+    wlt : str
+        The wavelet.
+    lvl : int
+        The decomposition level.
+    """
+
+    def __init__(
+        self,
+        shape: Shape,
+        level: Optional[int] = None,
+        wavelet: str = "haar",
+        name: str = "dwt",
+    ):
+        """Unitary Discrete Wavelet Transform.
+
+        Parameters
+        ----------
+        shape : tuple of int
+            The input shape.
+        level : int, optional
+            The decomposition level.
+        wavelet : str, optional
+            The wavelet to use.
+        """
+        super().__init__(shape, shape, name, dtype=np.float64)
+        self.wlt = wavelet
+        self.lvl = level
+        self._mode = "periodization"
+        self._slices = pywt.coeffs_to_array(
+            pywt.wavedecn(
+                np.empty(shape), wavelet=wavelet, mode="periodization", level=level
+            )
+        )[1]
+
+    def forward(self, point: array) -> array:
+        return pywt.coeffs_to_array(
+            pywt.wavedecn(point, wavelet=self.wlt, mode=self._mode, level=self.lvl)
+        )[0]
+
+    def adjoint(self, point: array) -> array:
+        return pywt.waverecn(
+            pywt.array_to_coeffs(point, self._slices),
+            wavelet=self.wlt,
+            mode=self._mode,
+        )
+
+
+class Analysis(LinOp):
+    """Analysis operator with stationary wavelet decomposition."""
+
+    def __init__(
+        self,
+        shape: Shape,
+        level: int,
+        wavelet: str = "haar",
+        name: str = "Analysis",
+    ):
+        """Analysis operator with stationary wavelet decomposition.
+
+        Parameters
+        ----------
+        shape : tuple of int
+            The input shape.
+        level : int
+            The decomposition level.
+        wavelet : str, optional
+            The wavelet to use.
+        """
+        super().__init__(
+            shape, (2 * shape[0], 2 * level * shape[1]), name, dtype=np.float64
+        )
+        self.wlt = wavelet
+        self.lvl = level
+
+    def forward(self, point: array) -> array:
+        coeffs = pywt.swt2(
+            point, wavelet=self.wlt, level=self.lvl, norm=True, trim_approx=True
+        )
+        return self._coeffs2array(coeffs)
+
+    def adjoint(self, point: array) -> array:
+        return pywt.iswt2(self._array2coeffs(point), self.wlt, norm=True)
+
+    def _array2coeffs(self, point: array):
+        split = np.split(point, 3 * self.lvl + 1, axis=1)
+        clist = [split[0]]
+        for lvl in range(self.lvl):
+            clist.append([split[3 * lvl + 1], split[3 * lvl + 2], split[3 * lvl + 3]])
+        return clist
+
+    @staticmethod
+    def _coeffs2array(coeffs) -> array:
+        clist = [coeffs[0]]
+        for coeff in coeffs[1:]:
+            clist.extend([coeff[0], coeff[1], coeff[2]])
+        return np.concatenate(clist, axis=1)
+
+
+class Synthesis(LinOp):
+    """Synthesis operator with stationary wavelet decomposition."""
+
+    def __init__(
+        self,
+        shape: Shape,
+        level: int,
+        wavelet: str = "haar",
+        name: str = "Synthesis",
+    ):
+        """Analysis operator with stationary wavelet decomposition.
+
+        Parameters
+        ----------
+        shape : tuple of int
+            The input shape.
+        level : int
+            The decomposition level.
+        wavelet : str, optional
+            The wavelet to use.
+        """
+        self.analysis = Analysis(shape, level, wavelet, f"{name} adj.")
+        super().__init__(
+            self.analysis.oshape, self.analysis.ishape, name, dtype=np.float64
+        )
+        self.wlt = self.analysis.wlt
+        self.lvl = self.analysis.lvl
+
+    def forward(self, point: array) -> array:
+        return self.analysis.adjoint(point)
+
+    def adjoint(self, point: array) -> array:
+        return self.analysis.forward(point)
+
+
+# Local Variables:
+# ispell-local-dictionary: "english"
+# End:

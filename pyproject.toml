@@ -19,7 +19,7 @@ include = ["py.typed"]
 [tool.poetry.dependencies]
 python = ">=3.7,<3.10"
 numpy = "^1.20.2"
-udft = "^2.0.0"
+udft = {extras = ["fftw"], version = "^3.0.1"}
 PyWavelets = "^1.1.1"
 
 [tool.poetry.dev-dependencies]
@@ -27,6 +27,8 @@ ipython = "^7.22.0"
 icecream = "^2.1.0"
 mypy = "^0.812"
 pytype = "^2021.4.15"
+flake8 = "^3.9.1"
+pylint = "^2.7.4"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]

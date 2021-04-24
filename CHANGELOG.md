@@ -11,6 +11,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add py.typed to inform that the module is typed.
 - Fix shape typing
 
-## [2.0.0] - 2021-04-16
+## [0.1.0] - 2021-04-16
 
 First public release.
