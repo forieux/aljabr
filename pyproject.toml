@@ -5,6 +5,7 @@ description = "Linear operators interfaces"
 authors = ["François Orieux <francois.orieux@universite-paris-saclay.fr>"]
 license = "Public Domain"
 classifiers = [
+    "Development Status :: 4 - Beta",
     "Topic :: Scientific/Engineering",
     "Topic :: Scientific/Engineering :: Mathematics",
     "Intended Audience :: Science/Research",
@@ -13,7 +14,6 @@ classifiers = [
     "Programming Language :: Python :: Implementation :: CPython",
     "Typing :: Typed",
 ]
-include = ["py.typed"]
 
 [tool.poetry.dependencies]
 python = ">=3.7,<3.10"
@@ -26,8 +26,7 @@ ipython = "^7.22.0"
 icecream = "^2.1.0"
 mypy = "^0.812"
 pytype = "^2021.4.15"
-flake8 = "^3.9.1"
-pylint = "^2.7.4"
+pytest = "^6.2.3"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]

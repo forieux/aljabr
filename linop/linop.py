@@ -25,7 +25,7 @@
 
 
 """The ``linop`` module
-================
+====================
 
 This module implement implicit linear operator. It is wrapper around callables
 or functions for ease of use as linear operator and more expressiveness. For
@@ -34,9 +34,9 @@ matrix. It provides base classes, common operators, and some specialised ones.
 
 """
 
-# pylint: disable=bad-continuation
-
 import abc
+import time
+from functools import wraps
 from typing import Callable, Optional, Sequence, Tuple, TypeVar, Union
 
 import numpy as np
@@ -55,7 +55,6 @@ __maintainer__ = "François Orieux"
 __email__ = "francois.orieux@universite-paris-saclay.fr"
 __status__ = "beta"
 __url__ = "https://https://github.com/forieux/linearop"
-__keywords__ = "linear operator"
 
 __all__ = [
     "LinOp",
@@ -99,7 +98,45 @@ def _unvect(point: array, shapes: Union[Shape, Sequence[Shape]]) -> ArrOrSeq:
     return np.reshape(point, shapes)  # type: ignore
 
 
-class LinOp(abc.ABC):
+def _timeit(func):
+    """Decorator to time the execution of methods (first argument must be self)"""
+
+    @wraps(func)
+    def composite(*args, **kwargs):
+        timestamp = time.time()
+        out = func(*args, **kwargs)
+        duration = time.time() - timestamp
+
+        setattr(args[0], f"duration_{func.__name__}", duration)
+        if hasattr(args[0], f"all_duration_{func.__name__}"):
+            getattr(args[0], f"all_duration_{func.__name__}").append(duration)
+        else:
+            setattr(args[0], f"all_duration_{func.__name__}", [duration])
+
+        return out
+
+    # Return our composite function
+    return composite
+
+
+class _TimedMeta(type):
+    """MetaClass that adds methods timing"""
+
+    def __new__(cls, clsname, bases, clsdict):
+        clsobj = super().__new__(cls, clsname, bases, clsdict)
+
+        for name, value in vars(clsobj).items():
+            if callable(value) and name in ("__init__", "forward", "adjoint", "fwadj"):
+                setattr(clsobj, name, _timeit(value))
+
+        return clsobj
+
+
+TimedABCMeta = type("TimedABCMeta", (abc.ABCMeta, _TimedMeta), {})
+
+
+# class LinOp(metaclass=abc.ABCMeta):
+class LinOp(metaclass=TimedABCMeta):
     """Base class for linear operator.
 
     Attributs
@@ -455,10 +492,10 @@ class Identity(LinOp):
         super().__init__(shape, shape, name=name, dtype=np.float64)
 
     def forward(self, point: array) -> array:
-        return point
+        return np.asarray(point)
 
     def adjoint(self, point: array) -> array:
-        return point
+        return np.asarray(point)
 
 
 class Diag(LinOp):
