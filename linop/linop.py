@@ -107,11 +107,14 @@ def _timeit(func):
         out = func(*args, **kwargs)
         duration = time.time() - timestamp
 
-        setattr(args[0], f"duration_{func.__name__}", duration)
-        if hasattr(args[0], f"all_duration_{func.__name__}"):
-            getattr(args[0], f"all_duration_{func.__name__}").append(duration)
+        setattr(args[0], f"{func.__name__}_duration", duration)
+        if (
+            hasattr(args[0], f"all_{func.__name__}_duration")
+            and func.__name__ != "__init__"
+        ):
+            getattr(args[0], f"all_{func.__name__}_duration").append(duration)
         else:
-            setattr(args[0], f"all_duration_{func.__name__}", [duration])
+            setattr(args[0], f"all_{func.__name__}_duration", [duration])
 
         return out
 
@@ -227,27 +230,43 @@ class LinOp(metaclass=TimedABCMeta):
         return self.adjoint(point)
 
     def __add__(self, obj: "LinOp") -> "LinOp":
+        """Add `+` a LinOp to return a SumOp"""
         if isinstance(obj, LinOp):
             return SumOp(self, obj)
         raise TypeError("the operand must be a LinOp")
 
-    def __mul__(self, point: ArrOrLinOp) -> ArrOrLinOp:
-        if isinstance(point, LinOp):
-            return ProdOp(self, point)
-        return self.forward(point)
+    def __mul__(self, value: ArrOrLinOp) -> ArrOrLinOp:
+        """Multiply `*` a LinOp or array
+
+        if `value` is a LinOp, return a ProdOp. If `value` is an array, return
+        forward(value).
+
+        """
+        if isinstance(value, LinOp):
+            return ProdOp(self, value)
+        return self.forward(value)
 
     def __rmul__(self, point: array) -> array:
+        """Return x·Aᴴ"""
         return self.adjoint(point)
 
     def __matmul__(self, point: ArrOrLinOp) -> ArrOrLinOp:
+        """Matrix multiply `@` a LinOp or array
+
+        if `value` is a LinOp, return a ProdOp. If `value` is an array, return
+        matvec(value).
+
+        """
         if isinstance(point, LinOp):
             return ProdOp(self, point)
         return self.matvec(point)
 
     def __rmatmul__(self, point: array) -> array:
+        """Return x·Aᴴ as rmatvec(point)"""
         return self.rmatvec(point)
 
     def __call__(self, point: array) -> array:
+        """Return A·x as forward(x)"""
         return self.forward(point)
 
     def __repr__(self):
@@ -257,6 +276,10 @@ class LinOp(metaclass=TimedABCMeta):
 #%%\
 class Adjoint(LinOp):
     """The adjoint `Aᴴ` of a linear operator `A`.
+
+    Adjoint are necessary singleton and
+
+    >>> Adjoint(Adjoint(A)) is A == True
 
     Attributs
     ---------
