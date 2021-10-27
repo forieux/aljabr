@@ -185,8 +185,8 @@ class LinOp(metaclass=TimedABCMeta):
         """
 
         self.name = name
-        self.ishape = ishape
-        self.oshape = oshape
+        self.ishape = tuple(ishape)
+        self.oshape = tuple(oshape)
         self.dtype = dtype
 
     @property
@@ -518,13 +518,17 @@ def get_broadcast_shape(shape_a: Sequence[int], shape_b: Sequence[int]) -> Shape
         shape_a = (len(shape_b) - len(shape_a)) * [1] + shape_a
     shape_b = (len(shape_a) - len(shape_b)) * [1] + shape_b
     out_shape: Shape = tuple()
-    for sha, shb in zip(shape_a, shape_b):
+    for idx, (sha, shb) in enumerate(zip(shape_a, shape_b)):
         if sha == 1 and shb != 1:
             out_shape += (shb,)
         elif shb == 1 and sha != 1:
             out_shape += (sha,)
+        elif sha == shb:
+            out_shape += (sha,)
         elif sha != 1 and shb != 1 and sha != shb:
-            raise ValueError("One of the dimension must equal 1 or both must be equal")
+            raise ValueError(
+                f"The dimensions {idx} must equal 1 or both must be equal (here {sha} and {shb})"
+            )
     return out_shape
 
 
@@ -701,12 +705,12 @@ class Conv(LinOp):
 class DirectConv(LinOp):
     """Direct convolution
 
+    The convolution is performed on the last N axis where N = id.ndim.
+
     Attributes
     ----------
-    imp_resp : array
+    ir : array
         The impulse response.
-    dim : int
-        The last `dim` axis where convolution apply.
 
     Notes
     -----
@@ -724,28 +728,41 @@ class DirectConv(LinOp):
             The impulse response.
         ishape: tuple of int
             The shape of the input array.
-        dim : int
-            The last `dim` axis where convolution apply.
 
         """
+        # oshape = ishape[: len(ishape) - ir.ndim] + ishape[idx] - ir.shape[] + 1
+        self.ir = ir
+        oshape = [
+            ishape[idx]
+            if idx < len(ishape) - len(ir.shape)
+            else ishape[idx] - self._ir.shape[idx] + 1
+            for idx in range(len(ishape))
+        ]
         super().__init__(
             ishape=ishape,
-            oshape=get_broadcast_shape(ishape, ir.shape[:-dim] + ishape[-dim:]),
+            oshape=oshape,
             name=name,
         )
 
-        self.dim = dim
-        self.ir = np.reshape(ir, (len(ishape) - ir.ndim) * (1,) + ir.shape)
+    @property
+    def ir(self):
+        return np.squeeze(self._ir)
+
+    @ir.setter
+    def ir(self, ir: array):
+        # Keep internaly an _ir with (1, ) prepend for convolution on last N
+        # axis since scipy.signal.convolve wants array with same ndim.
+        self._ir = np.reshape(ir, (len(self.ishape) - ir.ndim) * (1,) + ir.shape)
 
     def forward(self, point: array) -> array:
         if hasattr(scipy.signal, "oaconvolve"):
-            return scipy.signal.oaconvolve(point, self.ir, mode="valid")
-        return scipy.signal.convolve(point, self.ir, mode="valid")
+            return scipy.signal.oaconvolve(point, self._ir, mode="valid")
+        return scipy.signal.convolve(point, self._ir, mode="valid")
 
     def adjoint(self, point: array) -> array:
         if hasattr(scipy.signal, "oaconvolve"):
-            return scipy.signal.oaconvolve(point, np.flip(self.ir), mode="full")
-        return scipy.signal.convolve(point, np.flip(self.ir), mode="full")
+            return scipy.signal.oaconvolve(point, np.flip(self._ir), mode="full")
+        return scipy.signal.convolve(point, np.flip(self._ir), mode="full")
 
 
 class FreqFilter(Diag):
