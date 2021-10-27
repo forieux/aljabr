@@ -39,12 +39,13 @@ import time
 from functools import wraps
 from typing import Callable, Optional, Sequence, Tuple, TypeVar, Union
 
-import numpy as np
+import numpy as np  # type: ignore
 import pywt  # type: ignore
+import scipy.signal
 import udft
 # from icecream import ic  # type: ignore
-from numpy import ndarray as array
-from numpy.random import standard_normal as randn
+from numpy import ndarray as array  # type: ignore
+from numpy.random import standard_normal as randn  # type: ignore
 
 __author__ = "François Orieux"
 __copyright__ = "2011, 2021, F. Orieux <francois.orieux@universite-paris-saclay.fr>"
@@ -138,9 +139,12 @@ class _TimedMeta(type):
 TimedABCMeta = type("TimedABCMeta", (abc.ABCMeta, _TimedMeta), {})
 
 
-# class LinOp(metaclass=abc.ABCMeta):
 class LinOp(metaclass=TimedABCMeta):
-    """Base class for linear operator.
+    """An Abstract Base class for linear operator.
+
+    User must implement at least `forward` and `adjoint` methods in their
+    concrete class.
+
 
     Attributs
     ---------
@@ -153,16 +157,30 @@ class LinOp(metaclass=TimedABCMeta):
     osize : int
         The output size.
     shape : tuple of two int.
-        The shape of the operator.
+        The shape of the operator as matrix.
     name : str, optional
         The name of the operator.
     dtype : numpy dtype, optional
-        The dtype of the operator.
+        The dtype of the operator (np.float64 by default).
     H : LinOp
         The Adjoint of the operator.
+
     """
 
     def __init__(self, ishape: Shape, oshape: Shape, name: str = "_", dtype=np.float64):
+        """
+        Parameters
+        ---------
+        ishape : tuple of int
+            The shape of the input.
+        oshape : tuple of int
+            The shape of the output.
+        name : str, optional
+            The name of the operator.
+        dtype : numpy dtype, optional
+            The dtype of the operator (np.float64 by default).
+        """
+
         self.name = name
         self.ishape = ishape
         self.oshape = oshape
@@ -230,7 +248,7 @@ class LinOp(metaclass=TimedABCMeta):
         return self.adjoint(point)
 
     def __add__(self, obj: "LinOp") -> "LinOp":
-        """Add `+` a LinOp to return a SumOp"""
+        """Add (`+ M`) a LinOp to return a SumOp"""
         if isinstance(obj, LinOp):
             return SumOp(self, obj)
         raise TypeError("the operand must be a LinOp")
@@ -239,7 +257,7 @@ class LinOp(metaclass=TimedABCMeta):
         """Multiply `*` a LinOp or array
 
         if `value` is a LinOp, return a ProdOp. If `value` is an array, return
-        forward(value).
+        `forward(value)`.
 
         """
         if isinstance(value, LinOp):
@@ -254,7 +272,7 @@ class LinOp(metaclass=TimedABCMeta):
         """Matrix multiply `@` a LinOp or array
 
         if `value` is a LinOp, return a ProdOp. If `value` is an array, return
-        matvec(value).
+        `matvec(value)`.
 
         """
         if isinstance(point, LinOp):
@@ -296,9 +314,7 @@ class Adjoint(LinOp):
         """The adjoint of `linop`.
 
         If `linop` is alread an `Adjoint` return the `base_linop`."""
-        super().__init__(
-            linop.oshape, linop.ishape, f"Adjoint of {linop.name}", linop.dtype
-        )
+        super().__init__(linop.oshape, linop.ishape, f"{linop.name}.H", linop.dtype)
         self.base_linop = linop
 
     def forward(self, point: array) -> array:
@@ -344,9 +360,9 @@ class FuncLinOp(LinOp):
     def __init__(
         self,
         forward: Callable[[array], array],
+        adjoint: Callable[[array], array],
         ishape: Shape,
         oshape: Shape,
-        adjoint: Callable[[array], array] = None,
         fwadj: Callable[[array], array] = None,
         name: str = "_",
         dtype=np.complex128,
@@ -367,7 +383,8 @@ class FuncLinOp(LinOp):
     def fwadj(self, point: array) -> array:
         if self._fwadj is not None:
             return self._fwadj(point)
-        raise NotImplementedError("try to call `fwadj` but not provided.")
+        else:
+            return self._adjoint(self._forward(point))
 
 
 class ProdOp(LinOp):
@@ -384,7 +401,7 @@ class ProdOp(LinOp):
         """
         if left.ishape != right.oshape:
             raise ValueError("`left` input shape must equal `right` output shape")
-        super().__init__(right.ishape, left.oshape, name=f"{left.name} × {right.name})")
+        super().__init__(right.ishape, left.oshape, name=f"{left.name} × {right.name}")
         self.left = left
         self.right = right
 
@@ -416,7 +433,7 @@ class SumOp(LinOp):
         super().__init__(
             left.ishape,
             left.oshape,
-            name=f"{left.name} + {right.name})",
+            name=f"{left.name} + {right.name}",
             dtype=left.dtype,
         )
         self.left = left
@@ -435,13 +452,18 @@ def asmatrix(linop: LinOp) -> array:
 
     Computing the matrix is heavy since it's involve the application of the
     forward callable to `N` unit vectors with `N` the size of the input vector.
+
+    Parameters
+    ----------
+    linop: LinOp
+        The linear operator to represent as matrix
     """
     inarray = np.empty((linop.isize, 1))
     matrix = np.empty(linop.shape, dtype=linop.dtype)
     for idx in range(linop.isize):
         inarray.fill(0)
         inarray[idx] = 1
-        matrix[:, idx] = linop.matvec(inarray.reshape(linop.ishape))
+        matrix[:, idx] = linop.matvec(inarray)
     return matrix
 
 
@@ -468,7 +490,10 @@ def dottest(linop: LinOp, num: int = 1, rtol: float = 1e-5, atol: float = 1e-8) 
 
     Notes
     -----
-    The `u` and `v` vectors passed to `linop` are Numpy arrays.
+
+    The `u` and `v` vectors passed to `linop` are 1D random float Numpy arrays
+    and the function use the `matvec` and `rmatvec` methods of linop.
+
     """
     test = True
     for _ in range(num):
@@ -504,7 +529,7 @@ def get_broadcast_shape(shape_a: Sequence[int], shape_b: Sequence[int]) -> Shape
 class Identity(LinOp):
     """Identity operator of specific shape"""
 
-    def __init__(self, shape: Shape, name: str = "_"):
+    def __init__(self, shape: Shape, name: str = "I"):
         """The identity operator.
 
         Parameters
@@ -524,7 +549,7 @@ class Identity(LinOp):
 class Diag(LinOp):
     """Diagonal operator."""
 
-    def __init__(self, diag: array, name: str = "_"):
+    def __init__(self, diag: array, name: str = "D"):
         """A diagonal operator.
 
         Parameters
@@ -533,17 +558,17 @@ class Diag(LinOp):
             The diagonal of the operator. Input and output must of the same shape.
         """
         super().__init__(diag.shape, diag.shape, name=name)
-        self._diag = diag
+        self.diag = diag
         self.dtype = diag.dtype
 
     def forward(self, point: array) -> array:
-        return self._diag * point
+        return self.diag * point
 
     def adjoint(self, point: array) -> array:
-        return self._diag.conj() * point
+        return np.conj(self.diag) * point
 
     def fwadj(self, point: array) -> array:
-        return np.abs(self._diag) ** 2 * point
+        return np.abs(self.diag) ** 2 * point
 
 
 #%% \
@@ -606,6 +631,8 @@ class Conv(LinOp):
         The impulse response.
     freq_resp : array
         The frequency response.
+    dim : int
+        The last `dim` axis where convolution apply.
 
     Notes
     -----
@@ -615,9 +642,7 @@ class Conv(LinOp):
 
     """
 
-    def __init__(
-        self, ir: array, ishape: Shape, dim: int, name: str = "_", dtype=np.float64
-    ):
+    def __init__(self, ir: array, ishape: Shape, dim: int, name: str = "Conv"):
         """ND convolution on last `N` axis.
 
         Parameters
@@ -631,10 +656,9 @@ class Conv(LinOp):
 
         """
         super().__init__(
-            ishape,
-            get_broadcast_shape(ishape, ir.shape[:-dim] + ishape[-dim:]),
-            name,
-            dtype,
+            ishape=ishape,
+            oshape=get_broadcast_shape(ishape, ir.shape[:-dim] + ishape[-dim:]),
+            name=name,
         )
 
         self.dim = dim
@@ -671,6 +695,100 @@ class Conv(LinOp):
         return self._idft(self._dft(out) * self.freq_resp.conj())
 
 
+class DirectConv(LinOp):
+    """Direct convolution
+
+    Attributes
+    ----------
+    imp_resp : array
+        The impulse response.
+    dim : int
+        The last `dim` axis where convolution apply.
+
+    Notes
+    -----
+    Use Overlap-Add method from `scipy.signal.oaconvolve` if available or
+    `convolve` otherwise. Convolution are performed on the last axes.
+
+    """
+
+    def __init__(self, ir: array, ishape: Shape, dim: int, name: str = "DConv"):
+        """Direct convolution
+
+        Parameters
+        ----------
+        ir : array
+            The impulse response.
+        ishape: tuple of int
+            The shape of the input array.
+        dim : int
+            The last `dim` axis where convolution apply.
+
+        """
+        super().__init__(
+            ishape=ishape,
+            oshape=get_broadcast_shape(ishape, ir.shape[:-dim] + ishape[-dim:]),
+            name=name,
+        )
+
+        self.dim = dim
+        self.ir = np.reshape(ir, (len(ishape) - ir.ndim) * (1,) + ir.shape)
+
+    def forward(self, point: array) -> array:
+        if hasattr(scipy.signal, "oaconvolve"):
+            return scipy.signal.oaconvolve(point, self.ir, mode="valid")
+        return scipy.signal.convolve(point, self.ir, mode="valid")
+
+    def adjoint(self, point: array) -> array:
+        if hasattr(scipy.signal, "oaconvolve"):
+            return scipy.signal.oaconvolve(point, np.flip(self.ir), mode="full")
+        return scipy.signal.convolve(point, np.flip(self.ir), mode="full")
+
+
+class FreqFilter(Diag):
+    """Frequency filter in Fourier space
+
+    Attributes
+    ----------
+    freq_resp: array
+        The frequency response of the filter
+
+    Notes
+    -----
+    Almost like diagonal but suppose complex Fourier space"""
+
+    def __init__(self, ir: array, ishape: Shape, name: str = "Filter"):
+        super().__init__(udft.ir2fr(ir, ishape), ishape, name=name, dtype=np.complex128)
+
+
+class CircConv(LinOp):
+    """Circulant convolution"""
+
+    def __init__(self, imp_resp: array, shape: Shape, name: str = "CConv"):
+        super().__init__(ishape=shape, oshape=shape, name=name)
+        self.imp_resp = imp_resp
+        self.ffilter = Diag(udft.ir2fr(imp_resp, shape))
+
+    @property
+    def freq_resp(self):
+        return self.ffilter.diag
+
+    def _dft(self, arr):
+        return udft.rdftn(arr, len(self.ishape))
+
+    def _idft(self, arr):
+        return udft.irdftn(arr, self.oshape)
+
+    def forward(self, point: array) -> array:
+        return self._idft(self.ffilter.forward(self._dft(point)))
+
+    def adjoint(self, point: array) -> array:
+        return self._idft(self.ffilter.adjoint(self._dft(point)))
+
+    def fwadj(self, point: array) -> array:
+        return self._idft(self.ffilter.fwadj(self._dft(point)))
+
+
 class Diff(LinOp):
     """Difference operator.
 
@@ -687,7 +805,7 @@ class Diff(LinOp):
 
     """
 
-    def __init__(self, axis: int, ishape: Shape, name: str = "_"):
+    def __init__(self, axis: int, ishape: Shape, name: str = "Diff"):
         """First-order differences operator.
 
         Parameters
@@ -744,7 +862,7 @@ class DWT(LinOp):
         shape: Shape,
         level: Optional[int] = None,
         wavelet: str = "haar",
-        name: str = "dwt",
+        name: str = "DWT",
     ):
         """Unitary Discrete Wavelet Transform.
 
@@ -781,20 +899,20 @@ class DWT(LinOp):
 
 
 class Analysis(LinOp):
-    """Analysis operator with stationary wavelet decomposition."""
+    """2D analysis operator with stationary wavelet decomposition."""
 
     def __init__(
         self,
-        shape: Shape,
+        shape: Tuple[int, int],
         level: int,
         wavelet: str = "haar",
         name: str = "Analysis",
     ):
-        """Analysis operator with stationary wavelet decomposition.
+        """2D analysis operator with stationary wavelet decomposition.
 
         Parameters
         ----------
-        shape : tuple of int
+        shape : tuple of (int, int)
             The input shape.
         level : int
             The decomposition level.
@@ -811,20 +929,22 @@ class Analysis(LinOp):
         coeffs = pywt.swt2(
             point, wavelet=self.wlt, level=self.lvl, norm=True, trim_approx=True
         )
-        return self._coeffs2array(coeffs)
+        return self.coeffs2array(coeffs)
 
     def adjoint(self, point: array) -> array:
-        return pywt.iswt2(self._array2coeffs(point), self.wlt, norm=True)
+        return pywt.iswt2(self.array2coeffs(point), self.wlt, norm=True)
 
-    def _array2coeffs(self, point: array):
+    def array2coeffs(self, point: array):
         split = np.split(point, 3 * self.lvl + 1, axis=1)
-        clist = [split[0]]
+        coeffs_list = [split[0]]
         for lvl in range(self.lvl):
-            clist.append([split[3 * lvl + 1], split[3 * lvl + 2], split[3 * lvl + 3]])
-        return clist
+            coeffs_list.append(
+                [split[3 * lvl + 1], split[3 * lvl + 2], split[3 * lvl + 3]]
+            )
+        return coeffs_list
 
     @staticmethod
-    def _coeffs2array(coeffs) -> array:
+    def coeffs2array(coeffs) -> array:
         clist = [coeffs[0]]
         for coeff in coeffs[1:]:
             clist.extend([coeff[0], coeff[1], coeff[2]])
@@ -832,30 +952,28 @@ class Analysis(LinOp):
 
 
 class Synthesis(LinOp):
-    """Synthesis operator with stationary wavelet decomposition."""
+    """2D synthesis operator with stationary wavelet decomposition."""
 
     def __init__(
         self,
-        shape: Shape,
+        shape: Tuple[int, int],
         level: int,
         wavelet: str = "haar",
         name: str = "Synthesis",
     ):
-        """Analysis operator with stationary wavelet decomposition.
+        """2D synthesis operator with stationary wavelet decomposition.
 
         Parameters
         ----------
-        shape : tuple of int
+        shape : tuple of (int, int)
             The input shape.
         level : int
             The decomposition level.
         wavelet : str, optional
             The wavelet to use.
         """
-        self.analysis = Analysis(shape, level, wavelet, f"{name} adj.")
-        super().__init__(
-            self.analysis.oshape, self.analysis.ishape, name, dtype=np.float64
-        )
+        self.analysis = Analysis(shape, level, wavelet, name)
+        super().__init__(self.analysis.oshape, self.analysis.ishape, name)
         self.wlt = self.analysis.wlt
         self.lvl = self.analysis.lvl
 
