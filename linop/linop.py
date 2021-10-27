@@ -719,7 +719,7 @@ class DirectConv(LinOp):
 
     """
 
-    def __init__(self, ir: array, ishape: Shape, dim: int, name: str = "DConv"):
+    def __init__(self, ir: array, ishape: Shape, name: str = "DConv"):
         """Direct convolution
 
         Parameters
@@ -730,12 +730,10 @@ class DirectConv(LinOp):
             The shape of the input array.
 
         """
-        # oshape = ishape[: len(ishape) - ir.ndim] + ishape[idx] - ir.shape[] + 1
-        self.ir = ir
         oshape = [
             ishape[idx]
             if idx < len(ishape) - len(ir.shape)
-            else ishape[idx] - self._ir.shape[idx] + 1
+            else ishape[idx] - ir.shape[idx - (len(ishape) - len(ir.shape))] + 1
             for idx in range(len(ishape))
         ]
         super().__init__(
@@ -743,6 +741,7 @@ class DirectConv(LinOp):
             oshape=oshape,
             name=name,
         )
+        self.ir = ir
 
     @property
     def ir(self):
