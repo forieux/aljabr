@@ -78,8 +78,8 @@ __all__ = [
     "FreqFilter",
     "Diff",
     "DWT",
-    "Analysis",
-    "Synthesis",
+    "Analysis2",
+    "Synthesis2",
 ]
 
 Shape = Tuple[int, ...]
@@ -957,7 +957,7 @@ class DWT(LinOp):
         )
 
 
-class Analysis(LinOp):
+class Analysis2(LinOp):
     """2D analysis operator with stationary wavelet decomposition."""
 
     def __init__(
@@ -965,7 +965,7 @@ class Analysis(LinOp):
         shape: Tuple[int, int],
         level: int,
         wavelet: str = "haar",
-        name: str = "Analysis",
+        name: str = "A",
     ):
         """2D analysis operator with stationary wavelet decomposition.
 
@@ -978,9 +978,8 @@ class Analysis(LinOp):
         wavelet : str, optional
             The wavelet to use.
         """
-        super().__init__(
-            shape, (2 * shape[0], 2 * level * shape[1]), name, dtype=np.float64
-        )
+        # alternative oshape: (shape[0], (3 * level + 1) * shape[1])
+        super().__init__(shape, (3 * level + 1,) + shape, name, dtype=np.float64)
         self.wlt = wavelet
         self.lvl = level
 
@@ -988,12 +987,40 @@ class Analysis(LinOp):
         coeffs = pywt.swt2(
             point, wavelet=self.wlt, level=self.lvl, norm=True, trim_approx=True
         )
-        return self.coeffs2array(coeffs)
+        return self.coeffs2cube(coeffs)
 
     def adjoint(self, point: array) -> array:
-        return pywt.iswt2(self.array2coeffs(point), self.wlt, norm=True)
+        return pywt.iswt2(self.cube2coeffs(point), self.wlt, norm=True)
 
-    def array2coeffs(self, point: array):
+    def cube2coeffs(self, point: array) -> array:
+        """Return pywt coefficients from 3D array"""
+        split = np.split(point, 3 * self.lvl + 1, axis=0)
+        coeffs_list = [np.squeeze(split[0])]
+        for lvl in range(self.lvl):
+            coeffs_list.append(
+                [
+                    np.squeeze(split[3 * lvl + 1]),
+                    np.squeeze(split[3 * lvl + 2]),
+                    np.squeeze(split[3 * lvl + 3]),
+                ]
+            )
+        return coeffs_list
+
+    @staticmethod
+    def coeffs2cube(coeffs) -> array:
+        """Return 3D array from pywt coefficients"""
+        clist = [coeffs[0][np.newaxis, ...]]
+        for coeff in coeffs[1:]:
+            clist.extend(
+                [
+                    coeff[0][np.newaxis, ...],
+                    coeff[1][np.newaxis, ...],
+                    coeff[2][np.newaxis, ...],
+                ]
+            )
+        return np.concatenate(clist, axis=0)
+
+    def im2coeffs(self, point: array):
         split = np.split(point, 3 * self.lvl + 1, axis=1)
         coeffs_list = [split[0]]
         for lvl in range(self.lvl):
@@ -1003,14 +1030,22 @@ class Analysis(LinOp):
         return coeffs_list
 
     @staticmethod
-    def coeffs2array(coeffs) -> array:
+    def coeffs2im(coeffs) -> array:
         clist = [coeffs[0]]
         for coeff in coeffs[1:]:
             clist.extend([coeff[0], coeff[1], coeff[2]])
         return np.concatenate(clist, axis=1)
 
+    def get_irs(self):
+        iarr = np.zeros(self.ishape)
+        iarr[0, 0] = 1
+        return self.forward(iarr)
 
-class Synthesis(LinOp):
+    def get_tfs(self):
+        return np.ascontiguousarray(np.fft.rfftn(self.get_irs(), self.ishape))
+
+
+class Synthesis2(LinOp):
     """2D synthesis operator with stationary wavelet decomposition."""
 
     def __init__(
@@ -1018,7 +1053,7 @@ class Synthesis(LinOp):
         shape: Tuple[int, int],
         level: int,
         wavelet: str = "haar",
-        name: str = "Synthesis",
+        name: str = "S",
     ):
         """2D synthesis operator with stationary wavelet decomposition.
 
@@ -1031,7 +1066,7 @@ class Synthesis(LinOp):
         wavelet : str, optional
             The wavelet to use.
         """
-        self.analysis = Analysis(shape, level, wavelet, name)
+        self.analysis = Analysis2(shape, level, wavelet)
         super().__init__(self.analysis.oshape, self.analysis.ishape, name)
         self.wlt = self.analysis.wlt
         self.lvl = self.analysis.lvl
@@ -1041,6 +1076,28 @@ class Synthesis(LinOp):
 
     def adjoint(self, point: array) -> array:
         return self.analysis.forward(point)
+
+    def cube2coeffs(self, point: array) -> array:
+        """Return pywt coefficients from 3D array"""
+        return self.analysis.cube2coeffs(point)
+
+    def coeffs2cube(self, coeffs) -> array:
+        """Return 3D array from pywt coefficients"""
+        return self.analysis.coeffs2cube(coeffs)
+
+    def im2coeffs(self, point: array):
+        """Return pywt coefficients from image"""
+        return self.analysis.im2coeffs(point)
+
+    def coeffs2im(self, coeffs) -> array:
+        """Return image from pywt coefficients"""
+        return self.analysis.coeffs2im(coeffs)
+
+    def get_irs(self):
+        return np.flip(self.analysis.get_irs(), axis=(1, 2))
+
+    def get_tfs(self):
+        return np.conj(self.analysis.get_tfs())
 
 
 # Local Variables:
