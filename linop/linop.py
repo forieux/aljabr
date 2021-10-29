@@ -506,7 +506,7 @@ def asmatrix(linop: LinOp) -> array:
     for idx in range(linop.isize):
         inarray.fill(0)
         inarray[idx] = 1
-        matrix[:, idx] = linop.matvec(inarray)
+        matrix[:, idx] = linop.matvec(inarray).ravel()
     return matrix
 
 
