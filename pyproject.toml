@@ -16,6 +16,7 @@ classifiers = [
     "Operating System :: OS Independent",
     "Programming Language :: Python :: Implementation :: CPython",
     "Typing :: Typed",]
+include = ["py.typed", "LICENSE"]
 
 [tool.poetry.urls]
 "Bug Tracker" = "https://github.com/forieux/qmm/issues"
@@ -39,3 +40,9 @@ matplotlib = "^3.4.3"
 [build-system]
 requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.pylint.messages_control]
+max-parents = 10
+disable = [
+  "bad-continuation",
+  "line-too-long", ]
