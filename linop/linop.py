@@ -36,6 +36,7 @@ matrix. It provides base classes, common operators, and some specialised ones.
 
 import abc
 import time
+import warnings
 from functools import wraps
 from typing import Callable, Optional, Sequence, Tuple, TypeVar, Union
 
@@ -107,23 +108,60 @@ def _timeit(func):
 
     @wraps(func)
     def composite(*args, **kwargs):
+        self = args[0]
+
         timestamp = time.time()
         out = func(*args, **kwargs)
         duration = time.time() - timestamp
 
-        setattr(args[0], f"{func.__name__}_duration", duration)
+        setattr(self, f"{func.__name__}_last_duration", duration)
         if (
-            hasattr(args[0], f"all_{func.__name__}_duration")
+            hasattr(self, f"all_{func.__name__}_duration")
             and func.__name__ != "__init__"
         ):
-            getattr(args[0], f"all_{func.__name__}_duration").append(duration)
+            getattr(self, f"all_{func.__name__}_duration").append(duration)
         else:
-            setattr(args[0], f"all_{func.__name__}_duration", [duration])
+            setattr(self, f"all_{func.__name__}_duration", [duration])
 
         return out
 
     # Return our composite function
     return composite
+
+
+def checkshape(func):
+    """Decorator to warn about input and output shape of forward, ajoint and fwadj."""
+
+    @wraps(func)
+    def wrapped(self, inarray):
+        if func.__name__ in ("forward", "fwadj") and inarray.shape != self.ishape:
+            warnings.warn(
+                f"Input shape {inarray.shape} from `{self.name}.{func.__name__}` "
+                f"does not equal {self.name}.ishape={self.ishape}"
+            )
+        elif func.__name__ in ("adjoint") and inarray.shape != self.oshape:
+            warnings.warn(
+                f"Input shape {inarray.shape} from `{self.name}.{func.__name__}` "
+                f"does not equal {self.name}.oshape={self.oshape}"
+            )
+
+        outarray = func(self, inarray)
+
+        if func.__name__ in ("forward") and outarray.shape != self.oshape:
+            warnings.warn(
+                f"Output shape {outarray.shape} from `{self.name}.{func.__name__}` "
+                f"does not equal {self.name}.oshape={self.oshape}"
+            )
+        elif func.__name__ in ("adjoint", "fwadj") and outarray.shape != self.ishape:
+            warnings.warn(
+                f"Output shape {outarray.shape} from `{self.name}.{func.__name__}` "
+                f"does not equal {self.name}.ishape={self.ishape}"
+            )
+
+        return outarray
+
+    # Return our composite function
+    return wrapped
 
 
 class _TimedMeta(type):
@@ -135,6 +173,8 @@ class _TimedMeta(type):
         for name, value in vars(clsobj).items():
             if callable(value) and name in ("__init__", "forward", "adjoint", "fwadj"):
                 setattr(clsobj, name, _timeit(value))
+            if callable(value) and name in ("forward", "adjoint", "fwadj"):
+                setattr(clsobj, name, checkshape(value))
 
         return clsobj
 
