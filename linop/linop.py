@@ -358,27 +358,27 @@ class Adjoint(LinOp):
 
     Attributs
     ---------
-    base_linop: LinOp
+    orig_linop: LinOp
         The base linear operator.
     """
 
     def __new__(cls, linop: LinOp):
         if isinstance(linop, Adjoint):
-            return linop.base_linop
+            return linop.orig_linop
         return super().__new__(cls)
 
     def __init__(self, linop: LinOp):
         """The adjoint of `linop`.
 
-        If `linop` is alread an `Adjoint` return the `base_linop`."""
-        super().__init__(linop.oshape, linop.ishape, f"{linop.name}.H", linop.dtype)
-        self.base_linop = linop
+        If `linop` is alread an `Adjoint` return the `orig_linop`."""
+        super().__init__(linop.oshape, linop.ishape, f"{linop.name}ᴴ", linop.dtype)
+        self.orig_linop = linop
 
     def forward(self, point: array) -> array:
-        return self.base_linop.adjoint(point)
+        return self.orig_linop.adjoint(point)
 
     def adjoint(self, point: array) -> array:
-        return self.base_linop.forward(point)
+        return self.orig_linop.forward(point)
 
 
 class Explicit(LinOp):
@@ -440,8 +440,7 @@ class FuncLinOp(LinOp):
     def fwadj(self, point: array) -> array:
         if self._fwadj is not None:
             return self._fwadj(point)
-        else:
-            return self._adjoint(self._forward(point))
+        return self._adjoint(self._forward(point))
 
 
 class ProdOp(LinOp):
