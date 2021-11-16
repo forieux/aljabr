@@ -442,8 +442,10 @@ class ProdOp(LinOp):
             The right operator.
         """
         if left.ishape != right.oshape:
-            raise ValueError("`left` input shape must equal `right` output shape")
-        super().__init__(right.ishape, left.oshape, name=f"{left.name} × {right.name}")
+            warnings.warn("`left` input shape must equal `right` output shape")
+        super().__init__(
+            right.ishape, left.oshape, name=f"({left.name} · {right.name})"
+        )
         self.left = left
         self.right = right
 
@@ -475,7 +477,7 @@ class SumOp(LinOp):
         super().__init__(
             left.ishape,
             left.oshape,
-            name=f"{left.name} + {right.name}",
+            name=f"({left.name} + {right.name})",
             dtype=left.dtype,
         )
         self.left = left
@@ -809,6 +811,7 @@ class CircConv(LinOp):
 
     @property
     def freq_resp(self):
+        """The frequency response"""
         return self.ffilter.diag
 
     def _dft(self, arr):
@@ -1000,6 +1003,7 @@ class Analysis2(LinOp):
         return np.concatenate(clist, axis=0)
 
     def im2coeffs(self, point: array):
+        """Return pywt coefficients from an image array"""
         split = np.split(point, 3 * self.lvl + 1, axis=1)
         coeffs_list = [split[0]]
         for lvl in range(self.lvl):
@@ -1010,18 +1014,21 @@ class Analysis2(LinOp):
 
     @staticmethod
     def coeffs2im(coeffs) -> array:
+        """Return an image array from pywt coefficients"""
         clist = [coeffs[0]]
         for coeff in coeffs[1:]:
             clist.extend([coeff[0], coeff[1], coeff[2]])
         return np.concatenate(clist, axis=1)
 
     def get_irs(self):
+        """Return the impulse response of each band"""
         iarr = np.zeros(self.ishape)
         iarr[0, 0] = 1
         return self.forward(iarr)
 
-    def get_tfs(self):
-        return np.ascontiguousarray(np.fft.rfftn(self.get_irs(), self.ishape))
+    def get_frs(self):
+        """Return the frequency response of each band"""
+        return np.ascontiguousarray(np.fft.rfftn(self.get_irs(), self.ishape[-2:]))
 
 
 class Synthesis2(LinOp):
@@ -1075,8 +1082,9 @@ class Synthesis2(LinOp):
     def get_irs(self):
         return np.flip(self.analysis.get_irs(), axis=(1, 2))
 
-    def get_tfs(self):
-        return np.conj(self.analysis.get_tfs())
+    def get_frs(self):
+        # return np.conj(self.analysis.get_frs())
+        return np.ascontiguousarray(np.fft.rfftn(self.get_irs(), self.ishape[-2:]))
 
 
 # Local Variables:
