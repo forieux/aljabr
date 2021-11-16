@@ -42,7 +42,7 @@ from typing import Callable, Optional, Sequence, Tuple, TypeVar, Union
 
 import numpy as np  # type: ignore
 import pywt  # type: ignore
-import scipy.signal
+import scipy.signal  # type: ignore
 import udft
 # from icecream import ic  # type: ignore
 from numpy import ndarray as array  # type: ignore
@@ -250,8 +250,8 @@ class LinOp(metaclass=TimedABCMeta):
         return 2
 
     @property
-    def H(self) -> "LinOp":
-        """Return the adjoint `Aᴴ` as a ``LinOp``."""
+    def H(self) -> "LinOp":  # pylint: disable=invalid-name
+        """Return the adjoint `Aᴴ` as a `LinOp`."""
         return Adjoint(self)
 
     @abc.abstractmethod
@@ -781,14 +781,15 @@ class DirectConv(LinOp):
             oshape=oshape,
             name=name,
         )
-        self.ir = ir
+        self.ir = ir  # pylint: disable=invalid-name
 
     @property
-    def ir(self):
+    def ir(self):  # pylint: disable=invalid-name
+        """The impulse response"""
         return np.squeeze(self._ir)
 
     @ir.setter
-    def ir(self, ir: array):
+    def ir(self, ir: array):  # pylint: disable=invalid-name
         # Keep internaly an _ir with (1, ) prepend for convolution on last N
         # axis since scipy.signal.convolve wants array with same ndim.
         self._ir = np.reshape(ir, (len(self.ishape) - ir.ndim) * (1,) + ir.shape)
