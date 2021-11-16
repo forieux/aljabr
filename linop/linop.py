@@ -598,9 +598,8 @@ class Diag(LinOp):
         diag : array
             The diagonal of the operator. Input and output must of the same shape.
         """
-        super().__init__(diag.shape, diag.shape, name=name)
+        super().__init__(diag.shape, diag.shape, name=name, dtype=diag.dtype)
         self.diag = diag
-        self.dtype = diag.dtype
 
     def forward(self, point: array) -> array:
         return self.diag * point
@@ -764,12 +763,14 @@ class DirectConv(LinOp):
             The shape of the input array.
 
         """
-        oshape = [
-            ishape[idx]
-            if idx < len(ishape) - len(ir.shape)
-            else ishape[idx] - ir.shape[idx - (len(ishape) - len(ir.shape))] + 1
-            for idx in range(len(ishape))
-        ]
+        oshape = tuple(
+            [
+                ishape[idx]
+                if idx < len(ishape) - len(ir.shape)
+                else ishape[idx] - ir.shape[idx - (len(ishape) - len(ir.shape))] + 1
+                for idx in range(len(ishape))
+            ]
+        )
         super().__init__(
             ishape=ishape,
             oshape=oshape,
@@ -812,7 +813,7 @@ class FreqFilter(Diag):
     Almost like diagonal but suppose complex Fourier space"""
 
     def __init__(self, ir: array, ishape: Shape, name: str = "Filter"):
-        super().__init__(udft.ir2fr(ir, ishape), ishape, name=name, dtype=np.complex128)
+        super().__init__(udft.ir2fr(ir, ishape), name=name)
 
 
 class CircConv(LinOp):
