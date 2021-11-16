@@ -106,7 +106,7 @@ def _timeit(func):
     """Decorator to time the execution of methods (first argument must be self)"""
 
     @wraps(func)
-    def composite(*args, **kwargs):
+    def timed(*args, **kwargs):
         self = args[0]
 
         timestamp = time.time()
@@ -124,15 +124,15 @@ def _timeit(func):
 
         return out
 
-    # Return our composite function
-    return composite
+    # Return our timed function
+    return timed
 
 
 def checkshape(func):
     """Decorator to warn about input and output shape of forward, ajoint and fwadj."""
 
     @wraps(func)
-    def wrapped(self, inarray):
+    def shape_checked(self, inarray):
         if func.__name__ in ("forward", "fwadj") and inarray.shape != self.ishape:
             warnings.warn(
                 f"Input shape {inarray.shape} from `{self.name}.{func.__name__}` "
@@ -159,8 +159,8 @@ def checkshape(func):
 
         return outarray
 
-    # Return our composite function
-    return wrapped
+    # Return our shape checked function
+    return shape_checked
 
 
 class _TimedMeta(type):
@@ -170,15 +170,19 @@ class _TimedMeta(type):
         clsobj = super().__new__(cls, clsname, bases, clsdict)
 
         for name, value in vars(clsobj).items():
-            if callable(value) and name in ("__init__", "forward", "adjoint", "fwadj"):
+            # if name in ("__init__", "forward", "adjoint", "fwadj"):
+            #     setattr(clsobj, name, _timeit(value))
+            # if name in ("forward", "adjoint", "fwadj"):
+            #     setattr(clsobj, name, checkshape(value))
+            if name in ("__init__"):
                 setattr(clsobj, name, _timeit(value))
-            if callable(value) and name in ("forward", "adjoint", "fwadj"):
-                setattr(clsobj, name, checkshape(value))
+            if name in ("forward", "adjoint", "fwadj"):
+                setattr(clsobj, name, checkshape(_timeit(value)))
 
         return clsobj
 
 
-TimedABCMeta = type("TimedABCMeta", (abc.ABCMeta, _TimedMeta), {})
+TimedABCMeta = type("TimedABCMeta", (_TimedMeta, abc.ABCMeta), {})
 
 
 class LinOp(metaclass=TimedABCMeta):
