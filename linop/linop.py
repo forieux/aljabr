@@ -289,10 +289,15 @@ class LinOp(metaclass=TimedABCMeta):
         """Apply the adjoint, i.e. `Aᴴ` operator."""
         return self.adjoint(point)
 
-    def __add__(self, obj: "LinOp") -> "LinOp":
-        """Add (`+ M`) a LinOp to return a SumOp"""
-        if isinstance(obj, LinOp):
-            return SumOp(self, obj)
+    def __add__(self, value: "LinOp") -> "LinOp":
+        """Add (as `+`) a `LinOp` to return a `SumOp`"""
+        # if isinstance(value, value):
+        if (
+            hasattr(value, "forward")
+            and hasattr(value, "adjoint")
+            and hasattr(value, "fwadj")
+        ):
+            return SumOp(self, value)
         raise TypeError("the operand must be a LinOp")
 
     def __mul__(self, value: ArrOrLinOp) -> ArrOrLinOp:
@@ -302,7 +307,12 @@ class LinOp(metaclass=TimedABCMeta):
         `forward(value)`.
 
         """
-        if isinstance(value, LinOp):
+        # if isinstance(value, LinOp):
+        if (
+            hasattr(value, "forward")
+            and hasattr(value, "adjoint")
+            and hasattr(value, "fwadj")
+        ):
             return ProdOp(self, value)
         return self.forward(value)
 
@@ -310,16 +320,21 @@ class LinOp(metaclass=TimedABCMeta):
         """Return x·Aᴴ"""
         return self.adjoint(point)
 
-    def __matmul__(self, point: ArrOrLinOp) -> ArrOrLinOp:
+    def __matmul__(self, value: ArrOrLinOp) -> ArrOrLinOp:
         """Matrix multiply `@` a LinOp or array
 
         if `value` is a LinOp, return a ProdOp. If `value` is an array, return
         `matvec(value)`.
 
         """
-        if isinstance(point, LinOp):
-            return ProdOp(self, point)
-        return self.matvec(point)
+        # if isinstance(value, LinOp):
+        if (
+            hasattr(value, "forward")
+            and hasattr(value, "adjoint")
+            and hasattr(value, "fwadj")
+        ):
+            return ProdOp(self, value)
+        return self.matvec(value)
 
     def __rmatmul__(self, point: array) -> array:
         """Return x·Aᴴ as rmatvec(point)"""
