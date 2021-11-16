@@ -67,7 +67,6 @@ __all__ = [
     "SumOp",
     "asmatrix",
     "dottest",
-    "get_broadcast_shape",
     "Identity",
     "Diag",
     "DFT",
@@ -551,27 +550,6 @@ def dottest(linop: LinOp, num: int = 1, rtol: float = 1e-5, atol: float = 1e-8) 
     return test
 
 
-def get_broadcast_shape(shape_a: Sequence[int], shape_b: Sequence[int]) -> Shape:
-    """Return the shape of the broacasted result"""
-    shape_a, shape_b = list(shape_a), list(shape_b)
-    if len(shape_a) < len(shape_b):
-        shape_a = (len(shape_b) - len(shape_a)) * [1] + shape_a
-    shape_b = (len(shape_a) - len(shape_b)) * [1] + shape_b
-    out_shape: Shape = tuple()
-    for idx, (sha, shb) in enumerate(zip(shape_a, shape_b)):
-        if sha == 1 and shb != 1:
-            out_shape += (shb,)
-        elif shb == 1 and sha != 1:
-            out_shape += (sha,)
-        elif sha == shb:
-            out_shape += (sha,)
-        elif sha != 1 and shb != 1 and sha != shb:
-            raise ValueError(
-                f"The dimensions {idx} must equal 1 or both must be equal (here {sha} and {shb})"
-            )
-    return out_shape
-
-
 #%% \
 class Identity(LinOp):
     """Identity operator of specific shape"""
@@ -704,7 +682,7 @@ class Conv(LinOp):
         """
         super().__init__(
             ishape=ishape,
-            oshape=get_broadcast_shape(ishape, ir.shape[:-dim] + ishape[-dim:]),
+            oshape=np.broadcast_shapes(ishape, ir.shape[:-dim] + ishape[-dim:]),
             name=name,
         )
 
