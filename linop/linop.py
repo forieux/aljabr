@@ -27,10 +27,11 @@
 """The ``linop`` module
 ====================
 
-This module implement implicit linear operator. It is wrapper around callables
-or functions for ease of use as linear operator and more expressiveness. For
-instance, it can wraps the `fft()` function, giving the impression that it is a
-matrix. It provides base classes, common operators, and some specialised ones.
+This module implements an interface for implicit linear operator. It is mostly
+an empty shell, a wrapper around callables or functions for ease of use as
+linear operator and more expressiveness. For instance, it can wraps the `fft()`
+function, giving the impression that it is a matrix. It provides base classes,
+common concrete operators, and some specialised ones.
 
 """
 
@@ -76,6 +77,7 @@ __all__ = [
     "CircConv",
     "FreqFilter",
     "Diff",
+    "Diff2",
     "DWT",
     "Analysis2",
     "Synthesis2",
@@ -86,24 +88,25 @@ ArrOrSeq = Union[array, Sequence[array]]
 ArrOrLinOp = TypeVar("ArrOrLinOp", array, "LinOp")
 
 
-def _vect(point: ArrOrSeq) -> array:
+def vectorize(point: ArrOrSeq) -> array:
+    """Vectorize an array or list of array as column vector"""
     if isinstance(point, array):
         return np.reshape(point, (-1, 1))
     return np.concatenate((arr.reshape((-1, 1)) for arr in point), axis=0)
 
 
-def _unvect(point: array, shapes: Union[Shape, Sequence[Shape]]) -> ArrOrSeq:
+def unvectorize(point: array, shapes: Union[Shape, Sequence[Shape]]) -> ArrOrSeq:
+    """Unvectorize a column vector as an array or list of array"""
     if isinstance(shapes[0], tuple):
         idxs = np.cumsum([0] + [int(np.prod(s)) for s in shapes])
         return [
-            np.reshape(point[idxs[i] : idxs[i + 1]], s)  # type: ignore
-            for i, s in enumerate(shapes)
+            np.reshape(point[idxs[i] : idxs[i + 1]], s) for i, s in enumerate(shapes)
         ]
-    return np.reshape(point, shapes)  # type: ignore
+    return np.reshape(point, shapes)
 
 
-def _timeit(func):
-    """Decorator to time the execution of methods (first argument must be self)"""
+def timeit(func):
+    """Decorator to time the execution of methods (first argument must be `self`)"""
 
     @wraps(func)
     def timed(*args, **kwargs):
@@ -163,26 +166,22 @@ def checkshape(func):
     return shape_checked
 
 
-class _TimedMeta(type):
-    """MetaClass that adds methods timing"""
+class TimedMeta(type):
+    """MetaClass that adds methods timing and shape checking."""
 
     def __new__(cls, clsname, bases, clsdict):
         clsobj = super().__new__(cls, clsname, bases, clsdict)
 
         for name, value in vars(clsobj).items():
-            # if name in ("__init__", "forward", "adjoint", "fwadj"):
-            #     setattr(clsobj, name, _timeit(value))
-            # if name in ("forward", "adjoint", "fwadj"):
-            #     setattr(clsobj, name, checkshape(value))
             if name in ("__init__"):
-                setattr(clsobj, name, _timeit(value))
+                setattr(clsobj, name, timeit(value))
             if name in ("forward", "adjoint", "fwadj"):
-                setattr(clsobj, name, checkshape(_timeit(value)))
+                setattr(clsobj, name, checkshape(timeit(value)))
 
         return clsobj
 
 
-TimedABCMeta = type("TimedABCMeta", (_TimedMeta, abc.ABCMeta), {})
+TimedABCMeta = type("TimedABCMeta", (TimedMeta, abc.ABCMeta), {})
 
 
 class LinOp(metaclass=TimedABCMeta):
@@ -234,27 +233,29 @@ class LinOp(metaclass=TimedABCMeta):
 
     @property
     def isize(self):
-        """The input size `N = prod(ishape)`."""
+        """The input size `N = np.prod(ishape)`."""
         return np.prod(self.ishape)
 
     @property
     def osize(self):
-        """The output size `M = prod(oshape)`."""
+        """The output size `M = np.prod(oshape)`."""
         return np.prod(self.oshape)
 
     @property
     def shape(self):
-        """The shape `(M, N)` of the operator."""
+        """The shape `(self.osize, self.isize)` of the matrix."""
         return (self.osize, self.isize)
 
     @property
     def ndim(self):
-        """The number of dimension, always 2."""
+        """The number of dimension (always 2)."""
         return 2
 
     @property
     def H(self) -> "LinOp":  # pylint: disable=invalid-name
-        """Return the adjoint `Aᴴ` as a `LinOp`."""
+        """Return the adjoint `Aᴴ` as a `LinOp`.
+
+        I A is already and Adjoint, return the original operator."""
         return Adjoint(self)
 
     @abc.abstractmethod
@@ -271,6 +272,8 @@ class LinOp(metaclass=TimedABCMeta):
         """Vectorized forward application `A·x`.
 
         Apply `forward` on array of shape (N, 1), returns array of shape (M, 1).
+        The reshape are done internally.
+
         """
         return np.reshape(self.forward(np.reshape(point, self.ishape)), (-1, 1))
 
@@ -278,6 +281,8 @@ class LinOp(metaclass=TimedABCMeta):
         """Vectorized adjoint application `Aᴴ·y`.
 
         Apply `adjoint` on array of shape (M, 1), returns array of shape (N, 1).
+        The reshape are done internally
+
         """
         return np.reshape(self.adjoint(np.reshape(point, self.oshape)), (-1, 1))
 
@@ -286,16 +291,15 @@ class LinOp(metaclass=TimedABCMeta):
         return self.adjoint(self.forward(point))
 
     def dot(self, point: array) -> ArrOrSeq:
-        """Apply `A` operator"""
+        """Returns the forward application `A·x`."""
         return self.forward(point)
 
     def hdot(self, point: array) -> array:
-        """Apply the adjoint, i.e. `Aᴴ` operator."""
+        """Returns the adjoint application `Aᴴ·y`."""
         return self.adjoint(point)
 
     def __add__(self, value: "LinOp") -> "LinOp":
-        """Add (as `+`) a `LinOp` to return a `SumOp`"""
-        # if isinstance(value, value):
+        """Add (as `+`) a `LinOp` to return a `SumOp`."""
         if (
             hasattr(value, "forward")
             and hasattr(value, "adjoint")
@@ -307,11 +311,10 @@ class LinOp(metaclass=TimedABCMeta):
     def __mul__(self, value: ArrOrLinOp) -> ArrOrLinOp:
         """Multiply `*` a LinOp or array
 
-        if `value` is a LinOp, return a ProdOp. If `value` is an array, return
-        `forward(value)`.
+        if `value` is a LinOp, return a ProdOp. Else return `A·x`, that is
+        application of `forward(value)`.
 
         """
-        # if isinstance(value, LinOp):
         if (
             hasattr(value, "forward")
             and hasattr(value, "adjoint")
@@ -321,17 +324,16 @@ class LinOp(metaclass=TimedABCMeta):
         return self.forward(value)
 
     def __rmul__(self, point: array) -> array:
-        """Return x·Aᴴ"""
+        """Return `yᵀ·A`, the adjoint application `Aᴴ·y`."""
         return self.adjoint(point)
 
     def __matmul__(self, value: ArrOrLinOp) -> ArrOrLinOp:
         """Matrix multiply `@` a LinOp or array
 
         if `value` is a LinOp, return a ProdOp. If `value` is an array, return
-        `matvec(value)`.
+        `matvec(value)`, the vectorized version of `forward`.
 
         """
-        # if isinstance(value, LinOp):
         if (
             hasattr(value, "forward")
             and hasattr(value, "adjoint")
@@ -345,7 +347,7 @@ class LinOp(metaclass=TimedABCMeta):
         return self.rmatvec(point)
 
     def __call__(self, point: array) -> array:
-        """Return A·x as forward(x)"""
+        """Return `A·x` as forward(x)"""
         return self.forward(point)
 
     def __repr__(self):
@@ -395,7 +397,7 @@ class Explicit(LinOp):
         ----------
         mat : array-like
             A 2D array as explicit form of A. `mat` must have `dot`, `transpose`
-            and `conj` methods (OK with Numpy).
+            and `conj` methods (available with Numpy).
 
         Notes
         -----
@@ -426,38 +428,36 @@ class FuncLinOp(LinOp):
         oshape: Shape,
         fwadj: Callable[[array], array] = None,
         name: str = "_",
-        dtype=np.complex128,
+        dtype=np.float64,
     ):
         super().__init__(ishape, oshape, name, dtype)
-        self._forward = forward
-        self._adjoint = adjoint
-        self._fwadj = fwadj
+        self.f_forward = forward
+        self.f_adjoint = adjoint
+        self.f_fwadj = fwadj
 
     def forward(self, point: array) -> array:
-        return self._forward(point)
+        return self.f_forward(point)
 
     def adjoint(self, point: array) -> array:
-        if self._adjoint is not None:
-            return self._adjoint(point)
-        raise NotImplementedError("try to call `adjoint` but not provided.")
+        return self.f_adjoint(point)
 
     def fwadj(self, point: array) -> array:
-        if self._fwadj is not None:
-            return self._fwadj(point)
-        return self._adjoint(self._forward(point))
+        if self.f_fwadj is not None:
+            return self.f_fwadj(point)
+        return self.f_adjoint(self.f_forward(point))
 
 
 class ProdOp(LinOp):
-    """The product of two operators."""
+    """The product of two operators `A·B`."""
 
     def __init__(self, left: LinOp, right: LinOp):
-        """The sum of two operators.
+        """The product of two operators `A·B`.
         Parameters
         ----------
         left: LinOp
-            The left operator.
+            The left operator `A`.
         right: LinOp
-            The right operator.
+            The right operator `B`.
         """
         if left.ishape != right.oshape:
             warnings.warn("`left` input shape must equal `right` output shape")
@@ -478,10 +478,10 @@ class ProdOp(LinOp):
 
 
 class SumOp(LinOp):
-    """The sum of two operators."""
+    """The sum of two operators `A + B`."""
 
     def __init__(self, left: LinOp, right: LinOp):
-        """The sum of two operators.
+        """The sum of two operators `A + B`.
 
         Parameters
         ----------
@@ -512,13 +512,18 @@ class SumOp(LinOp):
 def asmatrix(linop: LinOp) -> array:
     """Return the matrix corresponding to the linear operator
 
-    Computing the matrix is heavy since it's involve the application of the
-    forward callable to `N` unit vectors with `N` the size of the input vector.
-
     Parameters
     ----------
     linop: LinOp
         The linear operator to represent as matrix
+
+    Notes
+    -----
+
+    Computing the matrix can heavy since it's involve the application of the
+    `linop.forward` to `N` unit vectors with `N = linop.iszie` is the size of
+    the input.
+
     """
     inarray = np.empty((linop.isize, 1))
     matrix = np.empty(linop.shape, dtype=linop.dtype)
@@ -530,14 +535,13 @@ def asmatrix(linop: LinOp) -> array:
 
 
 def dottest(linop: LinOp, num: int = 1, rtol: float = 1e-5, atol: float = 1e-8) -> bool:
-    """Dot test.
+    """The dot test.
 
-    Generate random vectors `u` and `v` and perform the dot-test to verify
-    the validity of forward and adjoint operators with equality
+    Verify the validity of `forward` and `adjoint` methods with equality
 
     `(Aᴴ·u)ᴴ·v = uᴴ·(A·v)`.
 
-    This test can help to detect errors in implementation.
+    where `u` and `v` are random vectors, to detect errors in implementation.
 
     Parameters
     ----------
@@ -554,7 +558,7 @@ def dottest(linop: LinOp, num: int = 1, rtol: float = 1e-5, atol: float = 1e-8) 
     -----
 
     The `u` and `v` vectors passed to `linop` are 1D random float Numpy arrays
-    and the function use the `matvec` and `rmatvec` methods of linop.
+    and the function use the `matvec` and `rmatvec` methods of `LinOp`.
 
     """
     test = True
@@ -572,7 +576,13 @@ def dottest(linop: LinOp, num: int = 1, rtol: float = 1e-5, atol: float = 1e-8) 
 
 #%% \
 class Identity(LinOp):
-    """Identity operator of specific shape"""
+    """Identity operator of specific shape
+
+    Notes
+    -----
+    The `forward` and `adjoint` apply `np.asarray` on their input.
+
+    """
 
     def __init__(self, shape: Shape, name: str = "I"):
         """The identity operator.
@@ -581,6 +591,8 @@ class Identity(LinOp):
         ----------
         shape : tuple of int
             The shape of the identity.
+
+
         """
         super().__init__(shape, shape, name=name, dtype=np.float64)
 
@@ -600,7 +612,8 @@ class Diag(LinOp):
         Parameters
         ----------
         diag : array
-            The diagonal of the operator. Input and output must of the same shape.
+            The diagonal of the operator. Input and output have the same shape.
+
         """
         super().__init__(diag.shape, diag.shape, name=name, dtype=diag.dtype)
         self.diag = diag
@@ -617,10 +630,10 @@ class Diag(LinOp):
 
 #%% \
 class DFT(LinOp):
-    """Discrete Fourier Transform."""
+    """Discrete Fourier Transform on the N last axis."""
 
     def __init__(self, shape: Shape, ndim: int, name: str = "DFT"):
-        """Unitary discrete Fourier transform.
+        """Unitary discrete Fourier transform on the N last axis.
 
         Parameters
         ----------
@@ -640,10 +653,10 @@ class DFT(LinOp):
 
 
 class RealDFT(LinOp):
-    """Real Discrete Fourier Transform."""
+    """Real Discrete Fourier Transform on the N last axis."""
 
     def __init__(self, shape: Shape, ndim: int, name: str = "rDFT"):
-        """Real unitary discrete Fourier transform.
+        """Real unitary discrete Fourier transform on the N last axis.
 
         Parameters
         ----------
@@ -655,13 +668,13 @@ class RealDFT(LinOp):
         super().__init__(
             shape, shape[:-1] + (shape[-1] // 2 + 1,), name=name, dtype=np.complex128
         )
-        self._ndim = ndim
+        self.dim = ndim
 
     def forward(self, point: array) -> array:
-        return udft.rdftn(point, ndim=self._ndim)
+        return udft.rdftn(point, ndim=self.dim)
 
     def adjoint(self, point: array) -> array:
-        return udft.irdftn(point, self.ishape[-self._ndim :])
+        return udft.irdftn(point, self.ishape[-self.dim :])
 
 
 class Conv(LinOp):
@@ -680,9 +693,9 @@ class Conv(LinOp):
 
     Notes
     -----
-    Use fft internally for fast computation. The ``forward`` methods is
-    equivalent to "valid" boudary condition and ``adjoint`` is equivalent to
-    "full" boundary condition with zero filling.
+    Use fft internally for fast computation. The `forward` methods is equivalent
+    to "valid" boudary condition and `adjoint` is equivalent to "full" boundary
+    condition with zero filling.
 
     """
 
@@ -768,12 +781,10 @@ class DirectConv(LinOp):
 
         """
         oshape = tuple(
-            [
-                ishape[idx]
-                if idx < len(ishape) - len(ir.shape)
-                else ishape[idx] - ir.shape[idx - (len(ishape) - len(ir.shape))] + 1
-                for idx in range(len(ishape))
-            ]
+            ishape[idx]
+            if idx < len(ishape) - len(ir.shape)
+            else ishape[idx] - ir.shape[idx - (len(ishape) - len(ir.shape))] + 1
+            for idx in range(len(ishape))
         )
         super().__init__(
             ishape=ishape,
@@ -979,7 +990,6 @@ class Analysis2(LinOp):
         wavelet : str, optional
             The wavelet to use.
         """
-        # alternative oshape: (shape[0], (3 * level + 1) * shape[1])
         super().__init__(shape, (3 * level + 1,) + shape, name, dtype=np.float64)
         self.wlt = wavelet
         self.lvl = level
@@ -1040,13 +1050,13 @@ class Analysis2(LinOp):
         return np.concatenate(clist, axis=1)
 
     def get_irs(self):
-        """Return the impulse response of each band"""
+        """Return the impulse response of the filter bank"""
         iarr = np.zeros(self.ishape)
         iarr[0, 0] = 1
         return self.forward(iarr)
 
     def get_frs(self):
-        """Return the frequency response of each band"""
+        """Return the frequency response of the filter bank"""
         return np.ascontiguousarray(np.fft.rfftn(self.get_irs(), self.ishape[-2:]))
 
 
@@ -1099,10 +1109,11 @@ class Synthesis2(LinOp):
         return self.analysis.coeffs2im(coeffs)
 
     def get_irs(self):
+        """Rerturn the impulse response of the filter bank."""
         return np.flip(self.analysis.get_irs(), axis=(1, 2))
 
     def get_frs(self):
-        # return np.conj(self.analysis.get_frs())
+        """Rerturn the frequency response of the filter bank."""
         return np.ascontiguousarray(np.fft.rfftn(self.get_irs(), self.ishape[-2:]))
 
 
