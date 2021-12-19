@@ -651,6 +651,9 @@ class DFT(LinOp):
     def adjoint(self, point: array) -> array:
         return udft.idftn(point, ndim=self.dim)
 
+    def fwadj(self, point: array) -> array:
+        return array
+
 
 class RealDFT(LinOp):
     """Real Discrete Fourier Transform on the N last axis."""
@@ -675,6 +678,9 @@ class RealDFT(LinOp):
 
     def adjoint(self, point: array) -> array:
         return udft.irdftn(point, self.ishape[-self.dim :])
+
+    def fwadj(self, point: array) -> array:
+        return array
 
 
 class Conv(LinOp):
@@ -967,6 +973,9 @@ class DWT(LinOp):
             wavelet=self.wlt,
             mode=self._mode,
         )
+
+    def fwadj(self, point: array) -> array:
+        return array
 
 
 class Analysis2(LinOp):
