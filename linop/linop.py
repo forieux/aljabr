@@ -451,12 +451,12 @@ class Adjoint(LinOp):
 class Explicit(LinOp):
     """Explicit linear operator from matrix instance."""
 
-    def __init__(self, matrix: array, name="_"):
+    def __init__(self, matrix: array, ishape=None, oshape=None, name="_"):
         """Explicit operator from matrix
 
         Parameters
         ----------
-        mat : array-like
+        matrix : array-like
             A 2D array as explicit form of A. `mat` must have `dot`, `transpose`
             and `conj` methods (available with Numpy).
 
@@ -465,17 +465,32 @@ class Explicit(LinOp):
         The `forward` and `adjoint` input array are reshaped as column vector
         before `dot` call.
         """
+        if ishape is None:
+            ishape = (matrix.shape[1], 1)
+        if oshape is None:
+            oshape = (matrix.shape[0], 1)
 
-        super().__init__((matrix.shape[1], 1), (matrix.shape[0], 1), name, matrix.dtype)
+        if np.prod(ishape) != matrix.shape[1]:
+            raise ValueError("`ishape` must = matrix.shape[1]")
+        if np.prod(oshape) != matrix.shape[0]:
+            raise ValueError("`oshape` must = matrix.shape[0]")
+
         if matrix.ndim != 2:
             raise ValueError("array must have attribut `ndim == 2`")
+
         self.mat = matrix
+        super().__init__(ishape, oshape, name, matrix.dtype)
 
     def forward(self, point: array) -> array:
-        return np.asanyarray(self.mat.dot(point.reshape((-1, 1))))
+        return np.reshape(
+            np.asanyarray(self.mat.dot(point.reshape((-1, 1)))), self.oshape
+        )
 
     def adjoint(self, point: array) -> array:
-        return np.asanyarray(self.mat.transpose().conj().dot(point.reshape((-1, 1))))
+        return np.reshape(
+            np.asanyarray(self.mat.transpose().conj().dot(point.reshape((-1, 1)))),
+            self.ishape,
+        )
 
 
 class FuncLinOp(LinOp):
