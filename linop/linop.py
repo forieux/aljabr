@@ -370,6 +370,47 @@ class LinOp(metaclass=TimedABCMeta):
 
 
 #%%\
+class Symmetric(LinOp):
+    """A operator where `Aᴴ = A = Bᴴ·B`.
+
+    >>> Adjoint(A) is A == True
+
+    Attributs
+    ---------
+    orig_linop: LinOp
+        The base linear operator `B`.
+    """
+
+    def __init__(self, linop: LinOp):
+        """A operator where `Aᴴ = A = Bᴴ·B`.
+
+        Parameters
+        ----------
+        linop: LinOp
+            The base linear operator `B`.
+        """
+        self.orig_linop = linop
+        super().__init__(
+            linop.ishape, linop.ishape, f"{linop.name}ᴴ·{linop.name}", linop.dtype
+        )
+
+    def forward(self, point: array) -> array:
+        """Returns the application `A·x`."""
+        return self.orig_linop.fwadj(point)
+
+    def adjoint(self, point: array) -> array:
+        """Returns the adjoint application `Aᴴ·y = A·y`."""
+        return self.forward(point)
+
+    def __getattr__(self, name):
+        try:
+            return getattr(self.orig_linop, name)
+        except AttributeError as exc:
+            raise AttributeError(
+                f"Original LinOp of `Symmetric` has no {name} attribut"
+            ) from exc
+
+
 class Adjoint(LinOp):
     """The adjoint `Aᴴ` of a linear operator `A`.
 
