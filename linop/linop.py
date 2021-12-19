@@ -442,9 +442,9 @@ class FuncLinOp(LinOp):
         return self.f_adjoint(point)
 
     def fwadj(self, point: array) -> array:
-        if self.f_fwadj is not None:
-            return self.f_fwadj(point)
-        return self.f_adjoint(self.f_forward(point))
+        if self.f_fwadj is None:
+            return self.f_adjoint(self.f_forward(point))
+        return self.f_fwadj(point)
 
 
 class ProdOp(LinOp):
