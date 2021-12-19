@@ -42,7 +42,7 @@ from functools import wraps
 from typing import Callable, Optional, Sequence, Tuple, TypeVar, Union
 
 import numpy as np  # type: ignore
-import numpy.linalg as la
+import numpy.linalg as la  # type: ignore
 import pywt  # type: ignore
 import scipy  # type: ignore
 import udft
@@ -71,6 +71,11 @@ __all__ = [
     "SubOp",
     "asmatrix",
     "dottest",
+    "is_sym",
+    "is_pos_def",
+    "is_semi_pos_def",
+    "is_neg_def",
+    "is_semi_neg_def",
     "Identity",
     "Diag",
     "DFT",
