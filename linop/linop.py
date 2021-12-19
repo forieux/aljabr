@@ -443,6 +443,14 @@ class Adjoint(LinOp):
     def adjoint(self, point: array) -> array:
         return self.orig_linop.forward(point)
 
+    def __getattr__(self, name):
+        try:
+            return getattr(self.orig_linop, name)
+        except AttributeError as exc:
+            raise AttributeError(
+                f"Original LinOp of `Adjoint` has no {name} attribut"
+            ) from exc
+
 
 class Explicit(LinOp):
     """Explicit linear operator from matrix instance."""
