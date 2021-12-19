@@ -804,6 +804,10 @@ class DirectConv(LinOp):
         """The impulse response"""
         return np.squeeze(self._ir)
 
+    @property
+    def freq_resp(self):
+        return udft.ir2fr(self.ir, self.ishape)
+
     @ir.setter
     def ir(self, ir: array):  # pylint: disable=invalid-name
         # Keep internaly an _ir with (1, ) prepend for convolution on last N
