@@ -65,7 +65,8 @@ __all__ = [
     "Explicit",
     "FuncLinOp",
     "ProdOp",
-    "SumOp",
+    "AddOp",
+    "SubOp",
     "asmatrix",
     "dottest",
     "Identity",
@@ -477,7 +478,7 @@ class ProdOp(LinOp):
         return self.right.adjoint(self.left.fwadj(self.right.forward(point)))
 
 
-class SumOp(LinOp):
+class AddOp(LinOp):
     """The sum of two operators `A + B`."""
 
     def __init__(self, left: LinOp, right: LinOp):
@@ -506,6 +507,37 @@ class SumOp(LinOp):
 
     def adjoint(self, point: array) -> array:
         return self.right.adjoint(point) + self.left.adjoint(point)
+
+
+class SubOp(LinOp):
+    """The substraction of two operators `A - B`."""
+
+    def __init__(self, left: LinOp, right: LinOp):
+        """The substraction of two operators `A - B`.
+
+        Parameters
+        ----------
+        left: LinOp
+            The left operator.
+        right: LinOp
+            The right operator.
+        """
+        if (left.ishape != right.ishape) or (left.oshape != right.oshape):
+            raise ValueError("operators must have the same input and output shape")
+        super().__init__(
+            left.ishape,
+            left.oshape,
+            name=f"({left.name} - {right.name})",
+            dtype=left.dtype,
+        )
+        self.left = left
+        self.right = right
+
+    def forward(self, point: array) -> array:
+        return self.left.forward(point) - self.right.forward(point)
+
+    def adjoint(self, point: array) -> array:
+        return self.right.adjoint(point) - self.left.adjoint(point)
 
 
 #%% \
