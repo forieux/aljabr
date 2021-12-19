@@ -993,15 +993,16 @@ class Analysis2(LinOp):
         super().__init__(shape, (3 * level + 1,) + shape, name, dtype=np.float64)
         self.wlt = wavelet
         self.lvl = level
+        self.norm = True
 
     def forward(self, point: array) -> array:
         coeffs = pywt.swt2(
-            point, wavelet=self.wlt, level=self.lvl, norm=True, trim_approx=True
+            point, wavelet=self.wlt, level=self.lvl, norm=self.norm, trim_approx=True
         )
         return self.coeffs2cube(coeffs)
 
     def adjoint(self, point: array) -> array:
-        return pywt.iswt2(self.cube2coeffs(point), self.wlt, norm=True)
+        return pywt.iswt2(self.cube2coeffs(point), self.wlt, norm=self.norm)
 
     def cube2coeffs(self, point: array) -> array:
         """Return pywt coefficients from 3D array"""
@@ -1048,6 +1049,12 @@ class Analysis2(LinOp):
         for coeff in coeffs[1:]:
             clist.extend([coeff[0], coeff[1], coeff[2]])
         return np.concatenate(clist, axis=1)
+
+    def cube2im(self, cube):
+        return self.coeffs2im(self.cube2coeffs(cube))
+
+    def im2cube(self, im):
+        return self.coeffs2cube(self.im2coeffs(im))
 
     def get_irs(self):
         """Return the impulse response of the filter bank"""
@@ -1107,6 +1114,12 @@ class Synthesis2(LinOp):
     def coeffs2im(self, coeffs) -> array:
         """Return image from pywt coefficients"""
         return self.analysis.coeffs2im(coeffs)
+
+    def cube2im(self, cube):
+        return self.analysis.cube2im(cube)
+
+    def im2cube(self, im):
+        return self.analysis.im2cube(im)
 
     def get_irs(self):
         """Rerturn the impulse response of the filter bank."""
