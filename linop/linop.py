@@ -116,14 +116,16 @@ def timeit(func):
         out = func(*args, **kwargs)
         duration = time.time() - timestamp
 
+        if func.__name__ == "__init__":
+            setattr(self, "init_last_duration", duration)
         setattr(self, f"{func.__name__}_last_duration", duration)
-        if (
-            hasattr(self, f"all_{func.__name__}_duration")
-            and func.__name__ != "__init__"
-        ):
-            getattr(self, f"all_{func.__name__}_duration").append(duration)
-        else:
-            setattr(self, f"all_{func.__name__}_duration", [duration])
+        # if (
+        #     hasattr(self, f"all_{func.__name__}_duration")
+        #     and func.__name__ != "__init__"
+        # ):
+        #     getattr(self, f"all_{func.__name__}_duration").append(duration)
+        # else:
+        #     setattr(self, f"all_{func.__name__}_duration", [duration])
 
         return out
 
