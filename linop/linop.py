@@ -358,7 +358,7 @@ class LinOp(metaclass=TimedABCMeta):
 class Adjoint(LinOp):
     """The adjoint `Aᴴ` of a linear operator `A`.
 
-    Adjoint are necessary singleton and
+    `Adjoint` are singleton
 
     >>> Adjoint(Adjoint(A)) is A == True
 
@@ -462,7 +462,7 @@ class ProdOp(LinOp):
         if left.ishape != right.oshape:
             warnings.warn("`left` input shape must equal `right` output shape")
         super().__init__(
-            right.ishape, left.oshape, name=f"({left.name} · {right.name})"
+            right.ishape, left.oshape, name=f"({left.name} * {right.name})"
         )
         self.left = left
         self.right = right
