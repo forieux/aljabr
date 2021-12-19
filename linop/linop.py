@@ -346,7 +346,7 @@ class LinOp(metaclass=TimedABCMeta):
 
         """
         if is_linop_duck(value):
-            if Adjoint(self) is value:
+            if Adjoint(self) is value or self is Adjoint(value):
                 return Symmetric(value)
             return ProdOp(self, value)
         return self.matvec(value)
