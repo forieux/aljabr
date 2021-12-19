@@ -185,6 +185,22 @@ class TimedMeta(type):
 TimedABCMeta = type("TimedABCMeta", (TimedMeta, abc.ABCMeta), {})
 
 
+def is_linop_duck(obj):
+    if (
+        hasattr(obj, "forward")
+        and callable(obj.forward)
+        and hasattr(obj, "adjoint")
+        and callable(obj.adjoint)
+        and hasattr(obj, "fwadj")
+        and callable(obj.fwadj)
+        and hasattr(obj, "ishape")
+        and hasattr(obj, "oshape")
+        and hasattr(obj, "dtype")
+    ):
+        return True
+    return False
+
+
 class LinOp(metaclass=TimedABCMeta):
     """An Abstract Base class for linear operator.
 
