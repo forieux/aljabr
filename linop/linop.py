@@ -262,12 +262,11 @@ class LinOp(metaclass=TimedABCMeta):
     @abc.abstractmethod
     def forward(self, point: array) -> array:
         """Returns the forward application `A·x`."""
-        return NotImplemented
+        raise NotImplementedError
 
-    @abc.abstractmethod
     def adjoint(self, point: array) -> array:
         """Returns the adjoint application `Aᴴ·y`."""
-        return NotImplemented
+        raise NotImplementedError
 
     def matvec(self, point: array) -> array:
         """Vectorized forward application `A·x`.
