@@ -875,6 +875,7 @@ class RealDFT(LinOp):
         super().__init__(
             shape, shape[:-1] + (shape[-1] // 2 + 1,), name=name, dtype=np.complex128
         )
+        assert self.ishape[-1] // 2 + 1 == self.oshape[-1]
         self.dim = ndim
 
     def forward(self, point: array) -> array:
