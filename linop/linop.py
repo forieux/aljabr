@@ -221,7 +221,6 @@ class LinOp(metaclass=TimedABCMeta):
         The dtype of the operator (np.float64 by default).
     H : LinOp
         The Adjoint of the operator.
-
     """
 
     def __init__(self, ishape: Shape, oshape: Shape, name: str = "_", dtype=np.float64):
@@ -284,7 +283,6 @@ class LinOp(metaclass=TimedABCMeta):
 
         Apply `forward` on array of shape (N, 1), returns array of shape (M, 1).
         The reshape are done internally.
-
         """
         return np.reshape(self.forward(np.reshape(point, self.ishape)), (-1, 1))
 
@@ -293,7 +291,6 @@ class LinOp(metaclass=TimedABCMeta):
 
         Apply `adjoint` on array of shape (M, 1), returns array of shape (N, 1).
         The reshape are done internally
-
         """
         return np.reshape(self.adjoint(np.reshape(point, self.oshape)), (-1, 1))
 
@@ -326,7 +323,6 @@ class LinOp(metaclass=TimedABCMeta):
 
         if `value` is a LinOp duck type, return a ProdOp. Else return `A·x`,
         that is application of `forward(value)`.
-
         """
         if is_linop_duck(value):
             return ProdOp(self, value)
@@ -341,10 +337,9 @@ class LinOp(metaclass=TimedABCMeta):
 
         If `value` is a LinOp duck type, return a ProdOp.
 
-        If `Adjoint(self) is value`, return `Symmetric(value)`.
+        If `self.H == value`, return `Symmetric(value)`.
 
         If `value` is an array, return `matvec(value)`.
-
         """
         if is_linop_duck(value):
             if Adjoint(self) is value or self is Adjoint(value):
@@ -429,7 +424,8 @@ class Adjoint(LinOp):
     def __init__(self, linop: LinOp):
         """The adjoint of `linop`.
 
-        If `linop` is alread an `Adjoint` return the `orig_linop`."""
+        If `linop` is alread an `Adjoint` return the `orig_linop`.
+        """
         super().__init__(linop.oshape, linop.ishape, f"{linop.name}ᴴ", linop.dtype)
         self.orig_linop = linop
 
@@ -666,7 +662,6 @@ def dottest(linop: LinOp, num: int = 1, rtol: float = 1e-5, atol: float = 1e-8) 
 
     The `u` and `v` vectors passed to `linop` are 1D random float Numpy arrays
     and the function use the `matvec` and `rmatvec` methods of `LinOp`.
-
     """
     test = True
     for _ in range(num):
@@ -688,7 +683,6 @@ class Identity(LinOp):
     Notes
     -----
     The `forward` and `adjoint` apply `np.asarray` on their input.
-
     """
 
     def __init__(self, shape: Shape, name: str = "I"):
@@ -698,8 +692,6 @@ class Identity(LinOp):
         ----------
         shape : tuple of int
             The shape of the identity.
-
-
         """
         super().__init__(shape, shape, name=name, dtype=np.float64)
 
@@ -720,7 +712,6 @@ class Diag(LinOp):
         ----------
         diag : array
             The diagonal of the operator. Input and output have the same shape.
-
         """
         super().__init__(diag.shape, diag.shape, name=name, dtype=diag.dtype)
         self.diag = diag
@@ -809,7 +800,6 @@ class Conv(LinOp):
     Use fft internally for fast computation. The `forward` methods is equivalent
     to "valid" boudary condition and `adjoint` is equivalent to "full" boundary
     condition with zero filling.
-
     """
 
     def __init__(self, ir: array, ishape: Shape, dim: int, name: str = "Conv"):
@@ -823,7 +813,6 @@ class Conv(LinOp):
             The shape of the input images. Images are on the last two axis.
         dim : int
             The last `dim` axis where convolution apply.
-
         """
         super().__init__(
             ishape=ishape,
@@ -879,7 +868,6 @@ class DirectConv(LinOp):
     -----
     Use Overlap-Add method from `scipy.signal.oaconvolve` if available or
     `convolve` otherwise. Convolution are performed on the last axes.
-
     """
 
     def __init__(self, ir: array, ishape: Shape, name: str = "DConv"):
@@ -891,7 +879,6 @@ class DirectConv(LinOp):
             The impulse response.
         ishape: tuple of int
             The shape of the input array.
-
         """
         oshape = tuple(
             ishape[idx]
@@ -942,7 +929,8 @@ class FreqFilter(Diag):
 
     Notes
     -----
-    Almost like diagonal but suppose complex Fourier space"""
+    Almost like diagonal but suppose complex Fourier space.
+    """
 
     def __init__(self, ir: array, ishape: Shape, name: str = "Filter"):
         super().__init__(udft.ir2fr(ir, ishape), name=name)
@@ -990,7 +978,6 @@ class Diff(LinOp):
     Notes
     -----
     Use `numpy.diff` and implement the correct adjoint, with `numpy.diff` also.
-
     """
 
     def __init__(self, axis: int, ishape: Shape, name: str = "Diff"):
@@ -1029,7 +1016,6 @@ class Diff(LinOp):
          1 -1  0
          0  1 -1
          0  0  1
-
         """
         return -np.diff(point, prepend=0, append=0, axis=self.axis)
 
@@ -1177,13 +1163,13 @@ class Analysis2(LinOp):
         return self.coeffs2cube(self.im2coeffs(im))
 
     def get_irs(self):
-        """Return the impulse response of the filter bank"""
+        """Return the impulse response of the filter bank."""
         iarr = np.zeros(self.ishape)
         iarr[0, 0] = 1
         return self.forward(iarr)
 
     def get_frs(self):
-        """Return the frequency response of the filter bank"""
+        """Return the frequency response of the filter bank."""
         return np.ascontiguousarray(np.fft.rfftn(self.get_irs(), self.ishape[-2:]))
 
 
@@ -1220,19 +1206,19 @@ class Synthesis2(LinOp):
         return self.analysis.forward(point)
 
     def cube2coeffs(self, point: array) -> array:
-        """Return pywt coefficients from 3D array"""
+        """Return pywt coefficients from 3D array."""
         return self.analysis.cube2coeffs(point)
 
     def coeffs2cube(self, coeffs) -> array:
-        """Return 3D array from pywt coefficients"""
+        """Return 3D array from pywt coefficients."""
         return self.analysis.coeffs2cube(coeffs)
 
     def im2coeffs(self, point: array):
-        """Return pywt coefficients from image"""
+        """Return pywt coefficients from image."""
         return self.analysis.im2coeffs(point)
 
     def coeffs2im(self, coeffs) -> array:
-        """Return image from pywt coefficients"""
+        """Return image from pywt coefficients."""
         return self.analysis.coeffs2im(coeffs)
 
     def cube2im(self, cube):
@@ -1242,7 +1228,7 @@ class Synthesis2(LinOp):
         return self.analysis.im2cube(im)
 
     def get_irs(self):
-        """Rerturn the impulse response of the filter bank."""
+        """Return the impulse response of the filter bank."""
         return np.flip(self.analysis.get_irs(), axis=(1, 2))
 
     def get_frs(self):
