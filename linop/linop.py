@@ -62,6 +62,7 @@ __url__ = "https://https://github.com/forieux/linearop"
 __all__ = [
     "LinOp",
     "Adjoint",
+    "Symmetric",
     "Explicit",
     "FuncLinOp",
     "ProdOp",
