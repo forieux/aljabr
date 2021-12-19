@@ -42,8 +42,9 @@ from functools import wraps
 from typing import Callable, Optional, Sequence, Tuple, TypeVar, Union
 
 import numpy as np  # type: ignore
+import numpy.linalg as la
 import pywt  # type: ignore
-import scipy.signal  # type: ignore
+import scipy  # type: ignore
 import udft
 # from icecream import ic  # type: ignore
 from numpy import ndarray as array  # type: ignore
@@ -626,8 +627,13 @@ def asmatrix(linop: LinOp) -> array:
     Computing the matrix can heavy since it's involve the application of the
     `linop.forward` to `N` unit vectors with `N = linop.iszie` is the size of
     the input.
-
     """
+    if isinstance(linop, Explicit):
+        return linop.mat
+
+    if isinstance(linop, array) and linop.ndim < 3:
+        return np.atleast_2d(linop)
+
     inarray = np.empty((linop.isize, 1))
     matrix = np.empty(linop.shape, dtype=linop.dtype)
     for idx in range(linop.isize):
@@ -674,6 +680,101 @@ def dottest(linop: LinOp, num: int = 1, rtol: float = 1e-5, atol: float = 1e-8) 
             atol=atol,
         )
     return test
+
+
+def is_sym(linop: Union[array, LinOp]) -> bool:
+    """Return True if `linop` is symmetric"""
+    mat = asmatrix(linop)
+    return mat.shape[0] == mat.shape[1] and np.allclose(mat.T, mat)
+
+
+def is_pos_def(linop: Union[array, LinOp]) -> bool:
+    """Return True if `linop` is positive definite
+
+    Notes
+    -----
+
+    Definite positive matrix $M$ implies that eigen values are strictly
+    positives but inverse is not true. The function test that $M$ is symmetric
+    and that all eigen values of $M^T + M$ are positives.`
+    """
+    mat = asmatrix(linop)
+    return is_sym(mat) and np.all(np.linalg.eigvals(mat + mat.transpose()) > 0)
+
+
+def is_semi_pos_def(linop: Union[array, LinOp]) -> bool:
+    """Return True if `linop` is semi positive definite
+
+    Notes
+    -----
+    See :func:`is_pos_def`.
+    """
+    mat = asmatrix(linop)
+    return is_sym(mat) and np.all(np.linalg.eigvals(mat + mat.transpose()) >= 0)
+
+
+def is_neg_def(linop: Union[array, LinOp]) -> bool:
+    """Return True if `linop` is negative definite
+
+    Notes
+    -----
+    See :func:`is_pos_def`.
+    """
+    mat = asmatrix(linop)
+    return is_sym(mat) and np.all(np.linalg.eigvals(mat + mat.transpose()) < 0)
+
+
+def is_semi_neg_def(linop: Union[array, LinOp]) -> bool:
+    """Return True if `linop` is semi negative definite
+
+    Notes
+    -----
+    See :func:`is_pos_def`.
+    """
+    mat = asmatrix(linop)
+    return is_sym(mat) and np.all(np.linalg.eigvals(mat + mat.transpose()) <= 0)
+
+
+def cond(linop: Union[array, LinOp]) -> float:
+    """Return the condition number κ
+
+    The condition number κ is definied as
+
+    κ = max(λ) / min(λ)
+
+    where λ are eigen values of `linop`.
+
+    Parameters
+    ----------
+    linop: LinOp or array-like
+        An implicit linear operator or a matrix.
+    """
+    eig = la.eigvals(asmatrix(linop))
+    return np.max(eig) / np.min(eig)
+
+
+def fcond(linop: LinOp) -> float:
+    """Estimate the condition number κ
+
+    The condition number κ is definied as
+
+    κ = max(λ) / min(λ)
+
+    where the two extreme eigen values λ of `linop` are estimated with Lanczos
+    algorithm via `scipy.sparse.linalg.eigs`.
+
+    Parameters
+    ----------
+    linop: LinOp
+        An implicit linear operator.
+    """
+    eig = scipy.sparse.linalg.eigs(
+        scipy.sparse.linalg.aslinearoperator(linop),
+        k=2,
+        return_eigenvectors=False,
+        which="BE",
+    )
+    return np.abs(np.max(eig)) / np.abs(np.min(eig))
 
 
 #%% \
