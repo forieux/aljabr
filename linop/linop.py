@@ -28,10 +28,10 @@
 ====================
 
 This module implements an interface for implicit linear operator. It is mostly
-an empty shell, a wrapper around callables or functions for ease of use as
-linear operator and more expressiveness. For instance, it can wraps the `fft()`
-function, giving the impression that it is a matrix. It provides base classes,
-common concrete operators, and some specialised ones.
+wrappers around callables or functions for ease of use as linear operator and
+more expressiveness. For instance, it can wraps the `fft()` function, giving the
+impression that it is a matrix. It provides base classes, common concrete
+operators, some specialised ones, utilities, and tests.
 
 """
 
@@ -46,7 +46,6 @@ import numpy.linalg as la  # type: ignore
 import pywt  # type: ignore
 import scipy  # type: ignore
 import udft
-# from icecream import ic  # type: ignore
 from numpy import ndarray as array  # type: ignore
 from numpy.random import standard_normal as randn  # type: ignore
 
