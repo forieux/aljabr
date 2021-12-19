@@ -314,27 +314,25 @@ class LinOp(metaclass=TimedABCMeta):
         return self.adjoint(point)
 
     def __add__(self, value: "LinOp") -> "LinOp":
-        """Add (as `+`) a `LinOp` to return a `SumOp`."""
-        if (
-            hasattr(value, "forward")
-            and hasattr(value, "adjoint")
-            and hasattr(value, "fwadj")
-        ):
-            return SumOp(self, value)
+        """Add (as `+`) a `LinOp` to return a `AddOp`."""
+        if is_linop_duck(value):
+            return AddOp(self, value)
+        raise TypeError("the operand must be a LinOp")
+
+    def __sub__(self, value: "LinOp") -> "LinOp":
+        """Substract (as `-`) a `LinOp` to return a `AddOp`."""
+        if is_linop_duck(value):
+            return SubOp(self, value)
         raise TypeError("the operand must be a LinOp")
 
     def __mul__(self, value: ArrOrLinOp) -> ArrOrLinOp:
         """Multiply `*` a LinOp or array
 
-        if `value` is a LinOp, return a ProdOp. Else return `A·x`, that is
-        application of `forward(value)`.
+        if `value` is a LinOp duck type, return a ProdOp. Else return `A·x`,
+        that is application of `forward(value)`.
 
         """
-        if (
-            hasattr(value, "forward")
-            and hasattr(value, "adjoint")
-            and hasattr(value, "fwadj")
-        ):
+        if is_linop_duck(value):
             return ProdOp(self, value)
         return self.forward(value)
 
@@ -345,15 +343,16 @@ class LinOp(metaclass=TimedABCMeta):
     def __matmul__(self, value: ArrOrLinOp) -> ArrOrLinOp:
         """Matrix multiply `@` a LinOp or array
 
-        if `value` is a LinOp, return a ProdOp. If `value` is an array, return
-        `matvec(value)`, the vectorized version of `forward`.
+        If `value` is a LinOp duck type, return a ProdOp.
+
+        If `Adjoint(self) is value`, return `Symmetric(value)`.
+
+        If `value` is an array, return `matvec(value)`.
 
         """
-        if (
-            hasattr(value, "forward")
-            and hasattr(value, "adjoint")
-            and hasattr(value, "fwadj")
-        ):
+        if is_linop_duck(value):
+            if Adjoint(self) is value:
+                return Symmetric(value)
             return ProdOp(self, value)
         return self.matvec(value)
 
@@ -425,6 +424,8 @@ class Adjoint(LinOp):
     """
 
     def __new__(cls, linop: LinOp):
+        if isinstance(linop, Symmetric):
+            return linop
         if isinstance(linop, Adjoint):
             return linop.orig_linop
         return super().__new__(cls)
