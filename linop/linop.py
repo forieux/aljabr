@@ -78,7 +78,6 @@ __all__ = [
     "CircConv",
     "FreqFilter",
     "Diff",
-    "Diff2",
     "DWT",
     "Analysis2",
     "Synthesis2",
