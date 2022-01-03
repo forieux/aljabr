@@ -274,6 +274,11 @@ class LinOp(metaclass=TimedABCMeta):
         I A is already and Adjoint, return the original operator."""
         return Adjoint(self)
 
+    @property
+    def S(self) -> "LinOp":  # pylint: disable=invalid-name
+        """Return the `Symmetric` `Aᴴ·A`."""
+        return Symmetric(self)
+
     @abc.abstractmethod
     def forward(self, point: array) -> array:
         """Returns the forward application `A·x`."""
