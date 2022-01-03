@@ -70,6 +70,8 @@ __all__ = [
     "SubOp",
     "asmatrix",
     "dottest",
+    "cond",
+    "fcond",
     "is_sym",
     "is_pos_def",
     "is_semi_pos_def",
@@ -770,14 +772,14 @@ def fcond(linop: LinOp) -> float:
     κ = max(λ) / min(λ)
 
     where the two extreme eigen values λ of `linop` are estimated with Lanczos
-    algorithm via `scipy.sparse.linalg.eigs`.
+    algorithm via `scipy.sparse.linalg.eigsh`.
 
     Parameters
     ----------
     linop: LinOp
         An implicit linear operator.
     """
-    eig = scipy.sparse.linalg.eigs(
+    eig = scipy.sparse.linalg.eigsh(
         scipy.sparse.linalg.aslinearoperator(linop),
         k=2,
         return_eigenvectors=False,
