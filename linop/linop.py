@@ -36,6 +36,7 @@ operators, some specialised ones, utilities, and tests.
 """
 
 import abc
+import numbers
 import time
 import warnings
 from functools import wraps
@@ -61,6 +62,7 @@ __url__ = "https://https://github.com/forieux/linearop"
 
 __all__ = [
     "LinOp",
+    "Scaled",
     "Adjoint",
     "Symmetric",
     "Explicit",
@@ -331,7 +333,7 @@ class LinOp(metaclass=TimedABCMeta):
         raise TypeError("the operand must be a LinOp")
 
     def __mul__(self, value: ArrOrLinOp) -> ArrOrLinOp:
-        """Multiply `*` a LinOp or array
+        """Left multiply `*` a LinOp or array
 
         if `value` is a LinOp duck type, return a ProdOp. Else return `A·x`,
         that is application of `forward(value)`.
@@ -341,11 +343,19 @@ class LinOp(metaclass=TimedABCMeta):
         return self.forward(value)
 
     def __rmul__(self, point: array) -> array:
-        """Return `yᵀ·A`, the adjoint application `Aᴴ·y`."""
+        """Right multiply `*` a scalar or array.
+
+        if `value` is a scalar, return a `Scaled`.
+
+        Otherwise, `value` is considered as an array and return `yᵀ·A`, the
+        adjoint application `Aᴴ·y`.
+        """
+        if isinstance(point, numbers.Number):
+            return Scaled(self, point)
         return self.adjoint(point)
 
     def __matmul__(self, value: ArrOrLinOp) -> ArrOrLinOp:
-        """Matrix multiply `@` a LinOp or array
+        """Left matrix multiply `@` a LinOp or array
 
         If `value` is a LinOp duck type, return a ProdOp.
 
@@ -360,7 +370,15 @@ class LinOp(metaclass=TimedABCMeta):
         return self.matvec(value)
 
     def __rmatmul__(self, point: array) -> array:
-        """Return x·Aᴴ as rmatvec(point)"""
+        """Right matrix multiply `@` a scalar or array.
+
+        if `value` is a scalar, return a `Scaled`.
+
+        Otherwise, `value` is considered as an array and return `yᵀ·A = Aᴴ·y`,
+        as `rmatvec(point)`.
+        """
+        if isinstance(point, numbers.Number):
+            return Scaled(self, point)
         return self.rmatvec(point)
 
     def __call__(self, point: array) -> array:
@@ -372,8 +390,53 @@ class LinOp(metaclass=TimedABCMeta):
 
 
 #%%\
+class Scaled(LinOp):
+    """An operator `B` scaled by a scalar `γ`.
+
+    Attributs
+    ---------
+    orig_linop: LinOp
+        The base linear operator `B`.
+    scale: float
+        The scale factor `γ`.
+    """
+
+    def __init__(self, linop: LinOp, scale: Union[float, complex]):
+        """An operator `B` scaled by a scalar `γ`
+
+        >>> A = γ·B
+
+        Parameters
+        ----------
+        orig_linop: LinOp
+            The base linear operator `B`.
+        scale: float or complex
+            The scale scalar factor `γ`.
+        """
+        self.orig_linop = linop
+        self.scale = scale
+        super().__init__(linop.ishape, linop.oshape, f"γ{linop.name}", linop.dtype)
+
+    def forward(self, point: array) -> array:
+        return self.scale * self.orig_linop.forward(point)
+
+    def adjoint(self, point: array) -> array:
+        return self.scale * self.orig_linop.adjoint(point)
+
+    def fwadj(self, point: array) -> array:
+        return self.scale ** 2 * self.orig_linop.fwadj(point)
+
+    def __getattr__(self, name):
+        try:
+            return getattr(self.orig_linop, name)
+        except AttributeError as exc:
+            raise AttributeError(
+                f"Original LinOp of `Scaled` has no {name} attribut"
+            ) from exc
+
+
 class Symmetric(LinOp):
-    """A operator where `Aᴴ = A = Bᴴ·B`.
+    """`A` operator where `Aᴴ = A = Bᴴ·B`.
 
     >>> Adjoint(A) is A == True
 
@@ -825,8 +888,10 @@ class Diag(LinOp):
         diag : array
             The diagonal of the operator. Input and output have the same shape.
         """
-        super().__init__(diag.shape, diag.shape, name=name, dtype=diag.dtype)
-        self.diag = diag
+        self.diag = np.asarray(diag)
+        super().__init__(
+            self.diag.shape, self.diag.shape, name=name, dtype=self.diag.dtype
+        )
 
     def forward(self, point: array) -> array:
         return self.diag * point
