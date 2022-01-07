@@ -830,7 +830,7 @@ def cond(linop: Union[array, LinOp]) -> float:
     return np.max(eig) / np.min(eig)
 
 
-def fcond(linop: LinOp) -> float:
+def fcond(linop: LinOp, tol: float = 0.1) -> float:
     """Estimate the condition number κ
 
     The condition number κ is definied as
@@ -844,12 +844,16 @@ def fcond(linop: LinOp) -> float:
     ----------
     linop: LinOp
         An implicit linear operator.
+    tol: float
+        The tolerance parameter for `scipy.sparse.linalg.eigsh`.
     """
     eig = scipy.sparse.linalg.eigsh(
-        scipy.sparse.linalg.aslinearoperator(linop),
+        # scipy.sparse.linalg.aslinearoperator(linop),
+        linop,
         k=2,
         return_eigenvectors=False,
         which="BE",
+        tol=tol,
     )
     return np.abs(np.max(eig)) / np.abs(np.min(eig))
 
