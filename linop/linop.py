@@ -563,6 +563,9 @@ class Explicit(LinOp):
             self.ishape,
         )
 
+    def asmatrix(self):
+        return self.mat
+
 
 class FuncLinOp(LinOp):
     """A linear operator `LinOp` defined with callables."""
@@ -697,13 +700,13 @@ def asmatrix(linop: LinOp) -> array:
 
     Notes
     -----
-
     Computing the matrix can heavy since it's involve the application of the
     `linop.forward` to `N` unit vectors with `N = linop.iszie` is the size of
     the input.
+
     """
-    if isinstance(linop, Explicit):
-        return linop.mat
+    if hasattr(linop, "asmatrix"):
+        return linop.asmatrix()
 
     if isinstance(linop, array) and linop.ndim < 3:
         return np.atleast_2d(linop)
