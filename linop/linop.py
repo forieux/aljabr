@@ -426,6 +426,9 @@ class Scaled(LinOp):
     def fwadj(self, point: array) -> array:
         return self.scale ** 2 * self.orig_linop.fwadj(point)
 
+    def asmatrix(self):
+        return self.scale * asmatrix(self.orig_linop)
+
     def __getattr__(self, name):
         try:
             return getattr(self.orig_linop, name)
@@ -466,6 +469,10 @@ class Symmetric(LinOp):
     def adjoint(self, point: array) -> array:
         """Returns the adjoint application `Aᴴ·y = A·y`."""
         return self.forward(point)
+
+    def asmatrix(self):
+        mat = asmatrix(self.orig_linop)
+        return np.dot(np.transpose(np.conj(mat)), mat)
 
     def __getattr__(self, name):
         try:
@@ -509,6 +516,9 @@ class Adjoint(LinOp):
 
     def adjoint(self, point: array) -> array:
         return self.orig_linop.forward(point)
+
+    def asmatrix(self):
+        return np.transpose(np.conj(asmatrix(self.orig_linop)))
 
     def __getattr__(self, name):
         try:
@@ -626,6 +636,9 @@ class ProdOp(LinOp):
     def fwadj(self, point: array) -> array:
         return self.right.adjoint(self.left.fwadj(self.right.forward(point)))
 
+    def asmatrix(self):
+        return np.dot(asmatrix(self.left), asmatrix(self.right))
+
 
 class AddOp(LinOp):
     """The sum of two operators `A + B`."""
@@ -656,6 +669,9 @@ class AddOp(LinOp):
 
     def adjoint(self, point: array) -> array:
         return self.right.adjoint(point) + self.left.adjoint(point)
+
+    def asmatrix(self):
+        return asmatrix(self.left) + asmatrix(self.right)
 
 
 class SubOp(LinOp):
@@ -688,6 +704,9 @@ class SubOp(LinOp):
     def adjoint(self, point: array) -> array:
         return self.right.adjoint(point) - self.left.adjoint(point)
 
+    def asmatrix(self):
+        return asmatrix(self.left) - asmatrix(self.right)
+
 
 #%% \
 def asmatrix(linop: LinOp) -> array:
@@ -700,7 +719,8 @@ def asmatrix(linop: LinOp) -> array:
 
     Notes
     -----
-    Computing the matrix can heavy since it's involve the application of the
+    If `linop` has an `asmatrix` method, this one is used. Otherwiser, we relies
+    on the standard heavy way that's involve the application of the
     `linop.forward` to `N` unit vectors with `N = linop.iszie` is the size of
     the input.
 
@@ -883,6 +903,10 @@ class Identity(LinOp):
     def adjoint(self, point: array) -> array:
         return np.asarray(point)
 
+    def asmatrix(self):
+        "Return the corresponding matrix."
+        return np.eye(self.isize)
+
 
 class Diag(LinOp):
     """Diagonal operator."""
@@ -908,6 +932,10 @@ class Diag(LinOp):
 
     def fwadj(self, point: array) -> array:
         return np.abs(self.diag) ** 2 * point
+
+    def asmatrix(self):
+        "Return the corresponding matrix."
+        return np.diag(self.diag.ravel())
 
 
 #%% \
