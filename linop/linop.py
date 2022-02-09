@@ -424,7 +424,7 @@ class Scaled(LinOp):
         return self.scale * self.orig_linop.adjoint(point)
 
     def fwadj(self, point: array) -> array:
-        return self.scale ** 2 * self.orig_linop.fwadj(point)
+        return self.scale**2 * self.orig_linop.fwadj(point)
 
     def asmatrix(self):
         return self.scale * asmatrix(self.orig_linop)
@@ -780,7 +780,13 @@ def dottest(linop: LinOp, num: int = 1, rtol: float = 1e-5, atol: float = 1e-8) 
 
 
 def is_sym(linop: Union[array, LinOp]) -> bool:
-    """Return True if `linop` is symmetric"""
+    """Return True if `linop` is symmetric
+
+    See also
+    --------
+    - scipy.linalg.issymmetric
+    - scipy.linalg.ishermitian
+    """
     mat = asmatrix(linop)
     return mat.shape[0] == mat.shape[1] and np.allclose(mat.T, mat)
 
@@ -1231,6 +1237,41 @@ class Diff(LinOp):
          0  0  1
         """
         return -np.diff(point, prepend=0, append=0, axis=self.axis)
+
+
+class Sampling(LinOp):
+    def __init__(self, ishape, oshape, index):
+        super().__init__(ishape, oshape, name="S")
+        self.index = index
+
+    def forward(self, point):
+        return point[self.index]
+
+    def adjoint(self, point):
+        return np.reshape(
+            np.bincount(
+                self.index.ravel(),
+                weights=point.ravel(),
+                minlength=np.prod(self.ishape),
+            ),
+            self.ishape,
+        )
+
+
+class Slice(LinOp):
+    """Slice the input"""
+
+    def __init__(self, ishape, oshape, idx):
+        """Use np.index_exp to build the `idx` arg"""
+        super().__init__(ishape, oshape, name="S")
+        self.idx = idx
+
+    def forward(self, point):
+        return point[self.idx]
+
+    def adjoint(self, point):
+        out = np.zeros(self.ishape, dtype=point.dtype)
+        out[self.idx] = point
 
 
 class DWT(LinOp):
