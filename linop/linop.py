@@ -740,7 +740,9 @@ def asmatrix(linop: LinOp) -> array:
     return matrix
 
 
-def dottest(linop: LinOp, num: int = 1, rtol: float = 1e-5, atol: float = 1e-8) -> bool:
+def dottest(
+    linop: LinOp, num: int = 1, rtol: float = 1e-5, atol: float = 1e-8, print=False
+) -> bool:
     """The dot test.
 
     Verify the validity of `forward` and `adjoint` methods with equality
@@ -768,14 +770,16 @@ def dottest(linop: LinOp, num: int = 1, rtol: float = 1e-5, atol: float = 1e-8) 
     """
     test = True
     for _ in range(num):
-        uvec = randn(linop.isize)
-        vvec = randn(linop.osize)
+        vvec = randn(linop.isize)
+        uvec = randn(linop.osize)
         test = test & np.allclose(
-            linop.matvec(uvec).conj() * vvec,
-            uvec.conj() * linop.rmatvec(vvec),
+            i := np.dot(linop.rmatvec(uvec).conj().ravel(), vvec.ravel()),
+            j := np.dot(uvec.conj().ravel(), linop.rmatvec(vvec).ravel()),
             rtol=rtol,
             atol=atol,
         )
+        if print:
+            print(f"(Aᴴ·u)ᴴ·v = {i} ≈ {j} = uᴴ·(A·v)")
     return test
 
 
