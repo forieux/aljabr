@@ -1,4 +1,4 @@
-# AlJabr: Interfaces for implicit linear operators
+# Al-Jabr: Interfaces for implicit linear operators
 
 This package implements interfaces for implicit linear operators, those defined
 by function and callable instead of matrix.

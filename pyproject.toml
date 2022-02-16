@@ -6,7 +6,7 @@ authors = ["François Orieux <francois.orieux@universite-paris-saclay.fr>"]
 maintainers = ["François Orieux <francois.orieux@universite-paris-saclay.fr>"]
 readme = "README.md"
 license = "Public Domain"
-repository = "https://github.com/forieux/linearop/"
+repository = "https://github.com/forieux/aljabr/"
 classifiers = [
     "Development Status :: 4 - Beta",
     "Topic :: Scientific/Engineering",
@@ -19,7 +19,7 @@ classifiers = [
 include = ["py.typed", "LICENSE"]
 
 [tool.poetry.urls]
-"Bug Tracker" = "https://github.com/forieux/qmm/issues"
+"Bug Tracker" = "https://github.com/forieux/aljabr/issues"
 "Author webpage" = "https://pro.orieux.fr/"
 
 [tool.poetry.dependencies]
