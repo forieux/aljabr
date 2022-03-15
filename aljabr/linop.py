@@ -472,7 +472,7 @@ class Symmetric(LinOp):
 
     def asmatrix(self):
         mat = asmatrix(self.orig_linop)
-        return np.dot(np.transpose(np.conj(mat)), mat)
+        return mat.conj().transpose().dot(mat)
 
     def __getattr__(self, name):
         try:
