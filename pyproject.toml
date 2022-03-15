@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "aljabr"
-version = "0.1.0"
+version = "0.2.0"
 description = "Linear operators interfaces"
 authors = ["François Orieux <francois.orieux@universite-paris-saclay.fr>"]
 maintainers = ["François Orieux <francois.orieux@universite-paris-saclay.fr>"]
