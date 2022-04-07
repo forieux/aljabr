@@ -25,7 +25,7 @@ include = ["py.typed", "LICENSE"]
 [tool.poetry.dependencies]
 python = ">=3.7,<3.10"
 numpy = "^1.20.2"
-udft = {extras = ["fftw"], version = "^3.2.0"}
+udft = "^3.2.0"
 PyWavelets = "^1.1.1"
 scipy = "^1.7.1"
 
