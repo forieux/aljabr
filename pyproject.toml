@@ -8,7 +8,7 @@ readme = "README.md"
 license = "Public Domain"
 repository = "https://github.com/forieux/aljabr/"
 classifiers = [
-    "Development Status :: 4 - Beta",
+    "Development Status :: 2 - Pre-Alpha",
     "Topic :: Scientific/Engineering",
     "Topic :: Scientific/Engineering :: Mathematics",
     "Intended Audience :: Science/Research",

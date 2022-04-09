@@ -7,11 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Remove fftw depedency.
+
 ## [0.2.0] - 2022-03-15
 
 ### Changed
 
-- Remove fftw depedency.
 - Add py.typed to inform that the module is typed.
 - Fix shape typing
 
