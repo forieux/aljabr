@@ -51,14 +51,14 @@ from numpy import ndarray as array  # type: ignore
 from numpy.random import standard_normal as randn  # type: ignore
 
 __author__ = "François Orieux"
-__copyright__ = "2011, 2021, F. Orieux <francois.orieux@universite-paris-saclay.fr>"
+__copyright__ = "2011, 2022, F. Orieux <francois.orieux@universite-paris-saclay.fr>"
 __credits__ = ["François Orieux"]
 __license__ = "Public domain"
 __version__ = "0.2.0"
 __maintainer__ = "François Orieux"
 __email__ = "francois.orieux@universite-paris-saclay.fr"
 __status__ = "beta"
-__url__ = "https://https://github.com/forieux/linearop"
+__url__ = "https://https://github.com/forieux/aljabr"
 
 __all__ = [
     "LinOp",
@@ -115,8 +115,46 @@ def unvectorize(point: array, shapes: Union[Shape, Sequence[Shape]]) -> ArrOrSeq
     return np.reshape(point, shapes)
 
 
-def timeit(func):
-    """Decorator to time the execution of methods (first argument must be `self`)"""
+def is_linop_duck(obj):
+    """Return True is `obj` is like a `LinOp`.
+
+    A `LinOp` duck type is defined as
+    - must have `forward`, `adjoint` and `fwadj` methods, that must be callable.
+    - must have `ishape` and `oshape` attributs
+    - must have a `dtype` attribut.
+
+    The type of `ishape`, `oshape` and dtype are not checked. `ishape` and
+    `oshape` must be tuple of int (NumPy shape) and `dtype` must be a NumPy
+    `dtype`. It they are not, bug may appear.
+
+    """
+    if (
+        hasattr(obj, "forward")
+        and callable(obj.forward)
+        and hasattr(obj, "adjoint")
+        and callable(obj.adjoint)
+        and hasattr(obj, "fwadj")
+        and callable(obj.fwadj)
+        and hasattr(obj, "ishape")
+        and hasattr(obj, "oshape")
+        and hasattr(obj, "dtype")
+    ):
+        return True
+    return False
+
+
+def timeit(func: Callable) -> Callable:
+    """Decorator to time the execution of methods
+
+    This decorator time the execution of methods of class (the first argument
+    must be `self`). After the execution, an attribut on the object is set to
+    the measured time.
+
+    If the methods is "__init__", the attribut is `self.init_last_duration`. For
+    all other methods with name `name`, the attibut is
+    `self.name_last_duraction`.
+
+    """
 
     @wraps(func)
     def timed(*args, **kwargs):
@@ -136,8 +174,20 @@ def timeit(func):
     return timed
 
 
-def checkshape(func):
-    """Decorator to warn about input and output shape of forward, ajoint and fwadj."""
+def checkshape(func: Callable) -> Callable:
+    """Decorator to warn about input and output shape of methods.
+
+    This decorator only check methods with name `forward`, `ajoint` and `fwadj`,
+    like those of `LinOp`. If the input array or the output array does not have
+    the specified shape in the `LinOp` object, a warning is triggered.
+
+    Notes
+    -----
+    These methods are called as `func(self, arr)` where `self` is the object on
+    which the methods are bounded. Therefor, since `self` should be a `LinOp`,
+    it contains two attributs, `ishape` and `oshape`.
+
+    """
 
     @wraps(func)
     def shape_checked(self, inarray):
@@ -189,22 +239,6 @@ class TimedMeta(type):
 TimedABCMeta = type("TimedABCMeta", (TimedMeta, abc.ABCMeta), {})
 
 
-def is_linop_duck(obj):
-    if (
-        hasattr(obj, "forward")
-        and callable(obj.forward)
-        and hasattr(obj, "adjoint")
-        and callable(obj.adjoint)
-        and hasattr(obj, "fwadj")
-        and callable(obj.fwadj)
-        and hasattr(obj, "ishape")
-        and hasattr(obj, "oshape")
-        and hasattr(obj, "dtype")
-    ):
-        return True
-    return False
-
-
 class LinOp(metaclass=TimedABCMeta):
     """An Abstract Base class for linear operator.
 
@@ -229,7 +263,9 @@ class LinOp(metaclass=TimedABCMeta):
     dtype : numpy dtype, optional
         The dtype of the operator (np.float64 by default).
     H : LinOp
-        The Adjoint of the operator.
+        The `Adjoint` of the operator `A`.
+    S : LinOp
+        The `Symmetric` `Aᴴ·A`.
     """
 
     def __init__(self, ishape: Shape, oshape: Shape, name: str = "_", dtype=np.float64):
@@ -321,13 +357,13 @@ class LinOp(metaclass=TimedABCMeta):
         return self.adjoint(point)
 
     def __add__(self, value: "LinOp") -> "LinOp":
-        """Add (as `+`) a `LinOp` to return a `AddOp`."""
+        """Add (as `+`) a `LinOp` to return an `AddOp`."""
         if is_linop_duck(value):
             return AddOp(self, value)
         raise TypeError("the operand must be a LinOp")
 
     def __sub__(self, value: "LinOp") -> "LinOp":
-        """Substract (as `-`) a `LinOp` to return a `AddOp`."""
+        """Substract (as `-`) a `LinOp` to return an `AddOp`."""
         if is_linop_duck(value):
             return SubOp(self, value)
         raise TypeError("the operand must be a LinOp")
@@ -335,7 +371,7 @@ class LinOp(metaclass=TimedABCMeta):
     def __mul__(self, value: ArrOrLinOp) -> ArrOrLinOp:
         """Left multiply `*` a LinOp or array
 
-        if `value` is a LinOp duck type, return a ProdOp. Else return `A·x`,
+        If `value` is a LinOp duck type, return a ProdOp. Else return `A·x`,
         that is application of `forward(value)`.
         """
         if is_linop_duck(value):
@@ -357,7 +393,7 @@ class LinOp(metaclass=TimedABCMeta):
     def __matmul__(self, value: ArrOrLinOp) -> ArrOrLinOp:
         """Left matrix multiply `@` a LinOp or array
 
-        If `value` is a LinOp duck type, return a ProdOp.
+        If `value` is a LinOp duck type, return a `ProdOp`.
 
         If `self.H == value`, return `Symmetric(value)`.
 
@@ -612,6 +648,7 @@ class ProdOp(LinOp):
 
     def __init__(self, left: LinOp, right: LinOp):
         """The product of two operators `A·B`.
+
         Parameters
         ----------
         left: LinOp
@@ -719,10 +756,10 @@ def asmatrix(linop: LinOp) -> array:
 
     Notes
     -----
-    If `linop` has an `asmatrix` method, this one is used. Otherwiser, we relies
-    on the standard heavy way that's involve the application of the
-    `linop.forward` to `N` unit vectors with `N = linop.iszie` is the size of
-    the input.
+    If `linop` has an `asmatrix` method, this one is used. Otherwise, `asmatrix`
+    relies on the standard heavy way that's involve the application of the
+    `linop.forward` to `N` unit vectors with `N = linop.isize`, the size of the
+    input.
 
     """
     if hasattr(linop, "asmatrix"):
@@ -938,7 +975,10 @@ class Diag(LinOp):
         return self.diag * point
 
     def adjoint(self, point: array) -> array:
-        return np.conj(self.diag) * point
+        if self.diag.dtype is complex:
+            return np.conj(self.diag) * point
+        else:
+            return self.diag * point
 
     def fwadj(self, point: array) -> array:
         return np.abs(self.diag) ** 2 * point
@@ -1152,7 +1192,10 @@ class FreqFilter(Diag):
 
     Notes
     -----
-    Almost like diagonal but suppose complex Fourier space.
+
+    Almost like diagonal but suppose complex Fourier space and is defined by a
+    impulse response. If you have the frequency response, just use Diag.
+
     """
 
     def __init__(self, ir: array, ishape: Shape, name: str = "Filter"):

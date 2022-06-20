@@ -23,7 +23,7 @@ include = ["py.typed", "LICENSE"]
 "Author webpage" = "https://pro.orieux.fr/"
 
 [tool.poetry.dependencies]
-python = ">=3.7,<3.10"
+python = ">=3.7,<3.11"
 numpy = "^1.20.2"
 udft = "^3.2.0"
 PyWavelets = "^1.1.1"
