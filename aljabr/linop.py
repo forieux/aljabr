@@ -193,13 +193,13 @@ def checkshape(func: Callable) -> Callable:
     def shape_checked(self, inarray):
         if func.__name__ in ("forward", "fwadj") and inarray.shape != self.ishape:
             warnings.warn(
-                f"Input shape {inarray.shape} from `{self.name}.{func.__name__}` "
-                f"does not equal {self.name}.ishape={self.ishape}"
+                f"Input shape {inarray.shape} from `[{type(self)}]{self.name}.{func.__name__}` "
+                f"does not equal [{type(self)}]{self.name}.ishape={self.ishape}"
             )
         elif func.__name__ in ("adjoint") and inarray.shape != self.oshape:
             warnings.warn(
-                f"Input shape {inarray.shape} from `{self.name}.{func.__name__}` "
-                f"does not equal {self.name}.oshape={self.oshape}"
+                f"Input shape {inarray.shape} from `[{type(self)}]{self.name}.{func.__name__}` "
+                f"does not equal [{type(self)}]{self.name}.oshape={self.oshape}"
             )
 
         outarray = func(self, inarray)
