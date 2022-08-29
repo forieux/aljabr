@@ -460,7 +460,7 @@ class Scaled(LinOp):
         return self.scale * self.orig_linop.adjoint(point)
 
     def fwadj(self, point: array) -> array:
-        return self.scale**2 * self.orig_linop.fwadj(point)
+        return self.scale ** 2 * self.orig_linop.fwadj(point)
 
     def asmatrix(self):
         return self.scale * asmatrix(self.orig_linop)
@@ -1206,6 +1206,12 @@ class CircConv(LinOp):
     """Circulant convolution"""
 
     def __init__(self, imp_resp: array, shape: Shape, name: str = "CConv"):
+        """
+        Parameters
+        ----------
+        shape: tuple of int
+          Shape on which the DFT apply.
+        """
         super().__init__(ishape=shape, oshape=shape, name=name)
         self.imp_resp = imp_resp
         self.ffilter = Diag(udft.ir2fr(imp_resp, shape))
@@ -1259,7 +1265,7 @@ class Diff(LinOp):
         """
         oshape = list(ishape)
         oshape[axis] = ishape[axis] - 1
-        super().__init__(ishape, tuple(oshape), name=name)
+        super().__init__(ishape, tuple(oshape), name=name + f"[{axis}]")
         self.axis = axis
 
     def forward(self, point: array) -> array:
