@@ -1327,6 +1327,7 @@ class Slice(LinOp):
     def adjoint(self, point):
         out = np.zeros(self.ishape, dtype=point.dtype)
         out[self.idx] = point
+        return out
 
 
 class DWT(LinOp):
