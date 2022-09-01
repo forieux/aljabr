@@ -91,6 +91,7 @@ __all__ = [
     "DWT",
     "Analysis2",
     "Synthesis2",
+    "Slice",
 ]
 
 Shape = Tuple[int, ...]
@@ -1029,7 +1030,7 @@ class RealDFT(LinOp):
             The number of last axes over which to compute the DFT.
         """
         super().__init__(
-            shape, shape[:-1] + (shape[-1] // 2 + 1,), name=name, dtype=np.complex128
+            shape, shape[:-1] + (shape[-1] // 2 + 1,), name=name, dtype=np.complex
         )
         assert self.ishape[-1] // 2 + 1 == self.oshape[-1]
         self.dim = ndim
@@ -1292,23 +1293,23 @@ class Diff(LinOp):
         return -np.diff(point, prepend=0, append=0, axis=self.axis)
 
 
-class Sampling(LinOp):
-    def __init__(self, ishape, oshape, index):
-        super().__init__(ishape, oshape, name="S")
-        self.index = index
+# class Sampling(LinOp):
+#     def __init__(self, ishape, oshape, index):
+#         super().__init__(ishape, oshape, name="Sampling")
+#         self.index = index
 
-    def forward(self, point):
-        return point[self.index]
+#     def forward(self, point):
+#         return point[self.index]
 
-    def adjoint(self, point):
-        return np.reshape(
-            np.bincount(
-                self.index.ravel(),
-                weights=point.ravel(),
-                minlength=np.prod(self.ishape),
-            ),
-            self.ishape,
-        )
+#     def adjoint(self, point):
+#         return np.reshape(
+#             np.bincount(
+#                 self.index.ravel(),
+#                 weights=point.ravel(),
+#                 minlength=np.prod(self.ishape),
+#             ),
+#             self.ishape,
+#         )
 
 
 class Slice(LinOp):
@@ -1316,7 +1317,8 @@ class Slice(LinOp):
 
     def __init__(self, ishape, oshape, idx):
         """Use np.index_exp to build the `idx` arg"""
-        super().__init__(ishape, oshape, name="S")
+        super().__init__(ishape, oshape, name=f"S[{idx}]")
+
         self.idx = idx
 
     def forward(self, point):
