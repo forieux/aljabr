@@ -72,6 +72,7 @@ __all__ = [
     "SubOp",
     "asmatrix",
     "dottest",
+    "fwadjtest",
     "cond",
     "fcond",
     "is_sym",
