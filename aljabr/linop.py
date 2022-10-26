@@ -1088,7 +1088,7 @@ class RealDFT(LinOp):
             The number of last axes over which to compute the DFT.
         """
         super().__init__(
-            shape, shape[:-1] + (shape[-1] // 2 + 1,), name=name, dtype=np.complex
+            shape, shape[:-1] + (shape[-1] // 2 + 1,), name=name, dtype=complex
         )
         assert self.ishape[-1] // 2 + 1 == self.oshape[-1]
         self.dim = ndim
@@ -1351,30 +1351,38 @@ class Diff(LinOp):
         return -np.diff(point, prepend=0, append=0, axis=self.axis)
 
 
-# class Sampling(LinOp):
-#     def __init__(self, ishape, oshape, index):
-#         super().__init__(ishape, oshape, name="Sampling")
-#         self.index = index
+class Sampling(LinOp):
+    def __init__(self, ishape, oshape, index):
+        super().__init__(ishape, oshape, name="Sampling")
+        self.index = index
 
-#     def forward(self, point):
-#         return point[self.index]
+    def forward(self, point):
+        return point[self.index]
 
-#     def adjoint(self, point):
-#         return np.reshape(
-#             np.bincount(
-#                 self.index.ravel(),
-#                 weights=point.ravel(),
-#                 minlength=np.prod(self.ishape),
-#             ),
-#             self.ishape,
-#         )
+    def adjoint(self, point):
+        return np.reshape(
+            np.bincount(
+                self.index.ravel(),
+                weights=point.ravel(),
+                minlength=np.prod(self.ishape),
+            ),
+            self.ishape,
+        )
 
 
 class Slice(LinOp):
-    """Slice the input"""
+    """Equivalent to obj[::2, 1, ...] etc
+
+    See also Sampling when you have array of index instead of slice, with
+    redundant sampling for instance.
+
+    """
 
     def __init__(self, ishape, oshape, idx):
-        """Use np.index_exp to build the `idx` arg"""
+        """Use np.index_exp to build the `idx` arg
+
+        for instance idx=np.index_exp[::2, 1, ...]
+        """
         super().__init__(ishape, oshape, name=f"S[{idx}]")
 
         self.idx = idx
