@@ -1101,7 +1101,7 @@ class RealDFT(LinOp):
         return udft.irdftn(point, self.ishape[-self.dim :])
 
     def fwadj(self, point: array) -> array:
-        return array
+        return point
 
 
 class Conv(LinOp):
