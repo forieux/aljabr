@@ -796,7 +796,7 @@ def asmatrix(linop: LinOp) -> array:
 
 
 def dottest(
-    linop: LinOp, num: int = 1, rtol: float = 1e-5, atol: float = 1e-8, print=False
+    linop: LinOp, num: int = 1, rtol: float = 1e-5, atol: float = 1e-8, echo=False
 ) -> bool:
     """The dot test.
 
@@ -833,7 +833,7 @@ def dottest(
             rtol=rtol,
             atol=atol,
         )
-        if print:
+        if echo:
             print(f"(Aᴴ·u)ᴴ·v = {i} ≈ {j} = uᴴ·(A·v)")
     return test
 
