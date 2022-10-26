@@ -824,11 +824,11 @@ def dottest(
     """
     test = True
     for _ in range(num):
-        vvec = randn(linop.isize)
-        uvec = randn(linop.osize)
+        vvec = randn(linop.isize).astype(linop.dtype)
+        uvec = randn(linop.osize).astype(linop.dtype)
         test = test & np.allclose(
             i := np.dot(linop.rmatvec(uvec).conj().ravel(), vvec.ravel()),
-            j := np.dot(uvec.conj().ravel(), linop.rmatvec(vvec).ravel()),
+            j := np.dot(uvec.conj().ravel(), linop.matvec(vvec).ravel()),
             rtol=rtol,
             atol=atol,
         )
