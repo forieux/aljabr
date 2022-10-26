@@ -828,13 +828,13 @@ def dottest(
         vvec = randn(linop.isize)
         uvec = randn(linop.osize)
         test = test & np.allclose(
-            i := np.dot(linop.rmatvec(uvec).conj().ravel(), vvec.ravel()),
-            j := np.dot(uvec.conj().ravel(), linop.matvec(vvec).ravel()),
+            left := np.vdot(linop.rmatvec(uvec).ravel(), vvec.ravel()),
+            right := np.vdot(uvec.ravel(), linop.matvec(vvec).ravel()),
             rtol=rtol,
             atol=atol,
         )
         if echo:
-            print(f"(Aᴴ·u)ᴴ·v = {i} ≈ {j} = uᴴ·(A·v)")
+            print(f"(Aᴴ·u)ᴴ·v = {left} ≈ {right} = uᴴ·(A·v)")
     return test
 
 
