@@ -357,6 +357,26 @@ class LinOp(metaclass=TimedABCMeta):
         """Returns the adjoint application `Aᴴ·y`."""
         return self.adjoint(point)
 
+    def asmatrix(self):
+        """Return the matrix corresponding to the linear operator.
+
+        Relies on the standard heavy way that's involve the application of the
+        `linop.forward` to `N` unit vectors with `N = linop.isize`, the size of
+        the input.
+
+        Notes
+        -----
+        Can be very heavy depending on the size of operator.
+
+        """
+        inarray = np.empty((self.isize, 1))
+        matrix = np.empty(self.shape, dtype=self.dtype)
+        for idx in range(self.isize):
+            inarray.fill(0)
+            inarray[idx] = 1
+            matrix[:, idx] = self.matvec(inarray).ravel()
+        return matrix
+
     def __add__(self, value: "LinOp") -> "LinOp":
         """Add (as `+`) a `LinOp` to return an `AddOp`."""
         if is_linop_duck(value):
@@ -750,32 +770,28 @@ class SubOp(LinOp):
 def asmatrix(linop: LinOp) -> array:
     """Return the matrix corresponding to the linear operator
 
+    If `linop` is already a matrix, return it with at least 2 axis.
+
+    Otherwise use the `asmatrix()` method of the `LinOp`.
+
     Parameters
     ----------
     linop: LinOp
-        The linear operator to represent as matrix
+        The linear operator to represent as matrix.
 
     Notes
     -----
-    If `linop` has an `asmatrix` method, this one is used. Otherwise, `asmatrix`
-    relies on the standard heavy way that's involve the application of the
-    `linop.forward` to `N` unit vectors with `N = linop.isize`, the size of the
-    input.
+    The standard way with `asmatrix()` can be very heavy depending on the size
+    of operator.
 
     """
-    if hasattr(linop, "asmatrix"):
-        return linop.asmatrix()
-
     if isinstance(linop, array) and linop.ndim < 3:
         return np.atleast_2d(linop)
 
-    inarray = np.empty((linop.isize, 1))
-    matrix = np.empty(linop.shape, dtype=linop.dtype)
-    for idx in range(linop.isize):
-        inarray.fill(0)
-        inarray[idx] = 1
-        matrix[:, idx] = linop.matvec(inarray).ravel()
-    return matrix
+    if isinstance(linop, array):
+        raise ValueError("`linop` must be a ndim ≤ 2 array or a `LinOp`.")
+
+    return linop.asmatrix()
 
 
 def dottest(
