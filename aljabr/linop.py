@@ -117,11 +117,11 @@ def unvectorize(point: array, shapes: Union[Shape, Sequence[Shape]]) -> ArrOrSeq
 
 
 def is_linop_duck(obj):
-    """Return True is `obj` is like a `LinOp`.
+    """Return True if `obj` is like a `LinOp`.
 
     A `LinOp` duck type is defined as
     - must have `forward`, `adjoint` and `fwadj` methods, that must be callable.
-    - must have `ishape` and `oshape` attributs
+    - must have `ishape` and `oshape` attributs.
     - must have a `dtype` attribut.
 
     The type of `ishape`, `oshape` and dtype are not checked. `ishape` and
@@ -834,6 +834,48 @@ def dottest(
         )
         if print:
             print(f"(Aᴴ·u)ᴴ·v = {i} ≈ {j} = uᴴ·(A·v)")
+    return test
+
+
+def fwadjtest(
+    linop: LinOp, num: int = 1, rtol: float = 1e-5, atol: float = 1e-8, print=False
+) -> bool:
+    """Test `fwadj` validity
+
+    Verify the validity `fwadj` wrt. `forward` and `adjoint` methods with equality
+
+    `(Aᴴ·A)·v = Aᴴ·(A·v)`.
+
+    where `v` is a random vectors, to detect errors in implementation.
+
+    Parameters
+    ----------
+    linop : LinOp
+        The linear operator to test.
+    num : int, optional
+        The number of test. They must all pass.
+    rtol : float, optional
+        The relative tolerance parameter (see np.allclose).
+    atol : float, optional
+        The absolute tolerance parameter (see np.allclose).
+
+    Notes
+    -----
+
+    The `u` and `v` vectors passed to `linop` are 1D random float Numpy arrays
+    and the function use the `matvec` and `rmatvec` methods of `LinOp`.
+    """
+    test = True
+    for _ in range(num):
+        vvec = randn(linop.ishape)
+        test = test & np.allclose(
+            i := linop.fwadj(vvec),
+            j := linop.adjoint(linop.forward(vvec)),
+            rtol=rtol,
+            atol=atol,
+        )
+        if print:
+            print(f"(Aᴴ·A)·v = {i} ≈ {j} = Aᴴ·(A·v)")
     return test
 
 
