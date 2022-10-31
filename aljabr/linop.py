@@ -64,7 +64,7 @@ __all__ = [
     "LinOp",
     "Scaled",
     "Adjoint",
-    "Symmetric",
+    "Symetric",
     "Explicit",
     "FuncLinOp",
     "ProdOp",
@@ -267,7 +267,7 @@ class LinOp(metaclass=TimedABCMeta):
     H : LinOp
         The `Adjoint` of the operator `A`.
     S : LinOp
-        The `Symmetric` `Aᴴ·A`.
+        The `Symetric` `Aᴴ·A`.
     """
 
     def __init__(self, ishape: Shape, oshape: Shape, name: str = "_", dtype=np.float64):
@@ -318,8 +318,8 @@ class LinOp(metaclass=TimedABCMeta):
 
     @property
     def S(self) -> "LinOp":  # pylint: disable=invalid-name
-        """Return the `Symmetric` `Aᴴ·A`."""
-        return Symmetric(self)
+        """Return the `Symetric` `Aᴴ·A`."""
+        return Symetric(self)
 
     @abc.abstractmethod
     def forward(self, point: array) -> array:
@@ -417,13 +417,13 @@ class LinOp(metaclass=TimedABCMeta):
 
         If `value` is a LinOp duck type, return a `ProdOp`.
 
-        If `self.H == value`, return `Symmetric(value)`.
+        If `self.H == value`, return `Symetric(value)`.
 
         If `value` is an array, return `matvec(value)`.
         """
         if is_linop_duck(value):
             if Adjoint(self) is value or self is Adjoint(value):
-                return Symmetric(value)
+                return Symetric(value)
             return ProdOp(self, value)
         return self.matvec(value)
 
@@ -496,7 +496,7 @@ class Scaled(LinOp):
             ) from exc
 
 
-class Symmetric(LinOp):
+class Symetric(LinOp):
     """`A` operator where `Aᴴ = A = Bᴴ·B`.
 
     >>> Adjoint(A) is A == True
@@ -537,7 +537,7 @@ class Symmetric(LinOp):
             return getattr(self.orig_linop, name)
         except AttributeError as exc:
             raise AttributeError(
-                f"Original LinOp of `Symmetric` has no {name} attribut"
+                f"Original LinOp of `Symetric` has no {name} attribut"
             ) from exc
 
 
@@ -555,7 +555,7 @@ class Adjoint(LinOp):
     """
 
     def __new__(cls, linop: LinOp):
-        if isinstance(linop, Symmetric):
+        if isinstance(linop, Symetric):
             return linop
         if isinstance(linop, Adjoint):
             return linop.orig_linop
@@ -839,7 +839,7 @@ def dottest(
 
 
 def fwadjtest(
-    linop: LinOp, num: int = 1, rtol: float = 1e-5, atol: float = 1e-8, print=False
+    linop: LinOp, num: int = 1, rtol: float = 1e-5, atol: float = 1e-8, echo=False
 ) -> bool:
     """Test `fwadj` validity
 
@@ -859,12 +859,6 @@ def fwadjtest(
         The relative tolerance parameter (see np.allclose).
     atol : float, optional
         The absolute tolerance parameter (see np.allclose).
-
-    Notes
-    -----
-
-    The `u` and `v` vectors passed to `linop` are 1D random float Numpy arrays
-    and the function use the `matvec` and `rmatvec` methods of `LinOp`.
     """
     test = True
     for _ in range(num):
@@ -875,7 +869,7 @@ def fwadjtest(
             rtol=rtol,
             atol=atol,
         )
-        if print:
+        if echo:
             print(f"(Aᴴ·A)·v = {i} ≈ {j} = Aᴴ·(A·v)")
     return test
 
