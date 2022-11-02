@@ -319,7 +319,7 @@ class LinOp(metaclass=TimedABCMeta):
     @property
     def S(self) -> "LinOp":  # pylint: disable=invalid-name
         """Return the `Symetric` `Aᴴ·A`."""
-        return Symetric(self)
+        return Symetric.from_linop(self)
 
     @abc.abstractmethod
     def forward(self, point: array) -> array:
@@ -423,7 +423,7 @@ class LinOp(metaclass=TimedABCMeta):
         """
         if is_linop_duck(value):
             if Adjoint(self) is value or self is Adjoint(value):
-                return Symetric(value)
+                return Symetric.from_linop(value)
             return ProdOp(self, value)
         return self.matvec(value)
 
@@ -507,38 +507,31 @@ class Symetric(LinOp):
         The base linear operator `B`.
     """
 
-    def __init__(self, linop: LinOp):
-        """A operator where `Aᴴ = A = Bᴴ·B`.
+    def __init__(
+        self,
+        forward: Callable[[array], array],
+        shape: Tuple[int, ...],
+        name="S",
+        dtype=float,
+    ):
+        self.f_forward = forward
 
-        Parameters
-        ----------
-        linop: LinOp
-            The base linear operator `B`.
-        """
-        self.orig_linop = linop
-        super().__init__(
-            linop.ishape, linop.ishape, f"{linop.name}ᴴ·{linop.name}", linop.dtype
+        super().__init__(shape, shape, name, dtype)
+
+    @classmethod
+    def from_linop(cls, linop: LinOp):
+        """Given `B`, returns `A` operator where `Aᴴ = A = Bᴴ·B`."""
+        return cls(
+            linop.fwadj, linop.ishape, f"{linop.name}ᴴ·{linop.name}", linop.dtype
         )
 
     def forward(self, point: array) -> array:
         """Returns the application `A·x`."""
-        return self.orig_linop.fwadj(point)
+        return self.f_forward(point)
 
     def adjoint(self, point: array) -> array:
         """Returns the adjoint application `Aᴴ·y = A·y`."""
         return self.forward(point)
-
-    def asmatrix(self):
-        mat = asmatrix(self.orig_linop)
-        return mat.conj().transpose().dot(mat)
-
-    def __getattr__(self, name):
-        try:
-            return getattr(self.orig_linop, name)
-        except AttributeError as exc:
-            raise AttributeError(
-                f"Original LinOp of `Symetric` has no {name} attribut"
-            ) from exc
 
 
 class Adjoint(LinOp):
