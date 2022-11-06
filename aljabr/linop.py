@@ -1,4 +1,4 @@
-# Copyright (c) 2013, 2021 F. Orieux <francois.orieux@universite-paris-saclay.fr>
+# Copyright (c) 2013, 2022 F. Orieux <francois.orieux@universite-paris-saclay.fr>
 
 # This is free and unencumbered software released into the public domain.
 #
@@ -64,7 +64,7 @@ __all__ = [
     "LinOp",
     "Scaled",
     "Adjoint",
-    "Symetric",
+    "Symmetric",
     "Explicit",
     "FuncLinOp",
     "ProdOp",
@@ -179,16 +179,15 @@ def timeit(func: Callable) -> Callable:
 def checkshape(func: Callable) -> Callable:
     """Decorator to warn about input and output shape of methods.
 
-    This decorator only check methods with name `forward`, `ajoint` and `fwadj`,
-    like those of `LinOp`. If the input array or the output array does not have
-    the specified shape in the `LinOp` object, a warning is triggered.
+    This decorator only check methods with name `forward`, `adjoint` and
+    `fwadj`, like those of `LinOp`. If the input array or the output array does
+    not have the specified shape in the `LinOp` object, a warning is triggered.
 
     Notes
     -----
     These methods are called as `func(self, arr)` where `self` is the object on
     which the methods are bounded. Therefor, since `self` should be a `LinOp`,
     it contains two attributs, `ishape` and `oshape`.
-
     """
 
     @wraps(func)
@@ -267,7 +266,7 @@ class LinOp(metaclass=TimedABCMeta):
     H : LinOp
         The `Adjoint` of the operator `A`.
     S : LinOp
-        The `Symetric` `Aᴴ·A`.
+        The `Symmetric` `Aᴴ·A`.
     """
 
     def __init__(self, ishape: Shape, oshape: Shape, name: str = "_", dtype=np.float64):
@@ -318,8 +317,8 @@ class LinOp(metaclass=TimedABCMeta):
 
     @property
     def S(self) -> "LinOp":  # pylint: disable=invalid-name
-        """Return the `Symetric` `Aᴴ·A`."""
-        return Symetric.from_linop(self)
+        """Return the `Symmetric` `Aᴴ·A`."""
+        return Symmetric.from_linop(self)
 
     @abc.abstractmethod
     def forward(self, point: array) -> array:
@@ -417,13 +416,13 @@ class LinOp(metaclass=TimedABCMeta):
 
         If `value` is a LinOp duck type, return a `ProdOp`.
 
-        If `self.H == value`, return `Symetric(value)`.
+        If `self.H == value`, return `Symmetric(value)`.
 
         If `value` is an array, return `matvec(value)`.
         """
         if is_linop_duck(value):
             if Adjoint(self) is value or self is Adjoint(value):
-                return Symetric.from_linop(value)
+                return Symmetric.from_linop(value)
             return ProdOp(self, value)
         return self.matvec(value)
 
@@ -496,7 +495,7 @@ class Scaled(LinOp):
             ) from exc
 
 
-class Symetric(LinOp):
+class Symmetric(LinOp):
     """`A` operator where `Aᴴ = A = Bᴴ·B`.
 
     >>> Adjoint(A) is A == True
@@ -548,7 +547,7 @@ class Adjoint(LinOp):
     """
 
     def __new__(cls, linop: LinOp):
-        if isinstance(linop, Symetric):
+        if isinstance(linop, Symmetric):
             return linop
         if isinstance(linop, Adjoint):
             return linop.orig_linop
@@ -1374,14 +1373,14 @@ class Slice(LinOp):
         super().__init__(ishape, oshape, name=f"S[{idx}]")
 
         self.idx = idx
+        self._adjoint_buf = np.zeros(self.ishape, dtype=self.dtype)
 
     def forward(self, point):
         return point[self.idx]
 
     def adjoint(self, point):
-        out = np.zeros(self.ishape, dtype=point.dtype)
-        out[self.idx] = point
-        return out
+        self._adjoint_buf[self.idx] = point
+        return self._adjoint_buf
 
 
 class DWT(LinOp):
