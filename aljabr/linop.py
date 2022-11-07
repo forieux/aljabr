@@ -1365,7 +1365,7 @@ class Slice(LinOp):
 
     """
 
-    def __init__(self, ishape, oshape, idx, dtype=float):
+    def __init__(self, ishape, oshape, idx):
         """Use np.index_exp to build the `idx` arg
 
         for instance idx=np.index_exp[::2, 1, ...]
@@ -1373,7 +1373,6 @@ class Slice(LinOp):
         super().__init__(ishape, oshape, name=f"S[{idx}]")
 
         self.idx = idx
-        self._adjoint_buf = np.zeros(self.ishape, dtype=self.dtype)
 
     def forward(self, point):
         return point[self.idx]
