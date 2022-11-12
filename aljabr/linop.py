@@ -1218,14 +1218,16 @@ class DirectConv(LinOp):
         self._ir = np.reshape(ir, (len(self.ishape) - ir.ndim) * (1,) + ir.shape)
 
     def forward(self, point: array) -> array:
-        if hasattr(scipy.signal, "oaconvolve"):
+        try:
             return scipy.signal.oaconvolve(point, self._ir, mode="valid")
-        return scipy.signal.convolve(point, self._ir, mode="valid")
+        except AttributeError:
+            return scipy.signal.convolve(point, self._ir, mode="valid")
 
     def adjoint(self, point: array) -> array:
-        if hasattr(scipy.signal, "oaconvolve"):
+        try:
             return scipy.signal.oaconvolve(point, np.flip(self._ir), mode="full")
-        return scipy.signal.convolve(point, np.flip(self._ir), mode="full")
+        except AttributeError:
+            return scipy.signal.convolve(point, np.flip(self._ir), mode="full")
 
 
 class FreqFilter(Diag):
@@ -1378,10 +1380,11 @@ class Slice(LinOp):
         return point[self.idx]
 
     def adjoint(self, point):
-        if not hasattr(self, "_adjoint_buf"):
+        try:
+            self._adjoint_buf[self.idx] = point
+        except AttributeError:
             self._adjoint_buf = np.zeros(self.ishape, dtype=point.dtype)
-
-        self._adjoint_buf[self.idx] = point
+            self._adjoint_buf[self.idx] = point
 
         return self._adjoint_buf
 
