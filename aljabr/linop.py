@@ -1136,8 +1136,8 @@ class Conv(LinOp):
         self.margins = ir.shape[-dim:]
         if dim == 1:
             self._slices = slice(
-                ir.shape[idx] // 2,
-                ishape[idx] - ir.shape[idx] // 2 + ir.shape[idx] % 2,
+                ir.shape[-1] // 2,
+                ishape[-1] - ir.shape[-1] // 2 + ir.shape[-1] % 2,
             )
         else:
             # No slices up to -N dim
