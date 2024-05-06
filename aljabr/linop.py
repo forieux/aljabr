@@ -1119,13 +1119,19 @@ class Conv(LinOp):
         ir : array
             The impulse responses. Must be at least of `ndim==dim`.
         ishape : tuple of int
-            The shape of the input images. Images are on the last two axis.
+            The shape of the input images. Images are on the last dim axis.
         dim : int
             The last `dim` axis where convolution apply.
         """
         super().__init__(
             ishape=ishape,
-            oshape=np.broadcast_shapes(ishape, ir.shape[:-dim] + ishape[-dim:]),
+            # oshape=tuple(zip(ishape, [])[np.broadcast_shapes(ishape, ir.shape[:-dim] + ishape[-dim:]),
+            oshape=tuple(
+                [
+                    s - pad + 1
+                    for (s, pad) in zip(ishape, (len(ishape) - dim) * (0,) + ir.shape)
+                ]
+            ),
             name=name,
         )
 
