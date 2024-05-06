@@ -1134,14 +1134,22 @@ class Conv(LinOp):
         self.freq_resp = udft.ir2fr(ir, self.ishape[-dim:])
 
         self.margins = ir.shape[-dim:]
-        self._slices = [slice(None) for _ in range(len(ishape) - dim)]
-        for idx in reversed(range(dim)):
-            self._slices.append(
-                slice(
-                    ir.shape[idx] // 2,
-                    ishape[idx] - ir.shape[idx] // 2 + ir.shape[idx] % 2,
-                )
+        if dim == 1:
+            self._slices = slice(
+                ir.shape[idx] // 2,
+                ishape[idx] - ir.shape[idx] // 2 + ir.shape[idx] % 2,
             )
+        else:
+            # No slices up to -N dim
+            self._slices = [slice(None) for _ in range(len(ishape) - dim)]
+            # Remove boundary starting at -N dim
+            for idx in reversed(range(dim)):
+                self._slices.append(
+                    slice(
+                        ir.shape[idx] // 2,
+                        ishape[idx] - ir.shape[idx] // 2 + ir.shape[idx] % 2,
+                    )
+                )
 
     def _dft(self, point: array) -> array:
         return udft.rdftn(point, self.dim)
