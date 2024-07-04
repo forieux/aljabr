@@ -17,6 +17,7 @@ classifiers = [
     "Programming Language :: Python :: Implementation :: CPython",
     "Typing :: Typed",]
 include = ["py.typed", "LICENSE"]
+packages = [{include = "aljabr", from = "src"}]
 
 [tool.poetry.urls]
 "Bug Tracker" = "https://github.com/forieux/aljabr/issues"

@@ -1153,7 +1153,8 @@ class Conv(LinOp):
                 self._slices.append(
                     slice(
                         ir.shape[idx] // 2,
-                        ishape[idx] - ir.shape[idx] // 2 + ir.shape[idx] % 2,
+                        # ishape[idx] - ir.shape[idx] // 2 + ir.shape[idx] % 2,
+                        ishape[idx] - ir.shape[idx] // 2,
                     )
                 )
 
