@@ -23,6 +23,7 @@ francois.orieux AT universite-paris-saclay.fr
 - A base type `LinOp` that represent an operator `A` whose behaviour depends on
   the two methods `forward` for `A·x`, that apply `A` on a vector `x`, and
   `adjoint` for `Aᴴ·x` that apply the adjoint `Aᴴ` on a vector `x`.
+- Compatible with `LinearOperator` of scipy.
 - The base type `LinOp` comes with handy utilities like `+`, `-` or `*`
   interface for basic composition, or automatic timing of instance creation or
   methods call.
@@ -30,7 +31,6 @@ francois.orieux AT universite-paris-saclay.fr
 - Instance of common linear operator like `Identity`, `Diagonal`, `DFT` or
   convolution.
 - Utilities functions like `asmatrix` or `dottest`.
-- Compatible with `LinearOperator` of scipy.
 
 ## Installation and documentation
 
