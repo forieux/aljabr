@@ -24,17 +24,18 @@ packages = [{include = "aljabr", from = "src"}]
 "Author webpage" = "https://pro.orieux.fr/"
 
 [tool.poetry.dependencies]
-python = ">=3.7,<3.11"
+python = ">=3.8,<4"
 numpy = "^1.20.2"
 udft = "^3.2.0"
 PyWavelets = "^1.1.1"
 scipy = "^1.7.1"
+pytest = "^8.2.2"
 
 [tool.poetry.dev-dependencies]
 ipython = "^7.22.0"
 icecream = "^2.1.0"
 mypy = "^0.812"
-pytest = "^6.2.3"
+pytest = ">=7"
 matplotlib = "^3.4.3"
 
 [build-system]
@@ -44,3 +45,9 @@ build-backend = "poetry.core.masonry.api"
 [tool.pylint.messages_control]
 max-parents = 10
 disable = ["bad-continuation", "import-error", "line-too-long",]
+
+[tool.pytest.ini_options]
+pythonpath = "./src"
+addopts = [
+    "--import-mode=importlib",
+]

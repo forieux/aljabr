@@ -51,7 +51,7 @@ from numpy import ndarray as array  # type: ignore
 from numpy.random import standard_normal as randn  # type: ignore
 
 __author__ = "François Orieux"
-__copyright__ = "2011, 2022, F. Orieux <francois.orieux@universite-paris-saclay.fr>"
+__copyright__ = "2011, 2024, F. Orieux <francois.orieux@universite-paris-saclay.fr>"
 __credits__ = ["François Orieux"]
 __license__ = "Public domain"
 __version__ = "0.4.0"
