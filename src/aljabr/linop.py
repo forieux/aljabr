@@ -44,6 +44,7 @@ from typing import Callable, Optional, Sequence, Tuple, TypeVar, Union
 
 import numpy as np  # type: ignore
 import numpy.linalg as la  # type: ignore
+import numpy.typing as npt
 import pywt  # type: ignore
 import scipy  # type: ignore
 import udft
@@ -96,18 +97,19 @@ __all__ = [
 ]
 
 Shape = Tuple[int, ...]
-ArrOrSeq = Union[array, Sequence[array]]
 ArrOrLinOp = TypeVar("ArrOrLinOp", array, "LinOp")
 
 
-def vectorize(point: ArrOrSeq) -> array:
+def vectorize(point: array | Sequence[array]) -> array:
     """Vectorize an array or list of array as column vector"""
     if isinstance(point, array):
         return np.reshape(point, (-1, 1))
-    return np.concatenate((arr.reshape((-1, 1)) for arr in point), axis=0)
+    return np.concatenate([arr.reshape((-1, 1)) for arr in point], axis=0)
 
 
-def unvectorize(point: array, shapes: Union[Shape, Sequence[Shape]]) -> ArrOrSeq:
+def unvectorize(
+    point: array, shapes: Shape | Sequence[Shape]
+) -> array | Sequence[array]:
     """Unvectorize a column vector as an array or list of array"""
     if isinstance(shapes[0], tuple):
         idxs = np.cumsum([0] + [int(np.prod(s)) for s in shapes])
@@ -349,7 +351,7 @@ class LinOp(metaclass=TimedABCMeta):
         """Apply `Aᴴ·A` operator."""
         return self.adjoint(self.forward(point))
 
-    def dot(self, point: array) -> ArrOrSeq:
+    def dot(self, point: array) -> array | Sequence[array]:
         """Returns the forward application `A·x`."""
         return self.forward(point)
 

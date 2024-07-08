@@ -51,3 +51,6 @@ pythonpath = "./src"
 addopts = [
     "--import-mode=importlib",
 ]
+
+[mypy]
+plugins = "numpy.typing.mypy_plugin"
