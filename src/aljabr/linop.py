@@ -327,6 +327,7 @@ class LinOp(metaclass=TimedABCMeta):
         """Returns the forward application `A·x`."""
         raise NotImplementedError
 
+    @abc.abstractmethod
     def adjoint(self, point: array) -> array:
         """Returns the adjoint application `Aᴴ·y`."""
         raise NotImplementedError
