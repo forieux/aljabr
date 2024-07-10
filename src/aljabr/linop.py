@@ -96,7 +96,7 @@ __all__ = [
     "Slice",
 ]
 
-Shape = Tuple[int, ...]
+Shape = tuple[int, ...]
 ArrOrLinOp = TypeVar("ArrOrLinOp", array, "LinOp")
 
 
