@@ -1,7 +1,7 @@
 # Al-Jabr: Interfaces for implicit linear operators
 
-This package implements interfaces for implicit linear operators, those defined
-by function and callable instead of matrix. It is useful when the matrix
+This package implements a thin interfaces for implicit linear operators, those
+defined by function and callable instead of matrix. It is useful when the matrix
 reprensentation is not adequat, for instance
 
 - when the dimension is large,
@@ -11,6 +11,19 @@ reprensentation is not adequat, for instance
 
 A typical example is the Discrete Fourier Transform that is a linear operator
 but available through the usual `fft` and `ifft` function.
+
+The philosopy of this package is to be small, to not be in your way and only
+offer optional convinient utility for easy usage and to not be smart for you.
+For instance, you will not found easy inversion like `x = A / y` for computation
+of `A⁻¹y` with a "choosed for you" algorithm. This package is therefor, quite
+different than PyLops.
+
+## Array consumer
+
+The lib should work with any library array that support the [Array API
+standard](https://data-apis.org/array-api) and `__array_function__()` protocol.
+We use [array-api-compat](https://data-apis.org/array-api-compat/index.html) to
+help with that.
 
 **The code is in early development stage, Pre-Alpha.**
 

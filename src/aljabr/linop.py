@@ -1,4 +1,4 @@
-# Copyright (c) 2013, 2022 F. Orieux <francois.orieux@universite-paris-saclay.fr>
+# Copyright (c) 2013, 2024 F. Orieux <francois.orieux@universite-paris-saclay.fr>
 
 # This is free and unencumbered software released into the public domain.
 #
@@ -36,20 +36,20 @@ operators, some specialised ones, utilities, and tests.
 """
 
 import abc
-import numbers
 import time
 import warnings
 from functools import wraps
-from typing import Callable, Optional, Sequence, Tuple, TypeVar, Union
+from numbers import Number
+from typing import Callable, Optional, Sequence, Tuple, TypeGuard, TypeVar, Union
 
+import array_api_compat as arr_api
 import numpy as np  # type: ignore
 import numpy.linalg as la  # type: ignore
-import numpy.typing as npt
 import pywt  # type: ignore
 import scipy  # type: ignore
 import udft
-from numpy import ndarray as array  # type: ignore
 from numpy.random import standard_normal as randn  # type: ignore
+from numpy.typing import ArrayLike as array
 
 __author__ = "François Orieux"
 __copyright__ = "2011, 2024, F. Orieux <francois.orieux@universite-paris-saclay.fr>"
@@ -97,29 +97,36 @@ __all__ = [
 ]
 
 Shape = tuple[int, ...]
-ArrOrLinOp = TypeVar("ArrOrLinOp", array, "LinOp")
+# array = ArrayLike  # TypeVar("array", ArrayLike)
+ArrOrLinOp = array | "LinOp"
 
 
 def vectorize(point: array | Sequence[array]) -> array:
     """Vectorize an array or list of array as column vector"""
-    if isinstance(point, array):
-        return np.reshape(point, (-1, 1))
-    return np.concatenate([arr.reshape((-1, 1)) for arr in point], axis=0)
+    xp = arr_api.get_namespace(point)
+    if isinstance(point, Sequence):
+        return xp.concatenate([xp.reshape(arr, (-1, 1)) for arr in point], axis=0)
+    return xp.reshape(point, (-1, 1))
 
 
 def unvectorize(
     point: array, shapes: Shape | Sequence[Shape]
 ) -> array | Sequence[array]:
     """Unvectorize a column vector as an array or list of array"""
+    xp = arr_api.get_namespace(point)
     if isinstance(shapes[0], tuple):
         idxs = np.cumsum([0] + [int(np.prod(s)) for s in shapes])
         return [
-            np.reshape(point[idxs[i] : idxs[i + 1]], s) for i, s in enumerate(shapes)
+            xp.reshape(point[idxs[i] : idxs[i + 1]], s) for i, s in enumerate(shapes)
         ]
-    return np.reshape(point, shapes)
+    return xp.reshape(point, shapes)
 
 
-def is_linop_duck(obj):
+# def is_array(obj) -> TypeGuard[array]:
+#     return array_api_compat.is_array_api_obj(obj)
+
+
+def is_linop_duck(obj) -> TypeGuard["LinOp"]:
     """Return True if `obj` is like a `LinOp`.
 
     A `LinOp` duck type is defined as
@@ -264,14 +271,14 @@ class LinOp(metaclass=TimedABCMeta):
     name : str, optional
         The name of the operator.
     dtype : numpy dtype, optional
-        The dtype of the operator (np.float64 by default).
+        The dtype of the operator (float by default).
     H : LinOp
         The `Adjoint` of the operator `A`.
     S : LinOp
         The `Symmetric` `Aᴴ·A`.
     """
 
-    def __init__(self, ishape: Shape, oshape: Shape, name: str = "_", dtype=np.float64):
+    def __init__(self, ishape: Shape, oshape: Shape, name: str = "_", dtype=float):
         """
         Parameters
         ---------
@@ -360,7 +367,7 @@ class LinOp(metaclass=TimedABCMeta):
         """Returns the adjoint application `Aᴴ·y`."""
         return self.adjoint(point)
 
-    def asmatrix(self):
+    def asmatrix(self, out: array = None) -> array:
         """Return the matrix corresponding to the linear operator.
 
         Relies on the standard heavy way that's involve the application of the
@@ -372,8 +379,13 @@ class LinOp(metaclass=TimedABCMeta):
         Can be very heavy depending on the size of operator.
 
         """
-        inarray = np.empty((self.isize, 1))
-        matrix = np.empty(self.shape, dtype=self.dtype)
+        if out is not None:
+            xp = arr_api.get_namespace(out)
+        else:
+            xp = np
+
+        inarray = xp.empty((self.isize, 1))
+        matrix = xp.empty(self.shape, dtype=self.dtype)
         for idx in range(self.isize):
             inarray.fill(0)
             inarray[idx] = 1
@@ -392,7 +404,7 @@ class LinOp(metaclass=TimedABCMeta):
             return SubOp(self, value)
         raise TypeError("the operand must be a LinOp")
 
-    def __mul__(self, value: ArrOrLinOp) -> ArrOrLinOp:
+    def __mul__(self, value: array | "LinOp") -> array | "LinOp":
         """Left multiply `*` a LinOp or array
 
         If `value` is a LinOp duck type, return a ProdOp. Else return `A·x`,
@@ -402,7 +414,7 @@ class LinOp(metaclass=TimedABCMeta):
             return ProdOp(self, value)
         return self.forward(value)
 
-    def __rmul__(self, point: array) -> array:
+    def __rmul__(self, point: array) -> array | "LinOp":
         """Right multiply `*` a scalar or array.
 
         if `value` is a scalar, return a `Scaled`.
@@ -410,16 +422,16 @@ class LinOp(metaclass=TimedABCMeta):
         Otherwise, `value` is considered as an array and return `yᵀ·A`, the
         adjoint application `Aᴴ·y`.
         """
-        if isinstance(point, numbers.Number):
+        if isinstance(point, Number):
             return Scaled(self, point)
         return self.adjoint(point)
 
-    def __matmul__(self, value: ArrOrLinOp) -> ArrOrLinOp:
+    def __matmul__(self, value: array | "LinOp") -> array | "LinOp":
         """Left matrix multiply `@` a LinOp or array
 
         If `value` is a LinOp duck type, return a `ProdOp`.
 
-        If `self.H == value`, return `Symmetric(value)`.
+        If `value is self.H`, return `Symmetric(value)`.
 
         If `value` is an array, return `matvec(value)`.
         """
@@ -429,7 +441,7 @@ class LinOp(metaclass=TimedABCMeta):
             return ProdOp(self, value)
         return self.matvec(value)
 
-    def __rmatmul__(self, point: array) -> array:
+    def __rmatmul__(self, point: array | Number) -> array | "LinOp":
         """Right matrix multiply `@` a scalar or array.
 
         if `value` is a scalar, return a `Scaled`.
@@ -437,7 +449,7 @@ class LinOp(metaclass=TimedABCMeta):
         Otherwise, `value` is considered as an array and return `yᵀ·A = Aᴴ·y`,
         as `rmatvec(point)`.
         """
-        if isinstance(point, numbers.Number):
+        if isinstance(point, Number):
             return Scaled(self, point)
         return self.rmatvec(point)
 
@@ -449,7 +461,7 @@ class LinOp(metaclass=TimedABCMeta):
         return f"{self.name} ({type(self).__name__}): {self.ishape} → {self.oshape}"
 
 
-#%%\
+# %%\
 class Scaled(LinOp):
     """An operator `B` scaled by a scalar `γ`.
 
@@ -461,7 +473,7 @@ class Scaled(LinOp):
         The scale factor `γ`.
     """
 
-    def __init__(self, linop: LinOp, scale: Union[float, complex]):
+    def __init__(self, linop: LinOp, scale: Number):
         """An operator `B` scaled by a scalar `γ`
 
         >>> A = γ·B
@@ -484,7 +496,7 @@ class Scaled(LinOp):
         return self.scale * self.orig_linop.adjoint(point)
 
     def fwadj(self, point: array) -> array:
-        return self.scale ** 2 * self.orig_linop.fwadj(point)
+        return self.scale**2 * self.orig_linop.fwadj(point)
 
     def asmatrix(self):
         return self.scale * asmatrix(self.orig_linop)
@@ -570,8 +582,9 @@ class Adjoint(LinOp):
     def adjoint(self, point: array) -> array:
         return self.orig_linop.forward(point)
 
-    def asmatrix(self):
-        return np.transpose(np.conj(asmatrix(self.orig_linop)))
+    def asmatrix(self, out: array = None) -> array:
+        xp = arr_api.get_namespace(out) if out is not None else np
+        return xp.transpose(xp.conj(asmatrix(self.orig_linop, out=out)))
 
     def __getattr__(self, name):
         try:
@@ -616,13 +629,17 @@ class Explicit(LinOp):
         super().__init__(ishape, oshape, name, matrix.dtype)
 
     def forward(self, point: array) -> array:
-        return np.reshape(
-            np.asanyarray(self.mat.dot(point.reshape((-1, 1)))), self.oshape
+        xp = arr_api.get_namespace(point)
+        return xp.reshape(
+            np.asanyarray(self.mat.dot(point.reshape((-1, 1)))), self.oshape, like=point
         )
 
     def adjoint(self, point: array) -> array:
-        return np.reshape(
-            np.asanyarray(self.mat.transpose().conj().dot(point.reshape((-1, 1)))),
+        xp = arr_api.get_namespace(point)
+        return xp.reshape(
+            np.asanyarray(
+                self.mat.transpose().conj().dot(point.reshape((-1, 1))), like=point
+            ),
             self.ishape,
         )
 
@@ -641,7 +658,7 @@ class FuncLinOp(LinOp):
         oshape: Shape,
         fwadj: Callable[[array], array] = None,
         name: str = "_",
-        dtype=np.float64,
+        dtype=float,
     ):
         super().__init__(ishape, oshape, name, dtype)
         self.f_forward = forward
@@ -690,8 +707,10 @@ class ProdOp(LinOp):
     def fwadj(self, point: array) -> array:
         return self.right.adjoint(self.left.fwadj(self.right.forward(point)))
 
-    def asmatrix(self):
-        return np.dot(asmatrix(self.left), asmatrix(self.right))
+    def asmatrix(self, out=None):
+        xp = arr_api.get_namespace(out) if out is not None else np
+        1 / 0  # HERE
+        return xp.dot(asmatrix(self.left, out), asmatrix(self.right, out))
 
 
 class AddOp(LinOp):
@@ -762,7 +781,7 @@ class SubOp(LinOp):
         return asmatrix(self.left) - asmatrix(self.right)
 
 
-#%% \
+# %% \
 def asmatrix(linop: LinOp) -> array:
     """Return the matrix corresponding to the linear operator
 
@@ -974,7 +993,7 @@ def fcond(linop: LinOp, tol: float = 0.1) -> float:
     return np.abs(np.max(eig)) / np.abs(np.min(eig))
 
 
-#%% \
+# %% \
 class Identity(LinOp):
     """Identity operator of specific shape
 
@@ -1037,7 +1056,7 @@ class Diag(LinOp):
         return np.diag(self.diag.ravel())
 
 
-#%% \
+# %% \
 class DFT(LinOp):
     """Discrete Fourier Transform on the N last axis."""
 
@@ -1208,9 +1227,11 @@ class DirectConv(LinOp):
             The shape of the input array.
         """
         oshape = tuple(
-            ishape[idx]
-            if idx < len(ishape) - len(ir.shape)
-            else ishape[idx] - ir.shape[idx - (len(ishape) - len(ir.shape))] + 1
+            (
+                ishape[idx]
+                if idx < len(ishape) - len(ir.shape)
+                else ishape[idx] - ir.shape[idx - (len(ishape) - len(ir.shape))] + 1
+            )
             for idx in range(len(ishape))
         )
         super().__init__(
