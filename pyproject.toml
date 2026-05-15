@@ -26,6 +26,7 @@ requires-python = ">=3.12"
 dependencies = [
     "array-api-compat>=1.13.0",
     "numpy>=2.4.1",
+    "udft>=4.0.2",
 ]
 
 [project.urls]
@@ -35,9 +36,6 @@ changelog = "https://github.com/me/spam/blob/master/CHANGELOG.md"
 "Author webpage" = "https://pro.orieux.fr/"
 
 [project.optional-dependencies]
-fft = [
-    "udft>=4.0.2",
-]
 wavelet = [
     "pywavelets>=1.9.0",
 ]
