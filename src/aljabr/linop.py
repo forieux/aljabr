@@ -61,7 +61,7 @@ __version__ = "0.4.0"
 __maintainer__ = "François Orieux"
 __email__ = "francois.orieux@universite-paris-saclay.fr"
 __status__ = "beta"
-__url__ = "https://https://github.com/forieux/aljabr"
+__url__ = "https://github.com/forieux/aljabr"
 
 # __all__ = [
 #     "LinOpLike",
@@ -144,13 +144,13 @@ class LinOpLike(Protocol):
 def timeit(func: Callable) -> Callable:
     """Decorator to time the execution of methods
 
-    This decorator time the execution of methods of class (the first argument
-    must be `self`). After the execution, an attribut on the object is set to
+    This decorator times the execution of methods of a class (the first argument
+    must be `self`). After the execution, an attribute on the object is set to
     the measured time.
 
-    If the methods is "__init__", the attribut is `self.init_last_duration`. For
-    all other methods with name `name`, the attibut is
-    `self.name_last_duraction`.
+    If the method is "__init__", the attribute is `self.init_last_duration`. For
+    all other methods with name `name`, the attribute is
+    `self.name_last_duration`.
 
     """
 
@@ -183,8 +183,8 @@ def checkshape(func: Callable) -> Callable:
     Notes
     -----
     These methods are called as `func(self, arr)` where `self` is the object on
-    which the methods are bounded. Therefor, since `self` should be a `LinOp`,
-    it contains two attributs, `ishape` and `oshape`.
+    which the methods are bound. Since `self` is a `LinOp`, it exposes
+    `ishape` and `oshape`.
     """
 
     @wraps(func)
@@ -228,8 +228,8 @@ class LinOp(abc.ABC):
     concrete class.
 
 
-    Attributs
-    ---------
+    Attributes
+    ----------
     ishape : tuple of int
         The shape of the input.
     oshape : tuple of int
@@ -240,9 +240,9 @@ class LinOp(abc.ABC):
         The output size.
     shape : tuple of two int.
         The shape of the operator as matrix.
-    name : str, optional
+    name : str
         The name of the operator.
-    dtype : numpy dtype, optional
+    dtype : dtype
         The dtype of the operator (float by default).
     H : LinOp
         The `Adjoint` of the operator `A`.
@@ -268,16 +268,17 @@ class LinOp(abc.ABC):
     ):
         """
         Parameters
-        ---------
+        ----------
         ishape : tuple of int
             The shape of the input.
         oshape : tuple of int
             The shape of the output.
         name : str, optional
             The name of the operator.
-        dtype : numpy dtype, optional
-            The dtype of the operator (float64 by default).
-        xp : array API namespace, optional (default Numpy)
+        dtype : dtype, optional
+            The dtype of the operator (float by default).
+        xp : array namespace, optional
+            The array API namespace to use (default: numpy).
         """
 
         self.name: str = name
@@ -311,7 +312,7 @@ class LinOp(abc.ABC):
     def H(self) -> "LinOp":
         """Return the adjoint `Aᴴ` as a `LinOp`.
 
-        I A is already and Adjoint, return the original operator."""
+        If `A` is already an `Adjoint`, return the original operator."""
         return Adjoint(self)
 
     @property
@@ -356,11 +357,7 @@ class LinOp(abc.ABC):
     def asmatrix(self) -> Array:
         """Return the matrix corresponding to the linear operator.
 
-        Relies on the standard heavy way that's involve the application of the
-        `linop.forward` to `N` unit vectors with `N = linop.isize`, the size of
-        the input.
-
-        `like` : the output will be an array of `like` type (default numpy)
+        Applies `forward` to `N` unit vectors where `N = linop.isize`.
 
         Notes
         -----
@@ -510,11 +507,11 @@ class BaseOp(LinOp):
 class Scaled(LinOp):
     """An operator `B` scaled by a scalar `γ`.
 
-    Attributs
-    ---------
-    baseop: LinOp
+    Attributes
+    ----------
+    baseop : LinOp
         The base linear operator `B`.
-    scale: float
+    scale : float
         The scale factor `γ`.
     """
 
@@ -595,15 +592,13 @@ class Symmetric(LinOp):
 class Adjoint(LinOp):
     """The adjoint `Aᴴ` of a linear operator `A`.
 
-    `Adjoint` are singleton
+    `Adjoint` is a singleton: `Adjoint(Adjoint(A)) is A`.
 
-    >>> Adjoint(Adjoint(A)) is A == True
+    Delegates to `A` methods.
 
-    Use `A` methods.
-
-    Attributs
-    ---------
-    baseop: LinOp
+    Attributes
+    ----------
+    baseop : LinOp
         The base linear operator.
     """
 
@@ -682,7 +677,7 @@ class Explicit(LinOp):
             raise ValueError("`oshape` must = matrix.shape[0]")
 
         if matrix.ndim != 2:
-            raise ValueError("array must have attribut `ndim == 2`")
+            raise ValueError("array must have attribute `ndim == 2`")
 
         self.mat: Array = matrix
         super().__init__(ishape, oshape, name, matrix.dtype, xp)
@@ -829,17 +824,17 @@ class VStack(LinOp):
     ``HStack([A, B, C]).H`` returns ``VStack([Aᴴ, Bᴴ, Cᴴ])``.
 
     So if y = vect([y₀, y₁, ...]) of shape (N, 1), and A = VStack([A₀, A₁,
-    ...]), then y = Ax can be otained with
+    ...]), then y = Ax can be obtained with
 
-    >>> y = A.split(A.forward(x)) == A.apply(x)
-    >>> vectorize(y).shape = A.oshape
+    >>> y_list = A.apply(x)          # list of per-operator outputs
+    >>> y = A.forward(x)             # stacked column vector, shape A.oshape
+    >>> A.split(y) == y_list         # split back to per-operator shapes
 
-    Comments
-    --------
-
-    This operator is for convenience and exaustivity, the recommendation is to
-    do a custom opertor that directly inherits from `LinOp` and implements the
-    `forward` and `adjoint` methods.
+    Notes
+    -----
+    This operator is for convenience. The recommendation is to write a custom
+    operator that directly inherits from `LinOp` and implements `forward` and
+    `adjoint`.
 
     """
 
@@ -902,18 +897,17 @@ class HStack(LinOp):
     ``HStack([A, B, C]).H`` returns ``VStack([Aᴴ, Bᴴ, Cᴴ])``.
 
     So if x = vect([x₀, x₁, ...]) of shape (M, 1), and A = HStack([A₀, A₁,
-    ...]), then y = Ax can be otained with
+    ...]), then y = Ax can be obtained with
 
-    >>> y = A.forward(x) == A.apply(A.split(x))
-    >>> y.shape = A.oshape
+    >>> x_list = A.split(x)          # list of per-operator inputs
+    >>> y = A.forward(x)             # sum of op.forward(xᵢ), shape A.oshape
+    >>> A.apply(x) == x_list         # apply each op to its sub-input
 
-
-    Comments
-    --------
-
-    This operator is for convenience and exaustivity, the recommendation is to
-    do a custom opertor that directly inherits from `LinOp` and implements the
-    `forward` and `adjoint` methods.
+    Notes
+    -----
+    This operator is for convenience. The recommendation is to write a custom
+    operator that directly inherits from `LinOp` and implements `forward` and
+    `adjoint`.
 
     """
 
