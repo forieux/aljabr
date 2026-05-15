@@ -29,7 +29,7 @@
 
 This module implements an interface for implicit linear operator. It is mostly
 wrappers around callables or functions for ease of use as linear operator and
-more expressiveness. For instance, it can wraps the `fft()` function, giving the
+more expressiveness. For instance, it can wrap the `fft()` function, giving the
 impression that it is a matrix.
 
 """
@@ -63,41 +63,24 @@ __email__ = "francois.orieux@universite-paris-saclay.fr"
 __status__ = "beta"
 __url__ = "https://github.com/forieux/aljabr"
 
-# __all__ = [
-#     "LinOpLike",
-#     "LinOp",
-#     "Scaled",
-#     "Adjoint",
-#     "Symmetric",
-#     "Explicit",
-#     "FuncLinOp",
-#     "ProdOp",
-#     "AddOp",
-#     "SubOp",
-#     "asmatrix",
-#     "dottest",
-#     "fwadjtest",
-#     "cond",
-#     "fcond",
-#     "is_sym",
-#     "is_pos_def",
-#     "is_semi_pos_def",
-#     "is_neg_def",
-#     "is_semi_neg_def",
-#     "Identity",
-#     "Diag",
-#     "DFT",
-#     "RealDFT",
-#     "Conv",
-#     "DirectConv",
-#     "CircConv",
-#     "FreqFilter",
-#     "Diff",
-#     "DWT",
-#     "Analysis2",
-#     "Synthesis2",
-#     "Slice",
-# ]
+__all__ = [
+    "Shape",
+    "Array",
+    "vectorize",
+    "unvectorize",
+    "asmatrix",
+    "LinOp",
+    "BaseOp",
+    "Scaled",
+    "Adjoint",
+    "Symmetric",
+    "Explicit",
+    "ProdOp",
+    "AddOp",
+    "SubOp",
+    "VStack",
+    "HStack",
+]
 
 Shape = tuple[int, ...]
 
@@ -602,7 +585,7 @@ class Scaled(LinOp):
         The scale factor `γ`.
     """
 
-    def __init__(self, linop: LinOp, scale: complex):
+    def __init__(self, linop: LinOp, scale: complex | float):
         """An operator `B` scaled by a scalar `γ` (i.e. `A = γ·B`).
 
         Parameters
@@ -625,7 +608,7 @@ class Scaled(LinOp):
         return self.xp.conj(self.scale) * self.baseop.adjoint(point)
 
     def fwadj(self, point: Array) -> Array:
-        return self.xp.abs(self.scale) ** 2 * self.baseop.fwadj(point)
+        return abs(self.scale) ** 2 * self.baseop.fwadj(point)
 
     def asmatrix(self, like: Array | None = None) -> Array:
         return self.scale * asmatrix(self.baseop, like=like)

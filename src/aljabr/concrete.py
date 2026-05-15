@@ -10,6 +10,23 @@ except ImportError:
 
 from .linop import LinOp, Shape, Array
 
+__all__ = [
+    "Identity",
+    "Diag",
+    "DFT",
+    "RealDFT",
+    "Conv",
+    "DirectConv",
+    "FreqFilter",
+    "CircConv",
+    "Diff",
+    "Sampling",
+    "Slice",
+    "DWT",
+    "Analysis2",
+    "Synthesis2",
+]
+
 
 class Identity(LinOp):
     """Identity operator of specific shape."""
@@ -149,7 +166,7 @@ class Conv(LinOp):
 
     Notes
     -----
-    Use fft internally for fast computation. The `forward` methods is equivalent
+    Use fft internally for fast computation. The `forward` method is equivalent
     to "valid" boundary condition and `adjoint` is equivalent to "full" boundary
     condition with zero filling.
 
@@ -232,7 +249,7 @@ class Conv(LinOp):
 
 
 class DirectConv(LinOp):
-    """Direct convolution
+    """Direct convolution.
 
     The convolution is performed on the last N axis where N = ir.ndim.
 
@@ -249,7 +266,7 @@ class DirectConv(LinOp):
     """
 
     def __init__(self, ir: Array, ishape: Shape, name: str = "DConv"):
-        """Direct convolution
+        """Direct convolution.
 
         Parameters
         ----------
@@ -288,7 +305,7 @@ class DirectConv(LinOp):
 
     @property
     def ir(self) -> Array:
-        """The impulse response"""
+        """The impulse response."""
         return np.squeeze(self._ir)
 
     def forward(self, point: Array) -> Array:
@@ -299,19 +316,17 @@ class DirectConv(LinOp):
 
 
 class FreqFilter(Diag):
-    """Frequency filter in Fourier space
+    """Frequency filter in Fourier space.
 
     Attributes
     ----------
     diag: Array
-        The frequency response of the filter
+        The frequency response of the filter.
 
     Notes
     -----
-
-    Almost like diagonal but suppose complex Fourier space and is defined by a
+    Almost like diagonal but supposes complex Fourier space and is defined by an
     impulse response. If you have the frequency response, just use Diag.
-
     """
 
     def __init__(self, ir: Array, ishape: Shape, name: str = "Filter"):
@@ -361,7 +376,7 @@ class CircConv(LinOp):
 
     @property
     def freq_resp(self) -> Array:
-        """The frequency response"""
+        """The frequency response."""
         return self.ffilter.diag
 
     def _dft(self, arr: Array) -> Array:
@@ -475,10 +490,12 @@ class Sampling(LinOp):
 
 
 class Slice(LinOp):
-    """Equivalent to obj[::2, 1, ...] etc
+    """Equivalent to obj[::2, 1, ...] etc.
 
-    See also Sampling when you have array of index instead of slice that can
-    handle multiple sampling of same value for instance.
+    See Also
+    --------
+    Sampling : when you have an array of indices that can handle multiple
+        sampling of the same value.
 
     Notes
     -----
@@ -509,6 +526,7 @@ class Slice(LinOp):
 
     @property
     def idx(self) -> tuple:
+        """The index expression."""
         return self._idx
 
     def forward(self, point: Array) -> Array:
@@ -596,7 +614,6 @@ class Analysis2(LinOp):
 
     Notes
     -----
-
     Numpy-only, use pywt internally. The output is a 3D array where the first
     axis is the coefficient axis, with the approximation coefficients at index 0
     and the detail coefficients at indices 1 to 3*level. The second and third
@@ -732,7 +749,7 @@ class Synthesis2(LinOp):
             Name of the operator.
         """
         self.analysis = Analysis2(shape, level, wavelet)
-        super().__init__(self.analysis.oshape, self.analysis.ishape, name)
+        super().__init__(self.analysis.oshape, self.analysis.ishape, name, dtype=np.float64, xp=np)
         self.wlt = self.analysis.wlt
         self.lvl = self.analysis.lvl
 

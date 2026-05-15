@@ -4,6 +4,19 @@ import array_api_compat as arr_api
 
 from .linop import LinOp, Array, asmatrix
 
+__all__ = [
+    "allclose",
+    "dottest",
+    "fwadjtest",
+    "is_sym",
+    "is_pos_def",
+    "is_semi_pos_def",
+    "is_neg_def",
+    "is_semi_neg_def",
+    "cond",
+    "fcond",
+]
+
 
 def allclose(a: Array, b: Array, rtol: float = 1e-5, atol: float = 1e-8) -> bool:
     """Array-namespace agnostic equivalent of `np.allclose`.
@@ -129,7 +142,6 @@ def fwadjtest(
         vvec = xp.asarray(randn(linop.ishape))
         i = linop.fwadj(vvec)
         j = linop.adjoint(linop.forward(vvec))
-        # Use all instead of allclose for compatibility with non-NumPy namespaces (e.g. torch)
         close = allclose(i, j, rtol=rtol, atol=atol)
         test = test and close
         if echo:
@@ -174,12 +186,10 @@ def is_pos_def(linop: Array | LinOp) -> bool:
     Notes
     -----
     A positive definite matrix $M$ has strictly positive eigenvalues, but the
-    converse is not true.
-
-    Tests that all eigenvalues of $M + M^T$ are strictly positive. Since $x^T M
-    x = x^T \frac{M + M^T}{2} x$ for any vector $x$, positive definiteness of
-    $M$ is equivalent to positive definiteness of $M + M^T$.
-
+    converse is not true for non-symmetric matrices. The function therefore tests
+    all eigenvalues of $M + M^T$: since $x^T M x = x^T \frac{M + M^T}{2} x$
+    for any vector $x$, positive definiteness of $M$ is equivalent to positive
+    definiteness of $M + M^T$.
     """
     mat = asmatrix(linop)
     xp = arr_api.get_namespace(mat)
