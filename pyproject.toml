@@ -42,6 +42,11 @@ wavelet = [
 scipy = [
     "scipy>=1.17.1",
 ]
+docs = [
+    "sphinx>=7",
+    "sphinx-rtd-theme",
+    "myst-parser",
+]
 
 [dependency-groups]
 dev = [

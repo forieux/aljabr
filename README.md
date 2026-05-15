@@ -1,74 +1,92 @@
-# Al-Jabr: Interfaces for implicit linear operators
+# aljabr — Implicit linear operators
 
-This package implements a thin interfaces for implicit linear operators, those
-defined by function and callable instead of matrix. It is useful when the matrix
-reprensentation is not adequat, for instance
+**aljabr** is a small Python library providing an interface for implicit linear
+operators: linear maps defined by `forward` and `adjoint` callables rather than
+an explicit matrix. It is useful when an explicit matrix representation is not
+adequate — for instance when the dimension is large, when a more efficient
+algorithm exists, or when the operator is naturally expressed as a function.
 
-- when the dimension is large,
-- when more efficient computation is available instead of basic matrix vector
-  product,
-- when the vector interface is not easy to manipulate.
+A typical example is the Discrete Fourier Transform, which is a linear operator
+available through `fft` and `ifft` functions. aljabr lets you treat it — and
+compose it with others — as if it were a matrix.
 
-A typical example is the Discrete Fourier Transform that is a linear operator
-but available through the usual `fft` and `ifft` function.
+The foundation is the `LinOp` type. Everything else — concrete operators,
+utilities, algebraic composition — is built on top of it and optional.
 
-The philosopy of this package is to be small, to not be in your way and only
-offer optional convinient utility for easy usage and to not be smart for you.
-For instance, you will not found easy inversion like `x = A / y` for computation
-of `A⁻¹y` with a "choosed for you" algorithm. This package is therefor, quite
-different than PyLops.
+## Key differences from similar tools
 
-A major difference with `LinearOperator` of scipy is that input and ouput array
-can be of any shape, not restricted to vector : the input of FFT2D operator is
-an image. It remains compatible with `LinearOperator` and handle vectorized
-input if you want. A second difference is that an operator impose fixed input
-AND output shape, at the definition. So the FFT2D operator on 512² image is not
-the same than those on 256² image. It's intentional and done on purpose.
+**vs. `scipy.sparse.linalg.LinearOperator`** — input and output arrays can have
+any shape, not just vectors. A 2D FFT operator maps an image to an image. Shapes
+are fixed at construction: a `DFT` on a 512² image is a different object than
+one on a 256² image. This is intentional.
 
-## Array consumer
-
-The lib should work, when possible, with any library array that support the
-[Array API standard](https://data-apis.org/array-api) and `__array_function__()`
-protocol. We use
-[array-api-compat](https://data-apis.org/array-api-compat/index.html) to help
-with that.
-
-**The code is in early development stage, Pre-Alpha.**
-
-If you are having issues, please let me know
-
-francois.orieux AT universite-paris-saclay.fr
+**vs. PyLops** — aljabr is deliberately minimal. It does not provide solvers or
+choose algorithms for you. There is no `x = A / y`. It stays out of your way,
+offering only readability and convenience.
 
 ## Features
 
-- A base type `LinOp` that represent an operator `A` whose behaviour depends on
-  the two methods `forward` for `A·x`, that apply `A` on a vector `x`, and
-  `adjoint` for `Aᴴ·x` that apply the adjoint `Aᴴ` on a vector `x`.
-- Compatible with `LinearOperator` of scipy.
-- The base type `LinOp` comes with handy utilities like `+`, `-` or `*`
-  interface for basic composition, or automatic timing of instance creation or
-  methods call.
-- `matvec`, `rmatvec`, `__call__`, `*` and `@` interfaces.
-- Instance of common linear operator like `Identity`, `Diagonal`, `DFT` or
-  convolution.
-- Utilities functions like `asmatrix` or `dottest`.
+- Abstract base class `LinOp` with `forward` (`A·x`) and `adjoint` (`Aᴴ·y`)
+- Algebraic composition: `A + B`, `A - B`, `A @ B`, `scalar * A`, `A.H`, `A.S`
+- Array-API compatible — works with NumPy, PyTorch, JAX, and others via
+  [array-api-compat](https://data-apis.org/array-api-compat/)
+- Compatible with `scipy.sparse.linalg.LinearOperator` — can also be passed
+  directly as argument
+- Concrete operators: `Identity`, `Diag`, `DFT`, `RealDFT`, `Conv`,
+  `DirectConv`, `CircConv`, `FreqFilter`, `Diff`, `Sampling`, `Slice`,
+  wavelet, …
+- Utilities: `dottest`, `fwadjtest`, `is_sym`, `is_pos_def`, `cond`, …
 
-## Installation and documentation
+## Installation
 
-The package is not actually on pypi but versionned, I recommend to use
-[poetry](https://python-poetry.org/) or uv and run in a terminal
-```
-poetry add  "git+https://github.com/forieux/aljabr.git"
-```
-or add
-```
-aljabr = {git = "https://github.com/forieux/aljabr.git", rev = "main"}
-```
-in the `[tool.poetry.dependencies]` section of your `pyproject.toml`.
+aljabr is not yet on PyPI. Install directly from the repository:
 
-`aljabr` depends on NumPy, SciPy, [udft](https://udft.readthedocs.io/) and
-[PyWavelets](https://pywavelets.readthedocs.io/).
+```bash
+# with uv (or poetry)
+uv add "git+https://github.com/forieux/aljabr.git"
+
+# with pip
+pip install "git+https://github.com/forieux/aljabr.git"
+```
+
+Optional dependencies:
+
+```bash
+pip install aljabr[wavelet]   # PyWavelets — required for DWT, Analysis2, Synthesis2
+pip install aljabr[scipy]     # SciPy — required for DirectConv and fcond
+```
+
+## Quick example
+
+```python
+import numpy as np
+import aljabr
+
+# Wrap the FFT as a linear operator
+F = aljabr.DFT(shape=(256, 256), ndim=2)
+
+x = np.random.randn(256, 256)
+y = F.forward(x)        # F·x
+z = F.adjoint(y)        # Fᴴ·y
+
+# Algebraic composition
+A = aljabr.Diff(axis=0, ishape=(256, 256))
+B = A.H @ A             # AᴴA as a Symmetric operator
+
+# Validate with the dot test
+from aljabr import dottest
+assert dottest(A, num=5)
+```
+
+## Documentation
+
+[https://aljabr.readthedocs.io](https://aljabr.readthedocs.io)
+
+## Status
+
+Pre-Alpha. The API may change. Feedback welcome:
+<francois.orieux@universite-paris-saclay.fr>
 
 ## License
 
-The code is in the public domain.
+Public domain — see [LICENSE](LICENSE).
