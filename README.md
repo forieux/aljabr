@@ -18,12 +18,20 @@ For instance, you will not found easy inversion like `x = A / y` for computation
 of `A⁻¹y` with a "choosed for you" algorithm. This package is therefor, quite
 different than PyLops.
 
+A major difference with `LinearOperator` of scipy is that input and ouput array
+can be of any shape, not restricted to vector : the input of FFT2D operator is
+an image. It remains compatible with `LinearOperator` and handle vectorized
+input if you want. A second difference is that an operator impose fixed input
+AND output shape, at the definition. So the FFT2D operator on 512² image is not
+the same than those on 256² image. It's intentional and done on purpose.
+
 ## Array consumer
 
-The lib should work with any library array that support the [Array API
-standard](https://data-apis.org/array-api) and `__array_function__()` protocol.
-We use [array-api-compat](https://data-apis.org/array-api-compat/index.html) to
-help with that.
+The lib should work, when possible, with any library array that support the
+[Array API standard](https://data-apis.org/array-api) and `__array_function__()`
+protocol. We use
+[array-api-compat](https://data-apis.org/array-api-compat/index.html) to help
+with that.
 
 **The code is in early development stage, Pre-Alpha.**
 
@@ -48,7 +56,7 @@ francois.orieux AT universite-paris-saclay.fr
 ## Installation and documentation
 
 The package is not actually on pypi but versionned, I recommend to use
-[poetry](https://python-poetry.org/) and run in a terminal
+[poetry](https://python-poetry.org/) or uv and run in a terminal
 ```
 poetry add  "git+https://github.com/forieux/aljabr.git"
 ```

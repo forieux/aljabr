@@ -1,12 +1,16 @@
-[tool.poetry]
+[project]
 name = "aljabr"
 version = "0.4.0"
 description = "Linear operators interfaces"
-authors = ["François Orieux <francois.orieux@universite-paris-saclay.fr>"]
-maintainers = ["François Orieux <francois.orieux@universite-paris-saclay.fr>"]
+authors = [
+    { name = "François Orieux", email = "francois.orieux@universite-paris-saclay.fr" }
+]
+maintainers = [
+    { name = "François Orieux", email = "francois.orieux@universite-paris-saclay.fr" }
+]
 readme = "README.md"
 license = "Public Domain"
-repository = "https://github.com/forieux/aljabr/"
+keywords = ["linear algebra", "implicit operator"]
 classifiers = [
     "Development Status :: 2 - Pre-Alpha",
     "Topic :: Scientific/Engineering",
@@ -18,39 +22,30 @@ classifiers = [
     "Typing :: Typed",]
 include = ["py.typed", "LICENSE"]
 packages = [{include = "aljabr", from = "src"}]
+requires-python = ">=3.12"
+dependencies = [
+    "array-api-compat>=1.13.0",
+    "numpy>=2.4.1",
+]
 
-[tool.poetry.urls]
+[project.urls]
+repository = "https://github.com/forieux/aljabr/"
+changelog = "https://github.com/me/spam/blob/master/CHANGELOG.md"
 "Bug Tracker" = "https://github.com/forieux/aljabr/issues"
 "Author webpage" = "https://pro.orieux.fr/"
 
-[tool.poetry.dependencies]
-python = ">=3.10,<4"
-numpy = "^2"
-udft = "^3.2.0"
-PyWavelets = "^1.1.1"
-scipy = "^1.7.1"
-pytest = "^8.2.2"
-
-[tool.poetry.dev-dependencies]
-ipython = "^7.22.0"
-icecream = "^2.1.0"
-mypy = "^0.812"
-pytest = ">=7"
-matplotlib = "^3.4.3"
-
-[build-system]
-requires = ["poetry-core>=1.0.0"]
-build-backend = "poetry.core.masonry.api"
-
-[tool.pylint.messages_control]
-max-parents = 10
-disable = ["bad-continuation", "import-error", "line-too-long",]
-
-[tool.pytest.ini_options]
-pythonpath = "./src"
-addopts = [
-    "--import-mode=importlib",
+[project.optional-dependencies]
+fft = [
+    "udft>=4.0.2",
+]
+wavelet = [
+    "pywavelets>=1.9.0",
+]
+scipy = [
+    "scipy>=1.17.1",
 ]
 
-[mypy]
-plugins = "numpy.typing.mypy_plugin"
+[dependency-groups]
+dev = [
+    "ipython>=9.9.0",
+]
