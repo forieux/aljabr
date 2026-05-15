@@ -103,7 +103,18 @@ Shape = tuple[int, ...]
 
 
 def vectorize(point: Array | Sequence[Array]) -> Array:
-    """Vectorize an array or list of array as column vector"""
+    """Vectorize an array or list of arrays as a column vector.
+
+    Parameters
+    ----------
+    point : Array or list of Array
+        A single array or a list of arrays to concatenate.
+
+    Returns
+    -------
+    Array
+        Column vector of shape ``(N, 1)``.
+    """
     xp = arr_api.get_namespace(point)
     if isinstance(point, Sequence):
         return xp.concat([xp.reshape(arr, (-1, 1)) for arr in point], axis=0)
@@ -113,7 +124,20 @@ def vectorize(point: Array | Sequence[Array]) -> Array:
 def unvectorize(
     point: Array, shapes: Shape | Sequence[Shape]
 ) -> Array | Sequence[Array]:
-    """Unvectorize a column vector as an array or list of array"""
+    """Unvectorize a column vector into an array or a list of arrays.
+
+    Parameters
+    ----------
+    point : Array
+        Column vector of shape ``(N, 1)``.
+    shapes : Shape or list of Shape
+        Target shape, or list of shapes to split into.
+
+    Returns
+    -------
+    Array or list of Array
+        Reshaped array, or list of arrays with the given shapes.
+    """
     xp = arr_api.get_namespace(point)
     if isinstance(shapes[0], tuple):
         idxs: list[int] = list(np.cumsum([0] + [int(np.prod(s)) for s in shapes]))
@@ -142,16 +166,21 @@ class LinOpLike(Protocol):
 
 
 def timeit(func: Callable) -> Callable:
-    """Decorator to time the execution of methods
+    """Decorator to time the execution of methods.
 
-    This decorator times the execution of methods of a class (the first argument
-    must be `self`). After the execution, an attribute on the object is set to
-    the measured time.
+    After each call, sets an attribute on ``self`` with the measured duration.
+    For ``__init__``, the attribute is ``self.init_last_duration``; for any
+    other method named ``name``, it is ``self.name_last_duration``.
 
-    If the method is "__init__", the attribute is `self.init_last_duration`. For
-    all other methods with name `name`, the attribute is
-    `self.name_last_duration`.
+    Parameters
+    ----------
+    func : Callable
+        The method to wrap (first argument must be ``self``).
 
+    Returns
+    -------
+    Callable
+        Wrapped method with timing.
     """
 
     @wraps(func)
@@ -174,17 +203,21 @@ def timeit(func: Callable) -> Callable:
 
 
 def checkshape(func: Callable) -> Callable:
-    """Decorator to warn about input and output shape of methods.
+    """Decorator to warn about input and output shape mismatches.
 
-    This decorator only check methods with name `forward`, `adjoint` and
-    `fwadj`, like those of `LinOp`. If the input array or the output array does
-    not have the specified shape in the `LinOp` object, a warning is triggered.
+    Applies to ``forward``, ``adjoint``, and ``fwadj`` methods. Emits a
+    warning if the input or output array shape does not match the shapes
+    declared in the ``LinOp`` object (``ishape`` / ``oshape``).
 
-    Notes
-    -----
-    These methods are called as `func(self, arr)` where `self` is the object on
-    which the methods are bound. Since `self` is a `LinOp`, it exposes
-    `ishape` and `oshape`.
+    Parameters
+    ----------
+    func : Callable
+        The method to wrap (first argument must be a ``LinOp`` instance).
+
+    Returns
+    -------
+    Callable
+        Wrapped method with shape checking.
     """
 
     @wraps(func)
@@ -333,8 +366,15 @@ class LinOp(abc.ABC):
     def matvec(self, point: Array) -> Array:
         """Vectorized forward application `A·x`.
 
-        Apply `forward` on array of shape (N, 1), returns array of shape (M, 1).
-        The reshape are done internally.
+        Parameters
+        ----------
+        point : Array
+            Column vector of shape ``(N, 1)``.
+
+        Returns
+        -------
+        Array
+            Column vector of shape ``(M, 1)``.
         """
         return self.xp.reshape(
             self.forward(self.xp.reshape(point, self.ishape)), (-1, 1)
@@ -343,15 +383,33 @@ class LinOp(abc.ABC):
     def rmatvec(self, point: Array) -> Array:
         """Vectorized adjoint application `Aᴴ·y`.
 
-        Apply `adjoint` on array of shape (M, 1), returns array of shape (N, 1).
-        The reshape are done internally
+        Parameters
+        ----------
+        point : Array
+            Column vector of shape ``(M, 1)``.
+
+        Returns
+        -------
+        Array
+            Column vector of shape ``(N, 1)``.
         """
         return self.xp.reshape(
             self.adjoint(self.xp.reshape(point, self.oshape)), (-1, 1)
         )
 
     def fwadj(self, point: Array) -> Array:
-        """Apply `Aᴴ·A` operator."""
+        """Apply `Aᴴ·A` to `point`.
+
+        Parameters
+        ----------
+        point : Array
+            Input array of shape ``ishape``.
+
+        Returns
+        -------
+        Array
+            Output array of shape ``ishape``.
+        """
         return self.adjoint(self.forward(point))
 
     def asmatrix(self) -> Array:
@@ -359,10 +417,14 @@ class LinOp(abc.ABC):
 
         Applies `forward` to `N` unit vectors where `N = linop.isize`.
 
+        Returns
+        -------
+        Array
+            2D array of shape ``(osize, isize)``.
+
         Notes
         -----
         Can be very heavy depending on the size of operator.
-
         """
         inarray = self.xp.empty((self.isize, 1))
         matrix = self.xp.zeros(self.shape, dtype=self.dtype)
@@ -448,23 +510,26 @@ class LinOp(abc.ABC):
 
 
 def asmatrix(linop: Array | LinOp, like: Array | None = None) -> Array:
-    """Return the matrix corresponding to the linear operator
+    """Return the matrix corresponding to a linear operator or array.
 
-    Use the `asmatrix()` method of the `LinOp`.
-
-    If `linop` is not a `LinOp`, return `numpy.asarray(linop)` or
-    `xp.asarray(linop)` if `like` is not None.
+    Calls `linop.asmatrix()` if `linop` is a `LinOp`. Otherwise converts to
+    array using `xp.asarray` (inferred from `like`) or `numpy.asarray`.
 
     Parameters
     ----------
-    linop: LinOp
-        The linear operator to represent as matrix.
+    linop : Array or LinOp
+        The linear operator or array to convert.
+    like : Array, optional
+        If provided and `linop` is not a `LinOp`, use its array namespace.
+
+    Returns
+    -------
+    Array
+        2D array representation.
 
     Notes
     -----
-    The standard way with `asmatrix()` can be very heavy depending on the size
-    of operator.
-
+    The `LinOp.asmatrix()` method can be very heavy depending on operator size.
     """
     if isinstance(linop, LinOp):
         return linop.asmatrix()
@@ -474,7 +539,7 @@ def asmatrix(linop: Array | LinOp, like: Array | None = None) -> Array:
 
 
 class BaseOp(LinOp):
-    """A linear operator `LinOp` defined with callables."""
+    """A `LinOp` defined by callables rather than subclassing."""
 
     def __init__(
         self,
@@ -487,6 +552,27 @@ class BaseOp(LinOp):
         dtype: DType = float,
         xp=np,
     ):
+        """LinOp defined by callables.
+
+        Parameters
+        ----------
+        forward : callable
+            The forward function ``x → A·x``.
+        adjoint : callable
+            The adjoint function ``y → Aᴴ·y``.
+        ishape : tuple of int
+            Shape of the input.
+        oshape : tuple of int
+            Shape of the output.
+        fwadj : callable, optional
+            The ``Aᴴ·A`` function. Defaults to ``adjoint(forward(x))``.
+        name : str, optional
+            Name of the operator.
+        dtype : dtype, optional
+            Dtype of the operator.
+        xp : array namespace, optional
+            The array API namespace (default: numpy).
+        """
         super().__init__(ishape, oshape, name, dtype, xp)
         self.f_forward = forward
         self.f_adjoint = adjoint
@@ -516,16 +602,14 @@ class Scaled(LinOp):
     """
 
     def __init__(self, linop: LinOp, scale: complex):
-        """An operator `B` scaled by a scalar `γ`
-
-        >>> A = γ·B
+        """An operator `B` scaled by a scalar `γ` (i.e. `A = γ·B`).
 
         Parameters
         ----------
-        baseop: LinOp
+        linop : LinOp
             The base linear operator `B`.
-        scale: float or complex
-            The scale scalar factor `γ`.
+        scale : float or complex
+            The scale factor `γ`.
         """
         self.baseop = linop
         self.scale = scale
@@ -561,6 +645,21 @@ class Symmetric(LinOp):
         dtype=float,
         xp=np,
     ):
+        """Symmetric operator defined by a callable.
+
+        Parameters
+        ----------
+        forward : callable
+            The function implementing both ``forward`` and ``adjoint``.
+        shape : tuple of int
+            The (square) shape of the input and output.
+        name : str, optional
+            Name of the operator.
+        dtype : dtype, optional
+            Dtype of the operator.
+        xp : array namespace, optional
+            The array API namespace (default: numpy).
+        """
         self._forward = forward
 
         super().__init__(shape, shape, name, dtype, xp)
@@ -578,6 +677,7 @@ class Symmetric(LinOp):
 
     @property
     def H(self) -> "LinOp":
+        """Return self: the adjoint of a symmetric operator is itself."""
         return self
 
     def forward(self, point: Array) -> Array:
@@ -616,6 +716,13 @@ class Adjoint(LinOp):
         return super().__new__(cls)
 
     def __init__(self, linop: LinOp):
+        """Wrap `linop` as its adjoint, or unwrap if `linop` is already an `Adjoint`.
+
+        Parameters
+        ----------
+        linop : LinOp
+            The operator to adjoint.
+        """
         # When __new__ returns an existing object, Python still calls __init__
         # on it — we must guard against silently overwriting its attributes.
         # Two cases to bail out early:
@@ -635,6 +742,7 @@ class Adjoint(LinOp):
 
     @property
     def H(self) -> "LinOp":
+        """Return the original operator (adjoint of adjoint is identity)."""
         return self.baseop
 
     def forward(self, point: Array) -> Array:
@@ -651,18 +759,19 @@ class Explicit(LinOp):
     """Explicit linear operator from matrix instance."""
 
     def __init__(self, matrix: Array, ishape=None, oshape=None, name="_"):
-        """Explicit operator from matrix
+        """Explicit operator from a 2D matrix.
 
         Parameters
         ----------
-        matrix : Array-like
-            A 2D array as explicit form of A. `mat` must have `dot`, `transpose`
-            and `conj` methods (available with Numpy).
-
-        Notes
-        -----
-        The `forward` and `adjoint` input array are reshaped as column vector
-        before `dot` call.
+        matrix : Array
+            A 2D array representing the operator. The namespace is inferred
+            from this array.
+        ishape : tuple of int, optional
+            Input shape. Defaults to ``(matrix.shape[1], 1)``.
+        oshape : tuple of int, optional
+            Output shape. Defaults to ``(matrix.shape[0], 1)``.
+        name : str, optional
+            Name of the operator.
         """
         xp = arr_api.get_namespace(matrix)
 
@@ -839,6 +948,15 @@ class VStack(LinOp):
     """
 
     def __init__(self, oplist: Sequence[LinOp], name="[·]"):
+        """Vertical stack of operators.
+
+        Parameters
+        ----------
+        oplist : sequence of LinOp
+            Operators to stack. All must share the same ``ishape``.
+        name : str, optional
+            Name of the operator.
+        """
         if len({op.ishape for op in oplist}) > 1:
             raise ValueError("all operators must have the same ishape")
         if len({id(op.xp) for op in oplist}) > 1:
@@ -861,6 +979,7 @@ class VStack(LinOp):
 
     @property
     def H(self) -> "HStack":
+        """Return `HStack([Aᴴ, Bᴴ, ...])`, cached."""
         if self._hstack is None:
             self._hstack = HStack([Adjoint(op) for op in self.oplist])
         return self._hstack
@@ -912,6 +1031,15 @@ class HStack(LinOp):
     """
 
     def __init__(self, oplist: Sequence[LinOp], name="[·|·]"):
+        """Horizontal stack of operators.
+
+        Parameters
+        ----------
+        oplist : sequence of LinOp
+            Operators to stack. All must share the same ``oshape``.
+        name : str, optional
+            Name of the operator.
+        """
         if len({op.oshape for op in oplist}) > 1:
             raise ValueError("all operators must have the same oshape")
         if len({id(op.xp) for op in oplist}) > 1:
@@ -934,6 +1062,7 @@ class HStack(LinOp):
 
     @property
     def H(self) -> "VStack":
+        """Return `VStack([Aᴴ, Bᴴ, ...])`, cached."""
         if self._vstack is None:
             self._vstack = VStack([Adjoint(op) for op in self.oplist])
         return self._vstack

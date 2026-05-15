@@ -15,6 +15,17 @@ class Identity(LinOp):
     """Identity operator of specific shape."""
 
     def __init__(self, shape: Shape, name: str = "I", xp=np):
+        """Identity operator.
+
+        Parameters
+        ----------
+        shape : tuple of int
+            The shape of the input and output.
+        name : str, optional
+            Name of the operator.
+        xp : array namespace, optional
+            The array API namespace (default: numpy).
+        """
         super().__init__(shape, shape, name=name, dtype=float, xp=xp)
 
     def forward(self, point: Array) -> Array:
@@ -36,7 +47,10 @@ class Diag(LinOp):
         Parameters
         ----------
         diag : Array
-            The diagonal of the operator. Input and output have the same shape.
+            The diagonal values. Input and output have the same shape as `diag`.
+            The array namespace is inferred from this array.
+        name : str, optional
+            Name of the operator.
         """
         xp = arr_api.get_namespace(diag)
         self.diag = xp.asarray(diag)
@@ -66,9 +80,11 @@ class DFT(LinOp):
         Parameters
         ----------
         shape : tuple of int
-            The shape of the input
+            The shape of the input.
         ndim : int
             The number of last axes over which to compute the DFT.
+        name : str, optional
+            Name of the operator.
         """
         self._udft = udft
 
@@ -94,9 +110,11 @@ class RealDFT(LinOp):
         Parameters
         ----------
         shape : tuple of int
-            The shape of the input
+            The shape of the input.
         ndim : int
             The number of last axes over which to compute the DFT.
+        name : str, optional
+            Name of the operator.
         """
         self._udft = udft
 
@@ -144,11 +162,14 @@ class Conv(LinOp):
         Parameters
         ----------
         ir : Array
-            The impulse responses. Must be at least of `ndim==dim`.
+            The impulse response. Must have at least `dim` dimensions.
+            The array namespace is inferred from this array.
         ishape : tuple of int
-            The shape of the input images. Images are on the last dim axis.
+            The shape of the input. Images are on the last `dim` axes.
         dim : int
-            The last `dim` axis where convolution apply.
+            Number of last axes over which convolution applies.
+        name : str, optional
+            Name of the operator.
         """
         self._udft = udft
 
@@ -223,9 +244,11 @@ class DirectConv(LinOp):
         Parameters
         ----------
         ir : Array
-            The impulse response.
-        ishape: tuple of int
+            The impulse response (numpy array).
+        ishape : tuple of int
             The shape of the input array.
+        name : str, optional
+            Name of the operator.
         """
         try:
             from scipy.signal import oaconvolve  # ty:ignore[unresolved-import]
@@ -371,6 +394,10 @@ class Diff(LinOp):
             The axis along which to perform the diff.
         ishape : tuple of int
             The shape of the input array.
+        name : str, optional
+            Name of the operator.
+        xp : array namespace, optional
+            The array API namespace (default: numpy).
         """
         oshape = list(ishape)
         oshape[axis] = ishape[axis] - 1
@@ -455,6 +482,18 @@ class Slice(LinOp):
     """
 
     def __init__(self, ishape: Shape, idx, xp=np):
+        """Slice operator.
+
+        Parameters
+        ----------
+        ishape : tuple of int
+            The shape of the input array.
+        idx : index expression
+            The index expression to apply (use ``np.index_exp`` to build it).
+            The output shape is inferred as ``np.empty(ishape)[idx].shape``.
+        xp : array namespace, optional
+            The array API namespace (default: numpy).
+        """
         super().__init__(ishape, np.empty(ishape)[idx].shape, name=f"S[{idx}]", xp=xp)
         self._idx = idx
 
@@ -506,6 +545,8 @@ class DWT(LinOp):
             The decomposition level.
         wavelet : str, optional
             The wavelet to use.
+        name : str, optional
+            Name of the operator.
         """
         if pywt is None:
             raise ImportError("pywt is required for DWT")
@@ -571,6 +612,8 @@ class Analysis2(LinOp):
             The decomposition level.
         wavelet : str, optional
             The wavelet to use.
+        name : str, optional
+            Name of the operator.
         """
         if pywt is None:
             raise ImportError("pywt is required for Analysis2")
@@ -675,6 +718,8 @@ class Synthesis2(LinOp):
             The decomposition level.
         wavelet : str, optional
             The wavelet to use.
+        name : str, optional
+            Name of the operator.
         """
         self.analysis = Analysis2(shape, level, wavelet)
         super().__init__(self.analysis.oshape, self.analysis.ishape, name)
