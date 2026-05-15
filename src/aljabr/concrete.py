@@ -212,17 +212,9 @@ class DirectConv(LinOp):
 
     Notes
     -----
-    Use Overlap-Add method from `scipy.signal.oaconvolve` if available or
-    `convolve` otherwise. Convolution are performed on the last axes.
-
-    Comment from <scipy.signal.oaconvolve> documentation:
-
-    This is generally much faster than convolve for large arrays (n > ~500), and
-    generally much faster than fftconvolve when one array is much larger than
-    the other, but can be slower when only a few output values are needed or
-    when the arrays are very similar in shape, and can only output float arrays
-    (int or object array inputs will be cast to float).
-
+    Numpy-only. Uses `scipy.signal.oaconvolve` (Overlap-Add method), which is
+    generally faster than FFT-based convolution when one array is much larger
+    than the other. Requires scipy.
     """
 
     def __init__(self, ir: Array, ishape: Shape, name: str = "DConv"):
@@ -290,18 +282,42 @@ class FreqFilter(Diag):
     """
 
     def __init__(self, ir: Array, ishape: Shape, name: str = "Filter"):
+        """Frequency filter defined by an impulse response.
+
+        Parameters
+        ----------
+        ir : Array
+            The impulse response.
+        ishape : tuple of int
+            The shape of the input array (used to compute the frequency response).
+        name : str, optional
+            Name of the operator.
+        """
         super().__init__(udft.ir2fr(ir, ishape), name=name)
 
 
 class CircConv(LinOp):
-    """Circulant convolution"""
+    """Circulant (periodic) convolution.
+
+    Attributes
+    ----------
+    imp_resp : Array
+        The impulse response.
+    freq_resp : Array
+        The frequency response (property).
+    """
 
     def __init__(self, imp_resp: Array, shape: Shape, name: str = "CConv"):
-        """
+        """Circulant convolution.
+
         Parameters
         ----------
-        shape: tuple of int
-          Shape on which the DFT apply.
+        imp_resp : Array
+            The impulse response.
+        shape : tuple of int
+            Shape of the input and output arrays.
+        name : str, optional
+            Name of the operator.
         """
         self._udft = udft
 
@@ -343,7 +359,7 @@ class Diff(LinOp):
 
     Notes
     -----
-    Use `numpy.diff` and implement the correct adjoint, with `numpy.diff` also.
+    Uses `xp.diff` — array-API compatible.
     """
 
     def __init__(self, axis: int, ishape: Shape, name: str = "Diff", xp=np):
@@ -392,6 +408,16 @@ class Sampling(LinOp):
     """
 
     def __init__(self, ishape: Shape, index):
+        """Sampling operator.
+
+        Parameters
+        ----------
+        ishape : tuple of int
+            The shape of the input array.
+        index : tuple of array of int
+            Tuple of index arrays, one per dimension, as in numpy fancy indexing.
+            All arrays must have the same shape, which becomes the output shape.
+        """
         super().__init__(ishape, index[0].shape, name="Sampling", xp=np)
         self.index = index
 
@@ -419,15 +445,13 @@ class Slice(LinOp):
 
     Notes
     -----
-    Use np.index_exp to build the `idx` arg, e.g. idx=np.index_exp[::2, 1, ...]
+    Use `np.index_exp` to build the `idx` argument.
 
-
-    >> s = Slice([10, 10], idx=np.index_exp[::2, 1])
-    >> y = s(np.empty((10, 10))
-    >> x = s.adjoint(y)
-
-    create a sampling operator that select the odd rows and the second column of a 10x10 array
-
+    Examples
+    --------
+    >>> s = Slice((10, 10), idx=np.index_exp[::2, 1])
+    >>> y = s.forward(np.empty((10, 10)))  # shape (5,)
+    >>> x = s.adjoint(y)                   # shape (10, 10)
     """
 
     def __init__(self, ishape: Shape, idx, xp=np):
@@ -453,8 +477,8 @@ class Slice(LinOp):
 class DWT(LinOp):
     """Unitary Discrete Wavelet Transform.
 
-    Attributs
-    ---------
+    Attributes
+    ----------
     wlt : str
         The wavelet.
     lvl : int
@@ -613,9 +637,11 @@ class Analysis2(LinOp):
         return np.concatenate(clist, axis=1)
 
     def cube2im(self, cube):
+        """Convert 3D coefficient cube to image-stacked array."""
         return self.coeffs2im(self.cube2coeffs(cube))
 
     def im2cube(self, im):
+        """Convert image-stacked array to 3D coefficient cube."""
         return self.coeffs2cube(self.im2coeffs(im))
 
     def get_irs(self):
@@ -678,9 +704,11 @@ class Synthesis2(LinOp):
         return self.analysis.coeffs2im(coeffs)
 
     def cube2im(self, cube):
+        """Convert 3D coefficient cube to image-stacked array."""
         return self.analysis.cube2im(cube)
 
     def im2cube(self, im):
+        """Convert image-stacked array to 3D coefficient cube."""
         return self.analysis.im2cube(im)
 
     def get_irs(self):
@@ -688,5 +716,5 @@ class Synthesis2(LinOp):
         return np.flip(self.analysis.get_irs(), axis=(1, 2))
 
     def get_frs(self):
-        """Rerturn the frequency response of the filter bank."""
+        """Return the frequency response of the filter bank."""
         return np.ascontiguousarray(np.fft.rfftn(self.get_irs(), self.ishape[-2:]))
