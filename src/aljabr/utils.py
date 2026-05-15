@@ -5,7 +5,7 @@ import array_api_compat as arr_api
 from .linop import LinOp, Array, asmatrix
 
 
-def allclose(a, b, rtol: float = 1e-5, atol: float = 1e-8) -> bool:
+def allclose(a: Array, b: Array, rtol: float = 1e-5, atol: float = 1e-8) -> bool:
     """Array-namespace agnostic equivalent of `np.allclose`.
 
     Works for scalars (0-d arrays) and multi-dimensional arrays alike.

@@ -679,21 +679,21 @@ class Analysis2(LinOp):
             clist.extend([coeff[0], coeff[1], coeff[2]])
         return np.concatenate(clist, axis=1)
 
-    def cube2im(self, cube):
+    def cube2im(self, cube: Array) -> Array:
         """Convert 3D coefficient cube to image-stacked array."""
         return self.coeffs2im(self.cube2coeffs(cube))
 
-    def im2cube(self, im):
+    def im2cube(self, im: Array) -> Array:
         """Convert image-stacked array to 3D coefficient cube."""
         return self.coeffs2cube(self.im2coeffs(im))
 
-    def get_irs(self):
+    def get_irs(self) -> Array:
         """Return the impulse response of the filter bank."""
         iarr = np.zeros(self.ishape)
         iarr[0, 0] = 1
         return self.forward(iarr)
 
-    def get_frs(self):
+    def get_frs(self) -> Array:
         """Return the frequency response of the filter bank."""
         return np.ascontiguousarray(np.fft.rfftn(self.get_irs(), self.ishape[-2:]))
 
@@ -732,34 +732,34 @@ class Synthesis2(LinOp):
     def adjoint(self, point: Array) -> Array:
         return self.analysis.forward(point)
 
-    def cube2coeffs(self, point: Array) -> Array:
+    def cube2coeffs(self, point: Array) -> list:
         """Return pywt coefficients from 3D array."""
         return self.analysis.cube2coeffs(point)
 
-    def coeffs2cube(self, coeffs) -> Array:
+    def coeffs2cube(self, coeffs: list) -> Array:
         """Return 3D array from pywt coefficients."""
         return self.analysis.coeffs2cube(coeffs)
 
-    def im2coeffs(self, point: Array):
+    def im2coeffs(self, point: Array) -> list:
         """Return pywt coefficients from image."""
         return self.analysis.im2coeffs(point)
 
-    def coeffs2im(self, coeffs) -> Array:
+    def coeffs2im(self, coeffs: list) -> Array:
         """Return image from pywt coefficients."""
         return self.analysis.coeffs2im(coeffs)
 
-    def cube2im(self, cube):
+    def cube2im(self, cube: Array) -> Array:
         """Convert 3D coefficient cube to image-stacked array."""
         return self.analysis.cube2im(cube)
 
-    def im2cube(self, im):
+    def im2cube(self, im: Array) -> Array:
         """Convert image-stacked array to 3D coefficient cube."""
         return self.analysis.im2cube(im)
 
-    def get_irs(self):
+    def get_irs(self) -> Array:
         """Return the impulse response of the filter bank."""
         return np.flip(self.analysis.get_irs(), axis=(1, 2))
 
-    def get_frs(self):
+    def get_frs(self) -> Array:
         """Return the frequency response of the filter bank."""
         return np.ascontiguousarray(np.fft.rfftn(self.get_irs(), self.ishape[-2:]))
