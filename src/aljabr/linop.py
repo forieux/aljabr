@@ -421,7 +421,7 @@ class LinOp(abc.ABC):
         raise TypeError("the operand must be a LinOp")
 
     def __sub__(self, value: "LinOp") -> "LinOp":
-        """Subtract (as `-`) a `LinOp` to return an `SubOp`."""
+        """Subtract (as `-`) a `LinOp` to return a `SubOp`."""
         if isinstance(value, LinOpLike):
             return SubOp(self, value)
         raise TypeError("the operand must be a LinOp")
@@ -439,9 +439,9 @@ class LinOp(abc.ABC):
     def __rmul__(self, point: Array) -> Array | "LinOp":
         """Right multiply `*` a scalar or array.
 
-        if `value` is a scalar, return a `Scaled`.
+        If `point` is a scalar, return a `Scaled`.
 
-        Otherwise, `value` is considered as an array and return `yᵀ·A`, the
+        Otherwise, `point` is considered as an array and return `yᵀ·A`, the
         adjoint application `Aᴴ·y`.
         """
         if isinstance(
@@ -473,9 +473,9 @@ class LinOp(abc.ABC):
     def __rmatmul__(self, point: Array | complex) -> Array | "LinOp":
         """Right matrix multiply `@` a scalar or array.
 
-        if `value` is a scalar, return a `Scaled`.
+        If `point` is a scalar, return a `Scaled`.
 
-        Otherwise, `value` is considered as an array and return `yᵀ·A = Aᴴ·y`,
+        Otherwise, `point` is considered as an array and return `yᵀ·A = Aᴴ·y`,
         as `rmatvec(point)`.
         """
         if isinstance(
@@ -581,7 +581,7 @@ class Scaled(LinOp):
     ----------
     baseop : LinOp
         The base linear operator `B`.
-    scale : float
+    scale : complex or float
         The scale factor `γ`.
     """
 
@@ -617,8 +617,7 @@ class Scaled(LinOp):
 class Symmetric(LinOp):
     """`A` operator where `Aᴴ = A = Bᴴ·B`.
 
-    >>> Adjoint(A) is A == True
-
+    For any `Symmetric` instance `A`, ``Adjoint(A) is A`` is ``True``.
     """
 
     def __init__(
