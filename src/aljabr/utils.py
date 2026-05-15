@@ -1,3 +1,12 @@
+"""The ``utils`` module
+====================
+
+Utility functions for testing and analysing linear operators: dot test, adjoint
+consistency test, symmetry and definiteness checks, condition number
+estimation,...
+
+"""
+
 from numpy.random import standard_normal as randn
 import numpy as np
 import array_api_compat as arr_api

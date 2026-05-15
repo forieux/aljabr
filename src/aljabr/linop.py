@@ -53,15 +53,6 @@ import numpy as np
 Array = Any  # array API standard array — no stable cross-backend type yet
 DType = Any  # dtype — no stable cross-backend type yet
 
-__author__ = "François Orieux"
-__copyright__ = "2011, 2026, F. Orieux <francois.orieux@universite-paris-saclay.fr>"
-__credits__ = ["François Orieux"]
-__license__ = "Public domain"
-__version__ = "0.4.0"
-__maintainer__ = "François Orieux"
-__email__ = "francois.orieux@universite-paris-saclay.fr"
-__status__ = "beta"
-__url__ = "https://github.com/forieux/aljabr"
 
 __all__ = [
     "Shape",

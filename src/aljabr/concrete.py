@@ -1,3 +1,12 @@
+"""The ``concrete`` module
+=======================
+
+Concrete implementations of common linear operators: convolutions (FFT-based,
+direct, circulant), discrete transforms (DFT, DWT, wavelet analysis/synthesis),
+diagonal, difference, sampling operators, ...
+
+"""
+
 import numpy as np
 import array_api_compat as arr_api
 
@@ -749,7 +758,9 @@ class Synthesis2(LinOp):
             Name of the operator.
         """
         self.analysis = Analysis2(shape, level, wavelet)
-        super().__init__(self.analysis.oshape, self.analysis.ishape, name, dtype=np.float64, xp=np)
+        super().__init__(
+            self.analysis.oshape, self.analysis.ishape, name, dtype=np.float64, xp=np
+        )
         self.wlt = self.analysis.wlt
         self.lvl = self.analysis.lvl
 

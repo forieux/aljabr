@@ -31,7 +31,7 @@ dependencies = [
 
 [project.urls]
 repository = "https://github.com/forieux/aljabr/"
-changelog = "https://github.com/me/spam/blob/master/CHANGELOG.md"
+changelog = "https://github.com/forieux/aljabr/blob/main/CHANGELOG.md"
 "Bug Tracker" = "https://github.com/forieux/aljabr/issues"
 "Author webpage" = "https://pro.orieux.fr/"
 
