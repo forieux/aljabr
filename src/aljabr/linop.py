@@ -34,6 +34,8 @@ impression that it is a matrix.
 
 """
 
+from __future__ import annotations
+
 import abc
 import math
 import time
@@ -238,19 +240,19 @@ class LinOp(abc.ABC):
     oshape : tuple of int
         The shape of the output.
     isize : int
-        The input size.
+        The input size `N = prod(ishape)`.
     osize : int
-        The output size.
+        The output size `M = prod(oshape)`.
     shape : tuple of two int.
-        The shape of the operator as matrix.
+        The shape of the operator as matrix `(M, N)`.
     name : str
         The name of the operator.
     dtype : dtype
         The dtype of the operator (float by default).
     H : LinOp
-        The `Adjoint` of the operator `A`.
+        The `Adjoint` `Aᴴ` of the operator self `A`.
     S : LinOp
-        The `Symmetric` `Aᴴ·A`.
+        The `Symmetric` `Aᴴ·A` of the operator self `A`.
     """
 
     def __init_subclass__(cls, **kwargs):
@@ -566,7 +568,7 @@ class BaseOp(LinOp):
 
 
 class Scaled(LinOp):
-    """An operator `B` scaled by a scalar `γ`.
+    """An operator `B` scaled by a scalar `γ` (i.e. `A = γ·B`)..
 
     Attributes
     ----------
@@ -576,20 +578,20 @@ class Scaled(LinOp):
         The scale factor `γ`.
     """
 
-    def __init__(self, linop: LinOp, scale: complex | float):
+    def __init__(self, baseop: LinOp, scale: complex | float):
         """An operator `B` scaled by a scalar `γ` (i.e. `A = γ·B`).
 
         Parameters
         ----------
-        linop : LinOp
+        baseop : LinOp
             The base linear operator `B`.
         scale : float or complex
             The scale factor `γ`.
         """
-        self.baseop = linop
+        self.baseop = baseop
         self.scale = scale
         super().__init__(
-            linop.ishape, linop.oshape, f"γ{linop.name}", linop.dtype, linop.xp
+            baseop.ishape, baseop.oshape, f"γ{baseop.name}", baseop.dtype, baseop.xp
         )
 
     def forward(self, point: Array) -> Array:
