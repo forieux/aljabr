@@ -403,7 +403,7 @@ class Diff(LinOp):
     Attributes
     ----------
     axis: int
-        The axis along which the differences is performed.
+        The axis along which the differences are performed.
 
     Notes
     -----
@@ -646,7 +646,7 @@ class Analysis2(LinOp):
             raise ImportError("pywt is required for Analysis2")
         self._pywt = pywt
 
-        super().__init__(shape, (3 * level + 1,) + shape, name, dtype=np.float64)
+        super().__init__(shape, (3 * level + 1,) + shape, name, dtype=np.float64, xp=np)
         self.wlt = wavelet
         self.lvl = level
         self.norm = True

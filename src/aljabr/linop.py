@@ -268,7 +268,7 @@ class LinOp(abc.ABC):
         __init__ is timed
         forward, adjoint and fwadj are timed and input and output shape are checked at runtime"""
         for name, value in vars(cls).items():
-            if name in ("__init__"):
+            if name == "__init__":
                 setattr(cls, name, timeit(value))
             if name in ("forward", "adjoint", "fwadj"):
                 setattr(cls, name, checkshape(timeit(value)))
@@ -421,7 +421,7 @@ class LinOp(abc.ABC):
         raise TypeError("the operand must be a LinOp")
 
     def __sub__(self, value: "LinOp") -> "LinOp":
-        """Substract (as `-`) a `LinOp` to return an `AddOp`."""
+        """Subtract (as `-`) a `LinOp` to return an `SubOp`."""
         if isinstance(value, LinOpLike):
             return SubOp(self, value)
         raise TypeError("the operand must be a LinOp")
@@ -486,7 +486,7 @@ class LinOp(abc.ABC):
         return self.rmatvec(point)
 
     def __call__(self, point: Array) -> Array:
-        """Return `A·x` as forward(x)"""
+        """Return `A·x` as forward(x)."""
         return self.forward(point)
 
     def __repr__(self):
@@ -977,7 +977,7 @@ class VStack(LinOp):
             self._hstack = HStack([Adjoint(op) for op in self.oplist])
         return self._hstack
 
-    def apply(self, point: Array) -> Array | list[Array]:
+    def apply(self, point: Array) -> list[Array]:
         """Apply each operator and return results as a list preserving shapes."""
         return [op.forward(point) for op in self.oplist]
 
