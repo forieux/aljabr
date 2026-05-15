@@ -277,7 +277,7 @@ class DirectConv(LinOp):
         )
 
     @property
-    def ir(self):
+    def ir(self) -> Array:
         """The impulse response"""
         return np.squeeze(self._ir)
 
@@ -434,7 +434,7 @@ class Sampling(LinOp):
     Numpy-only. Index is a tuple of index arrays as in numpy fancy indexing.
     """
 
-    def __init__(self, ishape: Shape, index):
+    def __init__(self, ishape: Shape, index: tuple):
         """Sampling operator.
 
         Parameters
@@ -481,7 +481,7 @@ class Slice(LinOp):
     >>> x = s.adjoint(y)                   # shape (10, 10)
     """
 
-    def __init__(self, ishape: Shape, idx, xp=np):
+    def __init__(self, ishape: Shape, idx: tuple, xp=np):
         """Slice operator.
 
         Parameters
@@ -498,7 +498,7 @@ class Slice(LinOp):
         self._idx = idx
 
     @property
-    def idx(self):
+    def idx(self) -> tuple:
         return self._idx
 
     def forward(self, point: Array) -> Array:
@@ -633,7 +633,7 @@ class Analysis2(LinOp):
     def adjoint(self, point: Array) -> Array:
         return self._pywt.iswt2(self.cube2coeffs(point), self.wlt, norm=self.norm)
 
-    def cube2coeffs(self, point: Array) -> Array:
+    def cube2coeffs(self, point: Array) -> list:
         """Return pywt coefficients from 3D array"""
         split = np.split(point, 3 * self.lvl + 1, axis=0)
         coeffs_list: list = [np.squeeze(split[0])]
@@ -648,7 +648,7 @@ class Analysis2(LinOp):
         return coeffs_list
 
     @staticmethod
-    def coeffs2cube(coeffs) -> Array:
+    def coeffs2cube(coeffs: list) -> Array:
         """Return 3D array from pywt coefficients"""
         clist = [coeffs[0][np.newaxis, ...]]
         for coeff in coeffs[1:]:
@@ -661,7 +661,7 @@ class Analysis2(LinOp):
             )
         return np.concatenate(clist, axis=0)
 
-    def im2coeffs(self, point: Array):
+    def im2coeffs(self, point: Array) -> list:
         """Return pywt coefficients from an image array"""
         split = np.split(point, 3 * self.lvl + 1, axis=1)
         coeffs_list: list = [split[0]]
@@ -672,7 +672,7 @@ class Analysis2(LinOp):
         return coeffs_list
 
     @staticmethod
-    def coeffs2im(coeffs) -> Array:
+    def coeffs2im(coeffs: list) -> Array:
         """Return an image array from pywt coefficients"""
         clist = [coeffs[0]]
         for coeff in coeffs[1:]:

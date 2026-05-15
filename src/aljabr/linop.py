@@ -297,7 +297,7 @@ class LinOp(abc.ABC):
         super().__init_subclass__(**kwargs)
 
     def __init__(
-        self, ishape: Shape, oshape: Shape, name: str = "·", dtype=float, xp=np
+        self, ishape: Shape, oshape: Shape, name: str = "·", dtype: DType = float, xp=np
     ):
         """
         Parameters
@@ -626,7 +626,7 @@ class Scaled(LinOp):
     def fwadj(self, point: Array) -> Array:
         return self.xp.abs(self.scale) ** 2 * self.baseop.fwadj(point)
 
-    def asmatrix(self, like: Array | None = None):
+    def asmatrix(self, like: Array | None = None) -> Array:
         return self.scale * asmatrix(self.baseop, like=like)
 
 
@@ -641,8 +641,8 @@ class Symmetric(LinOp):
         self,
         forward: Callable[[Array], Array],
         shape: Shape,
-        name="S",
-        dtype=float,
+        name: str = "S",
+        dtype: DType = float,
         xp=np,
     ):
         """Symmetric operator defined by a callable.
@@ -665,7 +665,7 @@ class Symmetric(LinOp):
         super().__init__(shape, shape, name, dtype, xp)
 
     @classmethod
-    def from_linop(cls, linop: LinOp):
+    def from_linop(cls, linop: LinOp) -> "Symmetric":
         """Given `B`, returns `A = Bᴴ·B` (and `Aᴴ = A`)."""
         return cls(
             linop.fwadj,
@@ -758,7 +758,7 @@ class Adjoint(LinOp):
 class Explicit(LinOp):
     """Explicit linear operator from matrix instance."""
 
-    def __init__(self, matrix: Array, ishape=None, oshape=None, name="_"):
+    def __init__(self, matrix: Array, ishape: Shape | None = None, oshape: Shape | None = None, name: str = "_"):
         """Explicit operator from a 2D matrix.
 
         Parameters
@@ -803,7 +803,7 @@ class Explicit(LinOp):
             self.ishape,
         )
 
-    def asmatrix(self):
+    def asmatrix(self) -> Array:
         return self.xp.asarray(self.mat)
 
 
@@ -843,7 +843,7 @@ class ProdOp(LinOp):
     def fwadj(self, point: Array) -> Array:
         return self.right.adjoint(self.left.fwadj(self.right.forward(point)))
 
-    def asmatrix(self):
+    def asmatrix(self) -> Array:
         return self.xp.matmul(asmatrix(self.left), asmatrix(self.right))
 
 
@@ -880,7 +880,7 @@ class AddOp(LinOp):
     def adjoint(self, point: Array) -> Array:
         return self.right.adjoint(point) + self.left.adjoint(point)
 
-    def asmatrix(self):
+    def asmatrix(self) -> Array:
         return asmatrix(self.left) + asmatrix(self.right)
 
 
@@ -917,7 +917,7 @@ class SubOp(LinOp):
     def adjoint(self, point: Array) -> Array:
         return self.left.adjoint(point) - self.right.adjoint(point)
 
-    def asmatrix(self):
+    def asmatrix(self) -> Array:
         return asmatrix(self.left) - asmatrix(self.right)
 
 
@@ -947,7 +947,7 @@ class VStack(LinOp):
 
     """
 
-    def __init__(self, oplist: Sequence[LinOp], name="[·]"):
+    def __init__(self, oplist: Sequence[LinOp], name: str = "[·]"):
         """Vertical stack of operators.
 
         Parameters
@@ -1030,7 +1030,7 @@ class HStack(LinOp):
 
     """
 
-    def __init__(self, oplist: Sequence[LinOp], name="[·|·]"):
+    def __init__(self, oplist: Sequence[LinOp], name: str = "[·|·]"):
         """Horizontal stack of operators.
 
         Parameters
