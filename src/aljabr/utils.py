@@ -9,6 +9,20 @@ def allclose(a, b, rtol: float = 1e-5, atol: float = 1e-8) -> bool:
     """Array-namespace agnostic equivalent of `np.allclose`.
 
     Works for scalars (0-d arrays) and multi-dimensional arrays alike.
+
+    Parameters
+    ----------
+    a, b : Array
+        Arrays to compare.
+    rtol : float, optional
+        Relative tolerance.
+    atol : float, optional
+        Absolute tolerance.
+
+    Returns
+    -------
+    bool
+        True if all elements satisfy ``|a - b| <= atol + rtol * |b|``.
     """
     xp = arr_api.get_namespace(a)
     if xp == np:
@@ -37,20 +51,25 @@ def dottest(
     linop : LinOp
         The linear operator to test.
     num : int, optional
-        The number of test. They must all pass.
+        The number of tests. They must all pass.
     rtol : float, optional
-        The relative tolerance parameter (see np.allclose).
+        The relative tolerance parameter (see `allclose`).
     atol : float, optional
-        The absolute tolerance parameter (see np.allclose).
+        The absolute tolerance parameter (see `allclose`).
+    echo : bool, optional
+        If True, print the two sides of the equality for each test.
     xp : array namespace, optional
-        The array namespace to use for generating test vectors (default: numpy).
-        Pass the appropriate namespace for non-NumPy LinOps (e.g. torch).
+        The array namespace for generating test vectors (default: numpy).
 
-    Comment
+    Returns
     -------
-    Numpy is still use for random number generation and conversion are done if
-    xp is not numpy.
+    bool
+        True if all `num` tests pass.
 
+    Notes
+    -----
+    Numpy is used for random number generation; arrays are converted to `xp`
+    if `xp` is not numpy.
     """
     test = True
     for _ in range(num):
@@ -83,21 +102,27 @@ def fwadjtest(
 
     `(Aᴴ·A)·v = Aᴴ·(A·v)`.
 
-    where `v` is a random vectors, to detect errors in implementation.
+    where `v` is a random vector, to detect errors in implementation.
 
     Parameters
     ----------
     linop : LinOp
         The linear operator to test.
     num : int, optional
-        The number of test. They must all pass.
+        The number of tests. They must all pass.
     rtol : float, optional
-        The relative tolerance parameter (see np.allclose).
+        The relative tolerance parameter (see `allclose`).
     atol : float, optional
-        The absolute tolerance parameter (see np.allclose).
+        The absolute tolerance parameter (see `allclose`).
+    echo : bool, optional
+        If True, print the two sides of the equality for each test.
     xp : array namespace, optional
-        The array namespace to use for generating test vectors (default: numpy).
-        Pass the appropriate namespace for non-NumPy LinOps (e.g. torch).
+        The array namespace for generating test vectors (default: numpy).
+
+    Returns
+    -------
+    bool
+        True if all `num` tests pass.
     """
     test = True
     for _ in range(num):
@@ -113,26 +138,43 @@ def fwadjtest(
 
 
 def is_sym(linop: Array | LinOp) -> bool:
-    """Return True if `linop` is symmetric
+    """Return True if `linop` is symmetric.
 
-    See also
+    Parameters
+    ----------
+    linop : Array or LinOp
+        The operator or matrix to test.
+
+    Returns
+    -------
+    bool
+
+    See Also
     --------
-    - scipy.linalg.issymmetric
-    - scipy.linalg.ishermitian
+    scipy.linalg.issymmetric
+    scipy.linalg.ishermitian
     """
     linop = asmatrix(linop)
     return linop.shape[0] == linop.shape[1] and allclose(linop.T, linop)
 
 
 def is_pos_def(linop: Array | LinOp) -> bool:
-    """Return True if `linop` is positive definite
+    """Return True if `linop` is positive definite.
+
+    Parameters
+    ----------
+    linop : Array or LinOp
+        The operator or matrix to test.
+
+    Returns
+    -------
+    bool
 
     Notes
     -----
-
-    Definite positive matrix $M$ implies that eigen values are strictly
-    positives but inverse is not true. The function test that $M$ is symmetric
-    and that all eigen values of $M^T + M$ are positives.`
+    A positive definite matrix $M$ has strictly positive eigenvalues, but the
+    converse is not true. The function tests that $M$ is symmetric and that all
+    eigenvalues of $M^T + M$ are strictly positive.
     """
     mat = asmatrix(linop)
     xp = arr_api.get_namespace(mat)
@@ -140,11 +182,20 @@ def is_pos_def(linop: Array | LinOp) -> bool:
 
 
 def is_semi_pos_def(linop: Array | LinOp) -> bool:
-    """Return True if `linop` is semi positive definite
+    """Return True if `linop` is semi positive definite.
 
-    Notes
-    -----
-    See :func:`is_pos_def`.
+    Parameters
+    ----------
+    linop : Array or LinOp
+        The operator or matrix to test.
+
+    Returns
+    -------
+    bool
+
+    See Also
+    --------
+    is_pos_def
     """
     mat = asmatrix(linop)
     xp = arr_api.get_namespace(mat)
@@ -152,11 +203,20 @@ def is_semi_pos_def(linop: Array | LinOp) -> bool:
 
 
 def is_neg_def(linop: Array | LinOp) -> bool:
-    """Return True if `linop` is negative definite
+    """Return True if `linop` is negative definite.
 
-    Notes
-    -----
-    See :func:`is_pos_def`.
+    Parameters
+    ----------
+    linop : Array or LinOp
+        The operator or matrix to test.
+
+    Returns
+    -------
+    bool
+
+    See Also
+    --------
+    is_pos_def
     """
     mat = asmatrix(linop)
     xp = arr_api.get_namespace(mat)
@@ -164,11 +224,20 @@ def is_neg_def(linop: Array | LinOp) -> bool:
 
 
 def is_semi_neg_def(linop: Array | LinOp) -> bool:
-    """Return True if `linop` is semi negative definite
+    """Return True if `linop` is semi negative definite.
 
-    Notes
-    -----
-    See :func:`is_pos_def`.
+    Parameters
+    ----------
+    linop : Array or LinOp
+        The operator or matrix to test.
+
+    Returns
+    -------
+    bool
+
+    See Also
+    --------
+    is_pos_def
     """
     mat = asmatrix(linop)
     xp = arr_api.get_namespace(mat)
@@ -178,16 +247,21 @@ def is_semi_neg_def(linop: Array | LinOp) -> bool:
 def cond(linop: Array | LinOp) -> float:
     """Return the condition number κ
 
-    The condition number κ is definied as
+    The condition number κ is defined as
 
     κ = max(λ) / min(λ)
 
-    where λ are eigen values of `linop`.
+    where λ are eigenvalues of `linop`.
 
     Parameters
     ----------
-    linop: LinOp or array-like
+    linop : Array or LinOp
         An implicit linear operator or a matrix.
+
+    Returns
+    -------
+    float
+        The condition number.
     """
     mat = asmatrix(linop)
     xp = arr_api.get_namespace(mat)
@@ -198,19 +272,24 @@ def cond(linop: Array | LinOp) -> float:
 def fcond(linop: LinOp, tol: float = 0.1) -> float:
     """Estimate the condition number κ
 
-    The condition number κ is definied as
+    The condition number κ is defined as
 
     κ = |max(λ)| / |min(λ)|
 
-    where the two extreme eigen values λ of `linop` are estimated with Lanczos
-    algorithm via `scipy.sparse.linalg.eigsh`.
+    where the two extreme eigenvalues λ of `linop` are estimated with the
+    Lanczos algorithm via `scipy.sparse.linalg.eigsh`.
 
     Parameters
     ----------
-    linop: LinOp
+    linop : LinOp
         An implicit linear operator.
-    tol: float
-        The tolerance parameter for `scipy.sparse.linalg.eigsh`.
+    tol : float, optional
+        Tolerance for `scipy.sparse.linalg.eigsh`.
+
+    Returns
+    -------
+    float
+        Estimated condition number.
     """
     try:
         import scipy.sparse.linalg  # ty:ignore[unresolved-import]
