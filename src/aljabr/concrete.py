@@ -150,7 +150,7 @@ class Conv(LinOp):
     Notes
     -----
     Use fft internally for fast computation. The `forward` methods is equivalent
-    to "valid" boudary condition and `adjoint` is equivalent to "full" boundary
+    to "valid" boundary condition and `adjoint` is equivalent to "full" boundary
     condition with zero filling.
 
     Namespace is the same as the one of the impulse response.
@@ -173,11 +173,17 @@ class Conv(LinOp):
         """
         self._udft = udft
 
+        # oshape: batch dims are unchanged (pad=1 → s-1+1=s), convolved dims
+        # shrink by the kernel size (pad=K → s-K+1, valid convolution).
+        #
+        # Example: ishape=(B, H, W), ir.shape=(Kh, Kw), dim=2
+        #
+        # pads = (1,) + (Kh, Kw) → oshape = (B, H-Kh+1, W-Kw+1)
         super().__init__(
             ishape=ishape,
             oshape=tuple(
                 s - pad + 1
-                for (s, pad) in zip(ishape, (len(ishape) - dim) * (0,) + ir.shape)
+                for (s, pad) in zip(ishape, (len(ishape) - dim) * (1,) + ir.shape)
             ),
             name=name,
             xp=arr_api.get_namespace(ir),
@@ -188,20 +194,24 @@ class Conv(LinOp):
         self.freq_resp = self._udft.ir2fr(ir, self.ishape[-dim:])
 
         self.margins = ir.shape[-dim:]
-        if dim == 1:
-            self._slices: tuple = (
+        # Extract the valid part of the circular convolution result.
+        # The kernel is centered at K//2 (ifftshift convention). For each
+        # spatial axis of size N with kernel size K:
+        #   start = K//2
+        #   end   = start + (N - K + 1) = N - (K+1)//2 + 1
+        # This works for both odd and even K. The batch axes use slice(None).
+        # Note: use ishape[len(ishape)-dim+i] (spatial axes), not ishape[i]
+        # (which would index batch axes when len(ishape) > dim).
+        self._slices: tuple = tuple(
+            [slice(None)] * (len(ishape) - dim)
+            + [
                 slice(
-                    ir.shape[-1] // 2, ishape[-1] - ir.shape[-1] // 2 + ir.shape[-1] % 2
-                ),
-            )
-        else:
-            self._slices = tuple(
-                [slice(None)] * (len(ishape) - dim)
-                + [
-                    slice(ir.shape[idx] // 2, ishape[idx] - ir.shape[idx] // 2)
-                    for idx in range(dim)
-                ]
-            )
+                    ir.shape[i] // 2,
+                    ishape[len(ishape) - dim + i] - (ir.shape[i] + 1) // 2 + 1,
+                )
+                for i in range(dim)
+            ]
+        )
 
     def _dft(self, point: Array) -> Array:
         return self._udft.rdftn(point, self.dim)
@@ -224,7 +234,7 @@ class Conv(LinOp):
 class DirectConv(LinOp):
     """Direct convolution
 
-    The convolution is performed on the last N axis where N = id.ndim.
+    The convolution is performed on the last N axis where N = ir.ndim.
 
     Attributes
     ----------
@@ -634,7 +644,7 @@ class Analysis2(LinOp):
         return self._pywt.iswt2(self.cube2coeffs(point), self.wlt, norm=self.norm)
 
     def cube2coeffs(self, point: Array) -> list:
-        """Return pywt coefficients from 3D array"""
+        """Return pywt coefficients from 3D array."""
         split = np.split(point, 3 * self.lvl + 1, axis=0)
         coeffs_list: list = [np.squeeze(split[0])]
         for lvl in range(self.lvl):
@@ -649,7 +659,7 @@ class Analysis2(LinOp):
 
     @staticmethod
     def coeffs2cube(coeffs: list) -> Array:
-        """Return 3D array from pywt coefficients"""
+        """Return 3D array from pywt coefficients."""
         clist = [coeffs[0][np.newaxis, ...]]
         for coeff in coeffs[1:]:
             clist.extend(
@@ -662,7 +672,7 @@ class Analysis2(LinOp):
         return np.concatenate(clist, axis=0)
 
     def im2coeffs(self, point: Array) -> list:
-        """Return pywt coefficients from an image array"""
+        """Return pywt coefficients from an image array."""
         split = np.split(point, 3 * self.lvl + 1, axis=1)
         coeffs_list: list = [split[0]]
         for lvl in range(self.lvl):
@@ -673,7 +683,7 @@ class Analysis2(LinOp):
 
     @staticmethod
     def coeffs2im(coeffs: list) -> Array:
-        """Return an image array from pywt coefficients"""
+        """Return an image array from pywt coefficients."""
         clist = [coeffs[0]]
         for coeff in coeffs[1:]:
             clist.extend([coeff[0], coeff[1], coeff[2]])
