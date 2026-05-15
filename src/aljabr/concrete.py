@@ -162,7 +162,7 @@ class Conv(LinOp):
     freq_resp : Array
         The frequency response.
     dim : int
-        The last `dim` axis where convolution apply.
+        The last `dim` axes where convolution applies.
 
     Notes
     -----
@@ -251,7 +251,7 @@ class Conv(LinOp):
 class DirectConv(LinOp):
     """Direct convolution.
 
-    The convolution is performed on the last N axis where N = ir.ndim.
+    The convolution is performed on the last N axes where N = ir.ndim.
 
     Attributes
     ----------

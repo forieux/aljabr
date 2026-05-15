@@ -318,7 +318,7 @@ class LinOp(abc.ABC):
     # property to be in read only
     @property
     def ndim(self) -> int:
-        """The number of dimension (always 2)."""
+        """The number of dimensions (always 2)."""
         return 2
 
     @property
@@ -427,7 +427,7 @@ class LinOp(abc.ABC):
         raise TypeError("the operand must be a LinOp")
 
     def __mul__(self, value: Array | "LinOp") -> Array | "LinOp":
-        """Left multiply `*` a LinOp or array
+        """Left multiply `*` a LinOp or array.
 
         If `value` is a LinOp duck type, return a ProdOp. Else return `A·x`,
         that is application of `forward(value)`.
@@ -452,7 +452,7 @@ class LinOp(abc.ABC):
         return self.adjoint(point)
 
     def __matmul__(self, value: Array | "LinOp") -> Array | "LinOp":
-        """Left matrix multiply `@` a LinOp or array
+        """Left matrix multiply `@` a LinOp or array.
 
         If `value` is a LinOp duck type, return a `ProdOp`.
 
