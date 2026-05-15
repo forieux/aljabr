@@ -35,7 +35,6 @@ impression that it is a matrix.
 """
 
 import abc
-import itertools
 import math
 import time
 import warnings
@@ -323,12 +322,12 @@ class LinOp(abc.ABC):
     @abc.abstractmethod
     def forward(self, point: Array) -> Array:
         """Returns the forward application `A·x`."""
-        raise NotImplementedError
+        ...
 
     @abc.abstractmethod
     def adjoint(self, point: Array) -> Array:
         """Returns the adjoint application `Aᴴ·y`."""
-        raise NotImplementedError
+        ...
 
     def matvec(self, point: Array) -> Array:
         """Vectorized forward application `A·x`.
@@ -871,7 +870,7 @@ class VStack(LinOp):
             self._hstack = HStack([Adjoint(op) for op in self.oplist])
         return self._hstack
 
-    def apply(self, point: Array) -> list[Array]:
+    def apply(self, point: Array) -> Array | list[Array]:
         """Apply each operator and return results as a list preserving shapes."""
         return [op.forward(point) for op in self.oplist]
 
@@ -886,7 +885,7 @@ class VStack(LinOp):
             result = result + op.adjoint(arr)
         return result
 
-    def split(self, point: Array) -> list[Array]:
+    def split(self, point: Array) -> Array | list[Array]:
         """Split the output column vector back into per-operator shaped arrays."""
         return unvectorize(point, self._oshapes)
 
@@ -960,7 +959,7 @@ class HStack(LinOp):
         """Split the input and apply each operator, returning results as a list."""
         return [op.forward(arr) for op, arr in zip(self.oplist, self.split(point))]
 
-    def split(self, point: Array) -> list[Array]:
+    def split(self, point: Array) -> Array | list[Array]:
         """Split the input column vector into per-operator shaped arrays."""
         return unvectorize(point, self._ishapes)
 
