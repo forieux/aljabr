@@ -154,8 +154,9 @@ def is_sym(linop: Array | LinOp) -> bool:
     scipy.linalg.issymmetric
     scipy.linalg.ishermitian
     """
-    linop = asmatrix(linop)
-    return linop.shape[0] == linop.shape[1] and allclose(linop.T, linop)
+    mat = asmatrix(linop)
+    xp = arr_api.get_namespace(mat)
+    return mat.shape[0] == mat.shape[1] and allclose(xp.matrix_transpose(mat), mat)
 
 
 def is_pos_def(linop: Array | LinOp) -> bool:
@@ -173,12 +174,16 @@ def is_pos_def(linop: Array | LinOp) -> bool:
     Notes
     -----
     A positive definite matrix $M$ has strictly positive eigenvalues, but the
-    converse is not true. The function tests that $M$ is symmetric and that all
-    eigenvalues of $M^T + M$ are strictly positive.
+    converse is not true.
+
+    Tests that all eigenvalues of $M + M^T$ are strictly positive. Since $x^T M
+    x = x^T \frac{M + M^T}{2} x$ for any vector $x$, positive definiteness of
+    $M$ is equivalent to positive definiteness of $M + M^T$.
+
     """
     mat = asmatrix(linop)
     xp = arr_api.get_namespace(mat)
-    return is_sym(mat) and xp.all(xp.linalg.eigvals(mat + mat.T) > 0)
+    return bool(xp.all(xp.linalg.eigvals(mat + xp.matrix_transpose(mat)) > 0))
 
 
 def is_semi_pos_def(linop: Array | LinOp) -> bool:
@@ -199,7 +204,7 @@ def is_semi_pos_def(linop: Array | LinOp) -> bool:
     """
     mat = asmatrix(linop)
     xp = arr_api.get_namespace(mat)
-    return is_sym(mat) and xp.all(xp.linalg.eigvals(mat + mat.T) >= 0)
+    return bool(xp.all(xp.linalg.eigvals(mat + xp.matrix_transpose(mat)) >= 0))
 
 
 def is_neg_def(linop: Array | LinOp) -> bool:
@@ -220,7 +225,7 @@ def is_neg_def(linop: Array | LinOp) -> bool:
     """
     mat = asmatrix(linop)
     xp = arr_api.get_namespace(mat)
-    return is_sym(mat) and xp.all(xp.linalg.eigvals(mat + mat.T) < 0)
+    return bool(xp.all(xp.linalg.eigvals(mat + xp.matrix_transpose(mat)) < 0))
 
 
 def is_semi_neg_def(linop: Array | LinOp) -> bool:
@@ -241,7 +246,7 @@ def is_semi_neg_def(linop: Array | LinOp) -> bool:
     """
     mat = asmatrix(linop)
     xp = arr_api.get_namespace(mat)
-    return is_sym(mat) and xp.all(xp.linalg.eigvals(mat + mat.T) <= 0)
+    return bool(xp.all(xp.linalg.eigvals(mat + xp.matrix_transpose(mat)) <= 0))
 
 
 def cond(linop: Array | LinOp) -> float:
@@ -249,7 +254,7 @@ def cond(linop: Array | LinOp) -> float:
 
     The condition number κ is defined as
 
-    κ = max(λ) / min(λ)
+    κ = max(|λ|) / min(|λ|)
 
     where λ are eigenvalues of `linop`.
 
@@ -265,8 +270,8 @@ def cond(linop: Array | LinOp) -> float:
     """
     mat = asmatrix(linop)
     xp = arr_api.get_namespace(mat)
-    eig = xp.linalg.eigvals(mat)
-    return np.max(eig) / np.min(eig)
+    eig = xp.abs(xp.linalg.eigvals(mat))
+    return float(xp.max(eig) / xp.min(eig))
 
 
 def fcond(linop: LinOp, tol: float = 0.1) -> float:
