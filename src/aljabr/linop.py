@@ -115,36 +115,31 @@ def vectorize(point: Array | Sequence[Array]) -> Array:
     Array
         Column vector of shape ``(N, 1)``.
     """
-    xp = arr_api.get_namespace(point)
     if isinstance(point, Sequence):
+        xp = arr_api.get_namespace(*point)
         return xp.concat([xp.reshape(arr, (-1, 1)) for arr in point], axis=0)
+    xp = arr_api.get_namespace(point)
     return xp.reshape(point, (-1, 1))
 
 
-def unvectorize(
-    point: Array, shapes: Shape | Sequence[Shape]
-) -> Array | Sequence[Array]:
-    """Unvectorize a column vector into an array or a list of arrays.
+def unvectorize(point: Array, shapes: Sequence[Shape]) -> list[Array]:
+    """Unvectorize a column vector into a list of arrays.
 
     Parameters
     ----------
     point : Array
         Column vector of shape ``(N, 1)``.
-    shapes : Shape or list of Shape
-        Target shape, or list of shapes to split into.
+    shapes : list of Shape
+        List of target shapes to split into.
 
     Returns
     -------
-    Array or list of Array
-        Reshaped array, or list of arrays with the given shapes.
+    list of Array
+        List of arrays with the given shapes.
     """
     xp = arr_api.get_namespace(point)
-    if isinstance(shapes[0], tuple):
-        idxs: list[int] = list(np.cumsum([0] + [int(np.prod(s)) for s in shapes]))
-        return [
-            xp.reshape(point[idxs[i] : idxs[i + 1]], s) for i, s in enumerate(shapes)
-        ]
-    return xp.reshape(point, shapes)
+    idxs: list[int] = list(np.cumsum([0] + [int(np.prod(s)) for s in shapes]))
+    return [xp.reshape(point[idxs[i] : idxs[i + 1]], s) for i, s in enumerate(shapes)]
 
 
 @runtime_checkable
@@ -194,7 +189,8 @@ def timeit(func: Callable) -> Callable:
 
         if fname == "__init__":
             setattr(self, "init_last_duration", duration)
-        setattr(self, f"{fname}_last_duration", duration)
+        else:
+            setattr(self, f"{fname}_last_duration", duration)
 
         return out
 
@@ -229,7 +225,7 @@ def checkshape(func: Callable) -> Callable:
                 f"Input shape {inarray.shape} from `[{type(self)}]{self.name}.{fname}` "
                 f"does not equal [{type(self)}]{self.name}.ishape={self.ishape}"
             )
-        elif fname in ("adjoint") and inarray.shape != self.oshape:
+        elif fname == "adjoint" and inarray.shape != self.oshape:
             warnings.warn(
                 f"Input shape {inarray.shape} from `[{type(self)}]{self.name}.{fname}` "
                 f"does not equal [{type(self)}]{self.name}.oshape={self.oshape}"
@@ -237,7 +233,7 @@ def checkshape(func: Callable) -> Callable:
 
         outarray = func(self, inarray)
 
-        if fname in ("forward") and outarray.shape != self.oshape:
+        if fname == "forward" and outarray.shape != self.oshape:
             warnings.warn(
                 f"Output shape {outarray.shape} from `{self.name}.{fname}` "
                 f"does not equal {self.name}.oshape={self.oshape}"
@@ -299,7 +295,8 @@ class LinOp(abc.ABC):
     def __init__(
         self, ishape: Shape, oshape: Shape, name: str = "·", dtype: DType = float, xp=np
     ):
-        """
+        """Initialise the linear operator.
+
         Parameters
         ----------
         ishape : tuple of int
@@ -481,6 +478,10 @@ class LinOp(abc.ABC):
         If `value` is an array, return `matvec(value)`.
         """
         if isinstance(value, LinOpLike):
+            # Adjoint.__new__ unwraps double adjoints: Adjoint(Adjoint(A)) is A.
+            # So Adjoint(self) is value is True when self=Adjoint(A) and
+            # value=A, i.e. self @ value = Aᴴ·A. Symmetrically for self is
+            # Adjoint(value).
             if Adjoint(self) is value or self is Adjoint(value):
                 return Symmetric.from_linop(value)
             return ProdOp(self, value)
@@ -758,7 +759,13 @@ class Adjoint(LinOp):
 class Explicit(LinOp):
     """Explicit linear operator from matrix instance."""
 
-    def __init__(self, matrix: Array, ishape: Shape | None = None, oshape: Shape | None = None, name: str = "_"):
+    def __init__(
+        self,
+        matrix: Array,
+        ishape: Shape | None = None,
+        oshape: Shape | None = None,
+        name: str = "_",
+    ):
         """Explicit operator from a 2D matrix.
 
         Parameters
@@ -799,7 +806,10 @@ class Explicit(LinOp):
 
     def adjoint(self, point: Array) -> Array:
         return self.xp.reshape(
-            self.xp.asarray(self.xp.conj(self.mat.T) @ point.reshape((-1, 1))),
+            self.xp.asarray(
+                self.xp.conj(self.xp.matrix_transpose(self.mat))
+                @ self.xp.reshape(point, (-1, 1))
+            ),
             self.ishape,
         )
 
@@ -885,10 +895,10 @@ class AddOp(LinOp):
 
 
 class SubOp(LinOp):
-    """The substraction of two operators `A - B`."""
+    """The subtraction of two operators `A - B`."""
 
     def __init__(self, left: LinOp, right: LinOp):
-        """The substraction of two operators `A - B`.
+        """The subtraction of two operators `A - B`.
 
         Parameters
         ----------
@@ -999,7 +1009,7 @@ class VStack(LinOp):
             result = result + op.adjoint(arr)
         return result
 
-    def split(self, point: Array) -> Array | list[Array]:
+    def split(self, point: Array) -> list[Array]:
         """Split the output column vector back into per-operator shaped arrays."""
         return unvectorize(point, self._oshapes)
 
@@ -1082,7 +1092,7 @@ class HStack(LinOp):
         """Split the input and apply each operator, returning results as a list."""
         return [op.forward(arr) for op, arr in zip(self.oplist, self.split(point))]
 
-    def split(self, point: Array) -> Array | list[Array]:
+    def split(self, point: Array) -> list[Array]:
         """Split the input column vector into per-operator shaped arrays."""
         return unvectorize(point, self._ishapes)
 
