@@ -244,27 +244,6 @@ class LinOp(abc.ABC):
         The dtype of the operator (float by default).
     xp : array namespace, optional
         The array API namespace to use (default: numpy).
-
-    Attributes
-    ----------
-    ishape : tuple of int
-        The shape of the input.
-    oshape : tuple of int
-        The shape of the output.
-    isize : int
-        The input size `N = prod(ishape)`.
-    osize : int
-        The output size `M = prod(oshape)`.
-    shape : tuple of two int.
-        The shape of the operator as matrix `(M, N)`.
-    name : str
-        The name of the operator.
-    dtype : dtype
-        The dtype of the operator (float by default).
-    H : LinOp
-        The `Adjoint` `Aᴴ` of the operator self `A`.
-    S : LinOp
-        The `Symmetric` `Aᴴ·A` of the operator self `A`.
     """
 
     def __init_subclass__(cls, **kwargs):

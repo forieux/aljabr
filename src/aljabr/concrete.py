@@ -265,11 +265,6 @@ class DirectConv(LinOp):
     name : str, optional
         Name of the operator.
 
-    Attributes
-    ----------
-    ir : Array
-        The impulse response, converted to Numpy if necessary.
-
     Notes
     -----
     Numpy-only. Uses `scipy.signal.oaconvolve` (Overlap-Add method), which is
@@ -359,8 +354,6 @@ class CircConv(LinOp):
     ----------
     imp_resp : Array
         The impulse response.
-    freq_resp : Array
-        The frequency response (property).
     """
 
     def __init__(self, imp_resp: Array, shape: Shape, name: str = "CConv"):

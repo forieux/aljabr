@@ -271,9 +271,9 @@ def is_semi_neg_def(linop: Array | LinOp) -> bool:
 def cond(linop: Array | LinOp) -> float:
     """Return the condition number κ
 
-    The condition number κ is defined as
+    The condition number κ is defined as::
 
-    κ = max(|λ|) / min(|λ|)
+        κ = max(|λ|) / min(|λ|)
 
     where λ are eigenvalues of `linop`.
 
@@ -296,9 +296,9 @@ def cond(linop: Array | LinOp) -> float:
 def fcond(linop: LinOp, tol: float = 0.1) -> float:
     """Estimate the condition number κ
 
-    The condition number κ is defined as
+    The condition number κ is defined as::
 
-    κ = |max(λ)| / |min(λ)|
+        κ = max(|λ|) / min(|λ|)
 
     where the two extreme eigenvalues λ of `linop` are estimated with the
     Lanczos algorithm via `scipy.sparse.linalg.eigsh`.
@@ -326,4 +326,4 @@ def fcond(linop: LinOp, tol: float = 0.1) -> float:
         which="BE",
         tol=tol,
     )
-    return np.abs(np.max(eig)) / np.abs(np.min(eig))
+    return np.max(np.abs(eig)) / np.min(np.abs(eig))
