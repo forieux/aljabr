@@ -238,12 +238,12 @@ class LinOp(abc.ABC):
         The shape of the input.
     oshape : tuple of int
         The shape of the output.
-    name : str, optional
-        The name of the operator.
     dtype : dtype, optional
         The dtype of the operator (float by default).
     xp : array namespace, optional
         The array API namespace to use (default: numpy).
+    name : str, optional
+        The name of the operator.
     """
 
     def __init_subclass__(cls, **kwargs):
@@ -260,7 +260,7 @@ class LinOp(abc.ABC):
         super().__init_subclass__(**kwargs)
 
     def __init__(
-        self, ishape: Shape, oshape: Shape, name: str = "·", dtype: DType = float, xp=np
+        self, ishape: Shape, oshape: Shape, dtype: DType = float, xp=np, name: str = "·"
     ):
         self.name: str = name
         self.ishape: tuple[int, ...] = tuple(ishape)
@@ -291,9 +291,7 @@ class LinOp(abc.ABC):
 
     @property
     def H(self) -> "LinOp":
-        """Return the adjoint `Aᴴ` as a `LinOp`.
-
-        If `A` is already an `Adjoint`, return the original operator."""
+        """Return the adjoint `Aᴴ` as a `LinOp`. If `A` is already an `Adjoint`, return the original operator."""
         return Adjoint(self)
 
     @property
@@ -505,12 +503,12 @@ class BaseOp(LinOp):
         Shape of the output.
     fwadj : callable, optional
         The ``Aᴴ·A`` function. Defaults to ``adjoint(forward(x))``.
-    name : str, optional
-        Name of the operator.
     dtype : dtype, optional
         Dtype of the operator.
     xp : array namespace, optional
         The array API namespace (default: numpy).
+    name : str, optional
+        Name of the operator.
     """
 
     def __init__(
@@ -520,11 +518,11 @@ class BaseOp(LinOp):
         ishape: Shape,
         oshape: Shape,
         fwadj: Callable[[Array], Array] | None = None,
-        name: str = "·",
         dtype: DType = float,
         xp=np,
+        name: str = "·",
     ):
-        super().__init__(ishape, oshape, name, dtype, xp)
+        super().__init__(ishape, oshape, dtype=dtype, xp=xp, name=name)
         self.f_forward = forward
         self.f_adjoint = adjoint
         self.f_fwadj = fwadj
@@ -563,7 +561,7 @@ class Scaled(LinOp):
         self.baseop = baseop
         self.scale = scale
         super().__init__(
-            baseop.ishape, baseop.oshape, f"γ{baseop.name}", baseop.dtype, baseop.xp
+            baseop.ishape, baseop.oshape, dtype=baseop.dtype, xp=baseop.xp, name=f"γ{baseop.name}"
         )
 
     def forward(self, point: Array) -> Array:
@@ -608,7 +606,7 @@ class Symmetric(LinOp):
     ):
         self._forward = forward
 
-        super().__init__(shape, shape, name, dtype, xp)
+        super().__init__(shape, shape, dtype=dtype, xp=xp, name=name)
 
     @classmethod
     def from_linop(cls, linop: LinOp) -> "Symmetric":
@@ -616,9 +614,9 @@ class Symmetric(LinOp):
         return cls(
             linop.fwadj,
             linop.ishape,
-            f"{linop.name}ᴴ·{linop.name}",
-            linop.dtype,
-            linop.xp,
+            dtype=linop.dtype,
+            xp=linop.xp,
+            name=f"{linop.name}ᴴ·{linop.name}",
         )
 
     @property
@@ -680,7 +678,7 @@ class Adjoint(LinOp):
 
         # ishape/oshape are swapped: the adjoint maps output space → input space.
         super().__init__(
-            linop.oshape, linop.ishape, f"{linop.name}ᴴ", linop.dtype, linop.xp
+            linop.oshape, linop.ishape, dtype=linop.dtype, xp=linop.xp, name=f"{linop.name}ᴴ"
         )
         self.baseop = linop
 
@@ -738,7 +736,7 @@ class Explicit(LinOp):
             raise ValueError("array must have attribute `ndim == 2`")
 
         self.mat: Array = matrix
-        super().__init__(ishape, oshape, name, matrix.dtype, xp)
+        super().__init__(ishape, oshape, dtype=matrix.dtype, xp=xp, name=name)
 
     def forward(self, point: Array) -> Array:
         return self.xp.reshape(

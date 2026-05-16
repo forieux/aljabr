@@ -562,7 +562,7 @@ class DWT(LinOp):
             raise ImportError("pywt is required for DWT")
         self._pywt = pywt
 
-        super().__init__(shape, shape, name, dtype=np.float64, xp=np)
+        super().__init__(shape, shape, dtype=np.float64, xp=np, name=name)
 
         self.wlt = wavelet
         self.lvl = level
@@ -626,7 +626,7 @@ class Analysis2(LinOp):
             raise ImportError("pywt is required for Analysis2")
         self._pywt = pywt
 
-        super().__init__(shape, (3 * level + 1,) + shape, name, dtype=np.float64, xp=np)
+        super().__init__(shape, (3 * level + 1,) + shape, dtype=np.float64, xp=np, name=name)
         self.wlt = wavelet
         self.lvl = level
         self.norm = True
@@ -729,7 +729,7 @@ class Synthesis2(LinOp):
     ):
         self.analysis = Analysis2(shape, level, wavelet)
         super().__init__(
-            self.analysis.oshape, self.analysis.ishape, name, dtype=np.float64, xp=np
+            self.analysis.oshape, self.analysis.ishape, dtype=np.float64, xp=np, name=name
         )
         self.wlt = self.analysis.wlt
         self.lvl = self.analysis.lvl
