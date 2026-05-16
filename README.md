@@ -11,7 +11,8 @@ available through `fft` and `ifft` functions. CodeOp lets you treat it — and
 compose it with others — as if it were a matrix.
 
 The foundation is the `LinOp` type. Everything else — concrete operators,
-utilities, algebraic composition — is built on top of it and optional.
+utilities, algebraic composition — is built on top of it and optional. I made
+this library for my own usage
 
 ## Key differences from similar tools
 
