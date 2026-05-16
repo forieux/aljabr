@@ -232,6 +232,18 @@ class LinOp(abc.ABC):
     User must implement at least `forward` and `adjoint` methods in their
     concrete class.
 
+    Parameters
+    ----------
+    ishape : tuple of int
+        The shape of the input.
+    oshape : tuple of int
+        The shape of the output.
+    name : str, optional
+        The name of the operator.
+    dtype : dtype, optional
+        The dtype of the operator (float by default).
+    xp : array namespace, optional
+        The array API namespace to use (default: numpy).
 
     Attributes
     ----------
@@ -271,22 +283,6 @@ class LinOp(abc.ABC):
     def __init__(
         self, ishape: Shape, oshape: Shape, name: str = "·", dtype: DType = float, xp=np
     ):
-        """Initialise the linear operator.
-
-        Parameters
-        ----------
-        ishape : tuple of int
-            The shape of the input.
-        oshape : tuple of int
-            The shape of the output.
-        name : str, optional
-            The name of the operator.
-        dtype : dtype, optional
-            The dtype of the operator (float by default).
-        xp : array namespace, optional
-            The array API namespace to use (default: numpy).
-        """
-
         self.name: str = name
         self.ishape: tuple[int, ...] = tuple(ishape)
         self.oshape: tuple[int, ...] = tuple(oshape)
@@ -516,7 +512,27 @@ def asmatrix(linop: Array | LinOp, like: Array | None = None) -> Array:
 
 
 class BaseOp(LinOp):
-    """A `LinOp` defined by callables rather than subclassing."""
+    """A `LinOp` defined by callables rather than subclassing.
+
+    Parameters
+    ----------
+    forward : callable
+        The forward function ``x → A·x``.
+    adjoint : callable
+        The adjoint function ``y → Aᴴ·y``.
+    ishape : tuple of int
+        Shape of the input.
+    oshape : tuple of int
+        Shape of the output.
+    fwadj : callable, optional
+        The ``Aᴴ·A`` function. Defaults to ``adjoint(forward(x))``.
+    name : str, optional
+        Name of the operator.
+    dtype : dtype, optional
+        Dtype of the operator.
+    xp : array namespace, optional
+        The array API namespace (default: numpy).
+    """
 
     def __init__(
         self,
@@ -529,27 +545,6 @@ class BaseOp(LinOp):
         dtype: DType = float,
         xp=np,
     ):
-        """LinOp defined by callables.
-
-        Parameters
-        ----------
-        forward : callable
-            The forward function ``x → A·x``.
-        adjoint : callable
-            The adjoint function ``y → Aᴴ·y``.
-        ishape : tuple of int
-            Shape of the input.
-        oshape : tuple of int
-            Shape of the output.
-        fwadj : callable, optional
-            The ``Aᴴ·A`` function. Defaults to ``adjoint(forward(x))``.
-        name : str, optional
-            Name of the operator.
-        dtype : dtype, optional
-            Dtype of the operator.
-        xp : array namespace, optional
-            The array API namespace (default: numpy).
-        """
         super().__init__(ishape, oshape, name, dtype, xp)
         self.f_forward = forward
         self.f_adjoint = adjoint
@@ -570,6 +565,13 @@ class BaseOp(LinOp):
 class Scaled(LinOp):
     """An operator `B` scaled by a scalar `γ` (i.e. `A = γ·B`)..
 
+    Parameters
+    ----------
+    baseop : LinOp
+        The base linear operator `B`.
+    scale : float or complex
+        The scale factor `γ`.
+
     Attributes
     ----------
     baseop : LinOp
@@ -579,15 +581,6 @@ class Scaled(LinOp):
     """
 
     def __init__(self, baseop: LinOp, scale: complex | float):
-        """An operator `B` scaled by a scalar `γ` (i.e. `A = γ·B`).
-
-        Parameters
-        ----------
-        baseop : LinOp
-            The base linear operator `B`.
-        scale : float or complex
-            The scale factor `γ`.
-        """
         self.baseop = baseop
         self.scale = scale
         super().__init__(
@@ -611,6 +604,19 @@ class Symmetric(LinOp):
     """`A` operator where `Aᴴ = A = Bᴴ·B`.
 
     For any `Symmetric` instance `A`, ``Adjoint(A) is A`` is ``True``.
+
+    Parameters
+    ----------
+    forward : callable
+        The function implementing both ``forward`` and ``adjoint``.
+    shape : tuple of int
+        The (square) shape of the input and output.
+    name : str, optional
+        Name of the operator.
+    dtype : dtype, optional
+        Dtype of the operator.
+    xp : array namespace, optional
+        The array API namespace (default: numpy).
     """
 
     def __init__(
@@ -621,21 +627,6 @@ class Symmetric(LinOp):
         dtype: DType = float,
         xp=np,
     ):
-        """Symmetric operator defined by a callable.
-
-        Parameters
-        ----------
-        forward : callable
-            The function implementing both ``forward`` and ``adjoint``.
-        shape : tuple of int
-            The (square) shape of the input and output.
-        name : str, optional
-            Name of the operator.
-        dtype : dtype, optional
-            Dtype of the operator.
-        xp : array namespace, optional
-            The array API namespace (default: numpy).
-        """
         self._forward = forward
 
         super().__init__(shape, shape, name, dtype, xp)
@@ -672,6 +663,11 @@ class Adjoint(LinOp):
 
     Delegates to `A` methods.
 
+    Parameters
+    ----------
+    linop : LinOp
+        The operator to adjoint.
+
     Attributes
     ----------
     baseop : LinOp
@@ -692,13 +688,6 @@ class Adjoint(LinOp):
         return super().__new__(cls)
 
     def __init__(self, linop: LinOp):
-        """Wrap `linop` as its adjoint, or unwrap if `linop` is already an `Adjoint`.
-
-        Parameters
-        ----------
-        linop : LinOp
-            The operator to adjoint.
-        """
         # When __new__ returns an existing object, Python still calls __init__
         # on it — we must guard against silently overwriting its attributes.
         # Two cases to bail out early:
@@ -732,7 +721,20 @@ class Adjoint(LinOp):
 
 
 class Explicit(LinOp):
-    """Explicit linear operator from matrix instance."""
+    """Explicit linear operator from matrix instance.
+
+    Parameters
+    ----------
+    matrix : Array
+        A 2D array representing the operator. The namespace is inferred
+        from this array.
+    ishape : tuple of int, optional
+        Input shape. Defaults to ``(matrix.shape[1], 1)``.
+    oshape : tuple of int, optional
+        Output shape. Defaults to ``(matrix.shape[0], 1)``.
+    name : str, optional
+        Name of the operator.
+    """
 
     def __init__(
         self,
@@ -741,20 +743,6 @@ class Explicit(LinOp):
         oshape: Shape | None = None,
         name: str = "_",
     ):
-        """Explicit operator from a 2D matrix.
-
-        Parameters
-        ----------
-        matrix : Array
-            A 2D array representing the operator. The namespace is inferred
-            from this array.
-        ishape : tuple of int, optional
-            Input shape. Defaults to ``(matrix.shape[1], 1)``.
-        oshape : tuple of int, optional
-            Output shape. Defaults to ``(matrix.shape[0], 1)``.
-        name : str, optional
-            Name of the operator.
-        """
         xp = arr_api.get_namespace(matrix)
 
         if ishape is None:
@@ -793,18 +781,17 @@ class Explicit(LinOp):
 
 
 class ProdOp(LinOp):
-    """The product of two operators `A·B`."""
+    """The product of two operators `A·B`.
+
+    Parameters
+    ----------
+    left : LinOp
+        The left operator `A`.
+    right : LinOp
+        The right operator `B`.
+    """
 
     def __init__(self, left: LinOp, right: LinOp):
-        """The product of two operators `A·B`.
-
-        Parameters
-        ----------
-        left: LinOp
-            The left operator `A`.
-        right: LinOp
-            The right operator `B`.
-        """
         if left.ishape != right.oshape:
             warnings.warn("`left` input shape must equal `right` output shape")
         if left.xp != right.xp:
@@ -833,18 +820,17 @@ class ProdOp(LinOp):
 
 
 class AddOp(LinOp):
-    """The sum of two operators `A + B`."""
+    """The sum of two operators `A + B`.
+
+    Parameters
+    ----------
+    left : LinOp
+        The left operator.
+    right : LinOp
+        The right operator.
+    """
 
     def __init__(self, left: LinOp, right: LinOp):
-        """The sum of two operators `A + B`.
-
-        Parameters
-        ----------
-        left: LinOp
-            The left operator.
-        right: LinOp
-            The right operator.
-        """
         if (left.ishape != right.ishape) or (left.oshape != right.oshape):
             raise ValueError("operators must have the same input and output shape")
         if left.xp != right.xp:
@@ -870,18 +856,17 @@ class AddOp(LinOp):
 
 
 class SubOp(LinOp):
-    """The subtraction of two operators `A - B`."""
+    """The subtraction of two operators `A - B`.
+
+    Parameters
+    ----------
+    left : LinOp
+        The left operator.
+    right : LinOp
+        The right operator.
+    """
 
     def __init__(self, left: LinOp, right: LinOp):
-        """The subtraction of two operators `A - B`.
-
-        Parameters
-        ----------
-        left: LinOp
-            The left operator.
-        right: LinOp
-            The right operator.
-        """
         if (left.ishape != right.ishape) or (left.oshape != right.oshape):
             raise ValueError("operators must have the same input and output shape")
         if left.xp != right.xp:
@@ -924,6 +909,13 @@ class VStack(LinOp):
     >>> y = A.forward(x)             # stacked column vector, shape A.oshape
     >>> A.split(y) == y_list         # split back to per-operator shapes
 
+    Parameters
+    ----------
+    oplist : sequence of LinOp
+        Operators to stack. All must share the same ``ishape``.
+    name : str, optional
+        Name of the operator.
+
     Notes
     -----
     This operator is for convenience. The recommendation is to write a custom
@@ -933,15 +925,6 @@ class VStack(LinOp):
     """
 
     def __init__(self, oplist: Sequence[LinOp], name: str = "[·]"):
-        """Vertical stack of operators.
-
-        Parameters
-        ----------
-        oplist : sequence of LinOp
-            Operators to stack. All must share the same ``ishape``.
-        name : str, optional
-            Name of the operator.
-        """
         if len({op.ishape for op in oplist}) > 1:
             raise ValueError("all operators must have the same ishape")
         if len({id(op.xp) for op in oplist}) > 1:
@@ -1007,6 +990,13 @@ class HStack(LinOp):
     >>> y = A.forward(x)             # sum of op.forward(xᵢ), shape A.oshape
     >>> A.apply(x) == x_list         # apply each op to its sub-input
 
+    Parameters
+    ----------
+    oplist : sequence of LinOp
+        Operators to stack. All must share the same ``oshape``.
+    name : str, optional
+        Name of the operator.
+
     Notes
     -----
     This operator is for convenience. The recommendation is to write a custom
@@ -1016,15 +1006,6 @@ class HStack(LinOp):
     """
 
     def __init__(self, oplist: Sequence[LinOp], name: str = "[·|·]"):
-        """Horizontal stack of operators.
-
-        Parameters
-        ----------
-        oplist : sequence of LinOp
-            Operators to stack. All must share the same ``oshape``.
-        name : str, optional
-            Name of the operator.
-        """
         if len({op.oshape for op in oplist}) > 1:
             raise ValueError("all operators must have the same oshape")
         if len({id(op.xp) for op in oplist}) > 1:

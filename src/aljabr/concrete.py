@@ -38,20 +38,19 @@ __all__ = [
 
 
 class Identity(LinOp):
-    """Identity operator of specific shape."""
+    """Identity operator of specific shape.
+
+    Parameters
+    ----------
+    shape : tuple of int
+        The shape of the input and output.
+    name : str, optional
+        Name of the operator.
+    xp : array namespace, optional
+        The array API namespace (default: numpy).
+    """
 
     def __init__(self, shape: Shape, name: str = "I", xp=np):
-        """Identity operator.
-
-        Parameters
-        ----------
-        shape : tuple of int
-            The shape of the input and output.
-        name : str, optional
-            Name of the operator.
-        xp : array namespace, optional
-            The array API namespace (default: numpy).
-        """
         super().__init__(shape, shape, name=name, dtype=float, xp=xp)
 
     def forward(self, point: Array) -> Array:
@@ -65,19 +64,18 @@ class Identity(LinOp):
 
 
 class Diag(LinOp):
-    """Diagonal operator."""
+    """Diagonal operator.
+
+    Parameters
+    ----------
+    diag : Array
+        The diagonal values. Input and output have the same shape as `diag`.
+        The array namespace is inferred from this array.
+    name : str, optional
+        Name of the operator.
+    """
 
     def __init__(self, diag: Array, name: str = "D"):
-        """A diagonal operator.
-
-        Parameters
-        ----------
-        diag : Array
-            The diagonal values. Input and output have the same shape as `diag`.
-            The array namespace is inferred from this array.
-        name : str, optional
-            Name of the operator.
-        """
         xp = arr_api.get_namespace(diag)
         self.diag = xp.asarray(diag)
         super().__init__(
@@ -98,20 +96,19 @@ class Diag(LinOp):
 
 
 class DFT(LinOp):
-    """Discrete Fourier Transform on the N last axis."""
+    """Discrete Fourier Transform on the N last axis.
+
+    Parameters
+    ----------
+    shape : tuple of int
+        The shape of the input.
+    ndim : int
+        The number of last axes over which to compute the DFT.
+    name : str, optional
+        Name of the operator.
+    """
 
     def __init__(self, shape: Shape, ndim: int, name: str = "DFT"):
-        """Unitary discrete Fourier transform on the N last axis.
-
-        Parameters
-        ----------
-        shape : tuple of int
-            The shape of the input.
-        ndim : int
-            The number of last axes over which to compute the DFT.
-        name : str, optional
-            Name of the operator.
-        """
         self._udft = udft
 
         super().__init__(shape, shape, name=name, dtype=complex)
@@ -128,20 +125,19 @@ class DFT(LinOp):
 
 
 class RealDFT(LinOp):
-    """Real Discrete Fourier Transform on the N last axis."""
+    """Real Discrete Fourier Transform on the N last axis.
+
+    Parameters
+    ----------
+    shape : tuple of int
+        The shape of the input.
+    ndim : int
+        The number of last axes over which to compute the DFT.
+    name : str, optional
+        Name of the operator.
+    """
 
     def __init__(self, shape: Shape, ndim: int, name: str = "rDFT"):
-        """Real unitary discrete Fourier transform on the N last axis.
-
-        Parameters
-        ----------
-        shape : tuple of int
-            The shape of the input.
-        ndim : int
-            The number of last axes over which to compute the DFT.
-        name : str, optional
-            Name of the operator.
-        """
         self._udft = udft
 
         super().__init__(
@@ -164,6 +160,18 @@ class Conv(LinOp):
 
     Does not suppose periodic or circular condition.
 
+    Parameters
+    ----------
+    ir : Array
+        The impulse response. Must have at least `dim` dimensions.
+        The array namespace is inferred from this array.
+    ishape : tuple of int
+        The shape of the input. Images are on the last `dim` axes.
+    dim : int
+        Number of last axes over which convolution applies.
+    name : str, optional
+        Name of the operator.
+
     Attributes
     ----------
     imp_resp : Array
@@ -183,20 +191,6 @@ class Conv(LinOp):
     """
 
     def __init__(self, ir: Array, ishape: Shape, dim: int, name: str = "Conv"):
-        """ND convolution on last `N` axis.
-
-        Parameters
-        ----------
-        ir : Array
-            The impulse response. Must have at least `dim` dimensions.
-            The array namespace is inferred from this array.
-        ishape : tuple of int
-            The shape of the input. Images are on the last `dim` axes.
-        dim : int
-            Number of last axes over which convolution applies.
-        name : str, optional
-            Name of the operator.
-        """
         self._udft = udft
 
         # oshape: batch dims are unchanged (pad=1 → s-1+1=s), convolved dims
@@ -262,6 +256,15 @@ class DirectConv(LinOp):
 
     The convolution is performed on the last N axes where N = ir.ndim.
 
+    Parameters
+    ----------
+    ir : Array
+        The impulse response (numpy array).
+    ishape : tuple of int
+        The shape of the input array.
+    name : str, optional
+        Name of the operator.
+
     Attributes
     ----------
     ir : Array
@@ -275,17 +278,6 @@ class DirectConv(LinOp):
     """
 
     def __init__(self, ir: Array, ishape: Shape, name: str = "DConv"):
-        """Direct convolution.
-
-        Parameters
-        ----------
-        ir : Array
-            The impulse response (numpy array).
-        ishape : tuple of int
-            The shape of the input array.
-        name : str, optional
-            Name of the operator.
-        """
         try:
             from scipy.signal import oaconvolve  # ty:ignore[unresolved-import]
         except ImportError as e:
@@ -327,6 +319,15 @@ class DirectConv(LinOp):
 class FreqFilter(Diag):
     """Frequency filter in Fourier space.
 
+    Parameters
+    ----------
+    ir : Array
+        The impulse response.
+    ishape : tuple of int
+        The shape of the input array (used to compute the frequency response).
+    name : str, optional
+        Name of the operator.
+
     Attributes
     ----------
     diag: Array
@@ -339,22 +340,20 @@ class FreqFilter(Diag):
     """
 
     def __init__(self, ir: Array, ishape: Shape, name: str = "Filter"):
-        """Frequency filter defined by an impulse response.
-
-        Parameters
-        ----------
-        ir : Array
-            The impulse response.
-        ishape : tuple of int
-            The shape of the input array (used to compute the frequency response).
-        name : str, optional
-            Name of the operator.
-        """
         super().__init__(udft.ir2fr(ir, ishape), name=name)
 
 
 class CircConv(LinOp):
     """Circulant (periodic) convolution.
+
+    Parameters
+    ----------
+    imp_resp : Array
+        The impulse response.
+    shape : tuple of int
+        Shape of the input and output arrays.
+    name : str, optional
+        Name of the operator.
 
     Attributes
     ----------
@@ -365,17 +364,6 @@ class CircConv(LinOp):
     """
 
     def __init__(self, imp_resp: Array, shape: Shape, name: str = "CConv"):
-        """Circulant convolution.
-
-        Parameters
-        ----------
-        imp_resp : Array
-            The impulse response.
-        shape : tuple of int
-            Shape of the input and output arrays.
-        name : str, optional
-            Name of the operator.
-        """
         self._udft = udft
 
         self.imp_resp = imp_resp
@@ -409,6 +397,17 @@ class Diff(LinOp):
 
     Compute the first-order differences along an axis.
 
+    Parameters
+    ----------
+    axis : int
+        The axis along which to perform the diff.
+    ishape : tuple of int
+        The shape of the input array.
+    name : str, optional
+        Name of the operator.
+    xp : array namespace, optional
+        The array API namespace (default: numpy).
+
     Attributes
     ----------
     axis: int
@@ -420,19 +419,6 @@ class Diff(LinOp):
     """
 
     def __init__(self, axis: int, ishape: Shape, name: str = "Diff", xp=np):
-        """First-order differences operator.
-
-        Parameters
-        ----------
-        axis : int
-            The axis along which to perform the diff.
-        ishape : tuple of int
-            The shape of the input array.
-        name : str, optional
-            Name of the operator.
-        xp : array namespace, optional
-            The array API namespace (default: numpy).
-        """
         oshape = list(ishape)
         oshape[axis] = ishape[axis] - 1
         super().__init__(ishape, tuple(oshape), name=name + f"[{axis}]", xp=xp)
@@ -466,19 +452,17 @@ class Sampling(LinOp):
     """Sampling operator using numpy fancy indexing.
 
     Numpy-only. Index is a tuple of index arrays as in numpy fancy indexing.
+
+    Parameters
+    ----------
+    ishape : tuple of int
+        The shape of the input array.
+    index : tuple of array of int
+        Tuple of index arrays, one per dimension, as in numpy fancy indexing.
+        All arrays must have the same shape, which becomes the output shape.
     """
 
     def __init__(self, ishape: Shape, index: tuple):
-        """Sampling operator.
-
-        Parameters
-        ----------
-        ishape : tuple of int
-            The shape of the input array.
-        index : tuple of array of int
-            Tuple of index arrays, one per dimension, as in numpy fancy indexing.
-            All arrays must have the same shape, which becomes the output shape.
-        """
         super().__init__(ishape, index[0].shape, name="Sampling", xp=np)
         self.index = index
 
@@ -501,6 +485,16 @@ class Sampling(LinOp):
 class Slice(LinOp):
     """Equivalent to obj[::2, 1, ...] etc.
 
+    Parameters
+    ----------
+    ishape : tuple of int
+        The shape of the input array.
+    idx : index expression
+        The index expression to apply (use ``np.index_exp`` to build it).
+        The output shape is inferred as ``np.empty(ishape)[idx].shape``.
+    xp : array namespace, optional
+        The array API namespace (default: numpy).
+
     See Also
     --------
     Sampling : when you have an array of indices that can handle multiple
@@ -518,18 +512,6 @@ class Slice(LinOp):
     """
 
     def __init__(self, ishape: Shape, idx: tuple, xp=np):
-        """Slice operator.
-
-        Parameters
-        ----------
-        ishape : tuple of int
-            The shape of the input array.
-        idx : index expression
-            The index expression to apply (use ``np.index_exp`` to build it).
-            The output shape is inferred as ``np.empty(ishape)[idx].shape``.
-        xp : array namespace, optional
-            The array API namespace (default: numpy).
-        """
         super().__init__(ishape, np.empty(ishape)[idx].shape, name=f"S[{idx}]", xp=xp)
         self._idx = idx
 
@@ -553,6 +535,17 @@ class Slice(LinOp):
 class DWT(LinOp):
     """Unitary Discrete Wavelet Transform.
 
+    Parameters
+    ----------
+    shape : tuple of int
+        The input shape.
+    level : int, optional
+        The decomposition level.
+    wavelet : str, optional
+        The wavelet to use.
+    name : str, optional
+        Name of the operator.
+
     Attributes
     ----------
     wlt : str
@@ -572,19 +565,6 @@ class DWT(LinOp):
         wavelet: str = "haar",
         name: str = "DWT",
     ):
-        """Unitary Discrete Wavelet Transform.
-
-        Parameters
-        ----------
-        shape : tuple of int
-            The input shape.
-        level : int, optional
-            The decomposition level.
-        wavelet : str, optional
-            The wavelet to use.
-        name : str, optional
-            Name of the operator.
-        """
         if pywt is None:
             raise ImportError("pywt is required for DWT")
         self._pywt = pywt
@@ -621,6 +601,17 @@ class DWT(LinOp):
 class Analysis2(LinOp):
     """2D analysis operator with stationary wavelet decomposition.
 
+    Parameters
+    ----------
+    shape : tuple of (int, int)
+        The input shape.
+    level : int
+        The decomposition level.
+    wavelet : str, optional
+        The wavelet to use.
+    name : str, optional
+        Name of the operator.
+
     Notes
     -----
     Numpy-only, use pywt internally. The output is a 3D array where the first
@@ -638,19 +629,6 @@ class Analysis2(LinOp):
         wavelet: str = "haar",
         name: str = "A",
     ):
-        """2D analysis operator with stationary wavelet decomposition.
-
-        Parameters
-        ----------
-        shape : tuple of (int, int)
-            The input shape.
-        level : int
-            The decomposition level.
-        wavelet : str, optional
-            The wavelet to use.
-        name : str, optional
-            Name of the operator.
-        """
         if pywt is None:
             raise ImportError("pywt is required for Analysis2")
         self._pywt = pywt
@@ -735,7 +713,19 @@ class Analysis2(LinOp):
 
 
 class Synthesis2(LinOp):
-    """2D synthesis operator with stationary wavelet decomposition."""
+    """2D synthesis operator with stationary wavelet decomposition.
+
+    Parameters
+    ----------
+    shape : tuple of (int, int)
+        The input shape.
+    level : int
+        The decomposition level.
+    wavelet : str, optional
+        The wavelet to use.
+    name : str, optional
+        Name of the operator.
+    """
 
     def __init__(
         self,
@@ -744,19 +734,6 @@ class Synthesis2(LinOp):
         wavelet: str = "haar",
         name: str = "S",
     ):
-        """2D synthesis operator with stationary wavelet decomposition.
-
-        Parameters
-        ----------
-        shape : tuple of (int, int)
-            The input shape.
-        level : int
-            The decomposition level.
-        wavelet : str, optional
-            The wavelet to use.
-        name : str, optional
-            Name of the operator.
-        """
         self.analysis = Analysis2(shape, level, wavelet)
         super().__init__(
             self.analysis.oshape, self.analysis.ishape, name, dtype=np.float64, xp=np
