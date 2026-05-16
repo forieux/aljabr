@@ -3,31 +3,31 @@
 ## Testing
 
 ```{eval-rst}
-.. autofunction:: aljabr.utils.allclose
+.. autofunction:: codeop.utils.allclose
 
-.. autofunction:: aljabr.utils.dottest
+.. autofunction:: codeop.utils.dottest
 
-.. autofunction:: aljabr.utils.fwadjtest
+.. autofunction:: codeop.utils.fwadjtest
 ```
 
 ## Matrix properties
 
 ```{eval-rst}
-.. autofunction:: aljabr.utils.is_sym
+.. autofunction:: codeop.utils.is_sym
 
-.. autofunction:: aljabr.utils.is_pos_def
+.. autofunction:: codeop.utils.is_pos_def
 
-.. autofunction:: aljabr.utils.is_semi_pos_def
+.. autofunction:: codeop.utils.is_semi_pos_def
 
-.. autofunction:: aljabr.utils.is_neg_def
+.. autofunction:: codeop.utils.is_neg_def
 
-.. autofunction:: aljabr.utils.is_semi_neg_def
+.. autofunction:: codeop.utils.is_semi_neg_def
 ```
 
 ## Condition number
 
 ```{eval-rst}
-.. autofunction:: aljabr.utils.cond
+.. autofunction:: codeop.utils.cond
 
-.. autofunction:: aljabr.utils.fcond
+.. autofunction:: codeop.utils.fcond
 ```

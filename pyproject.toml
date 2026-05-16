@@ -1,5 +1,5 @@
 [project]
-name = "aljabr"
+name = "codeop"
 version = "0.4.0"
 description = "Linear operators interfaces"
 authors = [
@@ -21,7 +21,7 @@ classifiers = [
     "Programming Language :: Python :: Implementation :: CPython",
     "Typing :: Typed",]
 include = ["py.typed", "LICENSE"]
-packages = [{include = "aljabr", from = "src"}]
+packages = [{include = "codeop", from = "src"}]
 requires-python = ">=3.12"
 dependencies = [
     "array-api-compat>=1.13.0",
@@ -30,9 +30,9 @@ dependencies = [
 ]
 
 [project.urls]
-repository = "https://github.com/forieux/aljabr/"
-changelog = "https://github.com/forieux/aljabr/blob/main/CHANGELOG.md"
-"Bug Tracker" = "https://github.com/forieux/aljabr/issues"
+repository = "https://github.com/forieux/codeop/"
+changelog = "https://github.com/forieux/codeop/blob/main/CHANGELOG.md"
+"Bug Tracker" = "https://github.com/forieux/codeop/issues"
 "Author webpage" = "https://pro.orieux.fr/"
 
 [project.optional-dependencies]

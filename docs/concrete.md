@@ -3,11 +3,11 @@
 ## Basic operators
 
 ```{eval-rst}
-.. autoclass:: aljabr.concrete.Identity
+.. autoclass:: codeop.concrete.Identity
    :members:
    :show-inheritance:
 
-.. autoclass:: aljabr.concrete.Diag
+.. autoclass:: codeop.concrete.Diag
    :members:
    :show-inheritance:
 ```
@@ -15,11 +15,11 @@
 ## Fourier transforms
 
 ```{eval-rst}
-.. autoclass:: aljabr.concrete.DFT
+.. autoclass:: codeop.concrete.DFT
    :members:
    :show-inheritance:
 
-.. autoclass:: aljabr.concrete.RealDFT
+.. autoclass:: codeop.concrete.RealDFT
    :members:
    :show-inheritance:
 ```
@@ -27,23 +27,23 @@
 ## Convolutions
 
 ```{eval-rst}
-.. autoclass:: aljabr.concrete.Conv
+.. autoclass:: codeop.concrete.Conv
    :members:
    :show-inheritance:
 
-.. autoclass:: aljabr.concrete.DirectConv
+.. autoclass:: codeop.concrete.DirectConv
    :members:
    :show-inheritance:
 
-.. autoclass:: aljabr.concrete.FreqFilter
+.. autoclass:: codeop.concrete.FreqFilter
    :members:
    :show-inheritance:
 
-.. autoclass:: aljabr.concrete.CircConv
+.. autoclass:: codeop.concrete.CircConv
    :members:
    :show-inheritance:
 
-.. autoclass:: aljabr.concrete.Diff
+.. autoclass:: codeop.concrete.Diff
    :members:
    :show-inheritance:
 ```
@@ -51,11 +51,11 @@
 ## Other operators
 
 ```{eval-rst}
-.. autoclass:: aljabr.concrete.Sampling
+.. autoclass:: codeop.concrete.Sampling
    :members:
    :show-inheritance:
 
-.. autoclass:: aljabr.concrete.Slice
+.. autoclass:: codeop.concrete.Slice
    :members:
    :show-inheritance:
 ```
@@ -63,15 +63,15 @@
 ## Wavelet operators
 
 ```{eval-rst}
-.. autoclass:: aljabr.concrete.DWT
+.. autoclass:: codeop.concrete.DWT
    :members:
    :show-inheritance:
 
-.. autoclass:: aljabr.concrete.Analysis2
+.. autoclass:: codeop.concrete.Analysis2
    :members:
    :show-inheritance:
 
-.. autoclass:: aljabr.concrete.Synthesis2
+.. autoclass:: codeop.concrete.Synthesis2
    :members:
    :show-inheritance:
 ```
