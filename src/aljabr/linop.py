@@ -246,6 +246,13 @@ class LinOp(abc.ABC):
         The array API namespace to use (default: numpy).
     name : str, optional
         The name of the operator.
+
+    Attributes
+    ----------
+    metadata : dict
+        Timing information populated automatically after each method call. See
+        :ref:`the guide <guide:Automatic timing and shape checking>` for
+        details.
     """
 
     def __init_subclass__(cls, **kwargs):
@@ -269,6 +276,7 @@ class LinOp(abc.ABC):
         self.oshape: tuple[int, ...] = tuple(oshape)
         self.dtype: DType = dtype
         self.xp = xp
+
         self.metadata: dict = {
             "init_last_duration": None,
             "forward_last_duration": None,
@@ -572,7 +580,11 @@ class Scaled(LinOp):
         self.baseop = baseop
         self.scale = scale
         super().__init__(
-            baseop.ishape, baseop.oshape, dtype=baseop.dtype, xp=baseop.xp, name=f"γ{baseop.name}"
+            baseop.ishape,
+            baseop.oshape,
+            dtype=baseop.dtype,
+            xp=baseop.xp,
+            name=f"γ{baseop.name}",
         )
 
     def forward(self, point: Array) -> Array:
@@ -689,7 +701,11 @@ class Adjoint(LinOp):
 
         # ishape/oshape are swapped: the adjoint maps output space → input space.
         super().__init__(
-            linop.oshape, linop.ishape, dtype=linop.dtype, xp=linop.xp, name=f"{linop.name}ᴴ"
+            linop.oshape,
+            linop.ishape,
+            dtype=linop.dtype,
+            xp=linop.xp,
+            name=f"{linop.name}ᴴ",
         )
         self.baseop = linop
 
