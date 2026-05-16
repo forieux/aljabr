@@ -16,7 +16,7 @@ The only requirement is to subclass `LinOp` and implement `forward` and
 
 ```python
 import numpy as np
-from codeop import LinOp, Array, Shape
+from aljabr import LinOp, Array, Shape
 
 class FFT2(LinOp):
     """Unitary 2D FFT — maps an image to its Fourier coefficients."""
@@ -67,7 +67,7 @@ np.allclose(F.adjoint(coef), x)
 For a non-square operator (e.g., a difference along axis 0):
 
 ```python
-from codeop import Diff
+from aljabr import Diff
 D = Diff(axis=0, ishape=(256, 256))
 print(D.ishape)   # (256, 256)
 print(D.oshape)   # (255, 256)  — one fewer row after diff on axis 0.
@@ -155,7 +155,7 @@ functions that call `aslinearoperator` internally.
 
 ```python
 import numpy as np
-from codeop import Identity, Diag
+from aljabr import Identity, Diag
 
 I = Identity((256, 256))
 W = Diag(np.full((256, 256), 0.5))   # element-wise ½
@@ -258,7 +258,7 @@ your subclass.
 Instead of subclassing you can use `BaseOp` with a pair of callables
 
 ```python
-from codeop import BaseOp
+from aljabr import BaseOp
 
 fft2_op = BaseOp(
     forward=lambda x: np.fft.fft2(x, norm="ortho"),

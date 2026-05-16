@@ -3,11 +3,11 @@
 ## Base classes
 
 ```{eval-rst}
-.. autoclass:: codeop.linop.LinOp
+.. autoclass:: aljabr.linop.LinOp
    :members:
    :show-inheritance:
 
-.. autoclass:: codeop.linop.BaseOp
+.. autoclass:: aljabr.linop.BaseOp
    :members:
    :show-inheritance:
 ```
@@ -15,19 +15,19 @@
 ## Algebraic operators
 
 ```{eval-rst}
-.. autoclass:: codeop.linop.Adjoint
+.. autoclass:: aljabr.linop.Adjoint
    :members:
    :show-inheritance:
 
-.. autoclass:: codeop.linop.Scaled
+.. autoclass:: aljabr.linop.Scaled
    :members:
    :show-inheritance:
 
-.. autoclass:: codeop.linop.Symmetric
+.. autoclass:: aljabr.linop.Symmetric
    :members:
    :show-inheritance:
 
-.. autoclass:: codeop.linop.Explicit
+.. autoclass:: aljabr.linop.Explicit
    :members:
    :show-inheritance:
 ```
@@ -35,23 +35,23 @@
 ## Compound operators
 
 ```{eval-rst}
-.. autoclass:: codeop.linop.ProdOp
+.. autoclass:: aljabr.linop.ProdOp
    :members:
    :show-inheritance:
 
-.. autoclass:: codeop.linop.AddOp
+.. autoclass:: aljabr.linop.AddOp
    :members:
    :show-inheritance:
 
-.. autoclass:: codeop.linop.SubOp
+.. autoclass:: aljabr.linop.SubOp
    :members:
    :show-inheritance:
 
-.. autoclass:: codeop.linop.VStack
+.. autoclass:: aljabr.linop.VStack
    :members:
    :show-inheritance:
 
-.. autoclass:: codeop.linop.HStack
+.. autoclass:: aljabr.linop.HStack
    :members:
    :show-inheritance:
 ```
@@ -59,9 +59,9 @@
 ## Types and utilities
 
 ```{eval-rst}
-.. autofunction:: codeop.linop.vectorize
+.. autofunction:: aljabr.linop.vectorize
 
-.. autofunction:: codeop.linop.unvectorize
+.. autofunction:: aljabr.linop.unvectorize
 
-.. autofunction:: codeop.linop.asmatrix
+.. autofunction:: aljabr.linop.asmatrix
 ```
