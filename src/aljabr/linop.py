@@ -251,8 +251,7 @@ class LinOp(abc.ABC):
     ----------
     metadata : dict
         Timing information populated automatically after each method call. See
-        :ref:`the guide <guide:Automatic timing and shape checking>` for
-        details.
+        the guide for details.
     """
 
     def __init_subclass__(cls, **kwargs):
