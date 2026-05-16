@@ -139,9 +139,10 @@ class LinOpLike(Protocol):
 def timeit(func: Callable) -> Callable:
     """Decorator to time the execution of methods.
 
-    After each call, sets an attribute on ``self`` with the measured duration.
-    For ``__init__``, the attribute is ``self.init_last_duration``; for any
-    other method named ``name``, it is ``self.name_last_duration``.
+    After each call, updates ``self.metadata`` with the measured duration.
+    For ``__init__``, sets ``metadata["init_last_duration"]``; for any other
+    method named ``name``, sets ``metadata["name_last_duration"]``. For
+    ``forward`` and ``adjoint``, also appends to ``metadata["name_durations"]``.
 
     Parameters
     ----------
@@ -164,13 +165,14 @@ def timeit(func: Callable) -> Callable:
         fname: str = func.__name__  # ty:ignore[unresolved-attribute]
 
         if fname == "__init__":
-            setattr(self, "init_last_duration", duration)
+            self.metadata["init_last_duration"] = duration
         else:
-            setattr(self, f"{fname}_last_duration", duration)
+            self.metadata[f"{fname}_last_duration"] = duration
+            if fname in ("forward", "adjoint", "fwadj"):
+                self.metadata[f"{fname}_durations"].append(duration)
 
         return out
 
-    # Return our timed function
     return timed
 
 
@@ -267,6 +269,15 @@ class LinOp(abc.ABC):
         self.oshape: tuple[int, ...] = tuple(oshape)
         self.dtype: DType = dtype
         self.xp = xp
+        self.metadata: dict = {
+            "init_last_duration": None,
+            "forward_last_duration": None,
+            "adjoint_last_duration": None,
+            "fwadj_last_duration": None,
+            "forward_durations": [],
+            "adjoint_durations": [],
+            "fwadj_durations": [],
+        }
 
     @property
     def isize(self) -> int:

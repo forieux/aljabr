@@ -234,13 +234,16 @@ Every `LinOp` subclass automatically gets two runtime behaviours applied to its
 methods.
 
 - **`timeit`** — wraps `__init__`, `forward`, `adjoint`, and `fwadj`. After
-  each call the elapsed time is stored on the instance:
+  each call the elapsed time is stored in the `metadata` dict on the instance.
+  `forward` and `adjoint` also accumulate a full history in lists:
 
   ```python
   F = FFT2((256, 256))
   y = F.forward(x)
-  print(F.forward_last_duration)   # seconds
-  print(F.init_last_duration)      # construction time
+  print(F.metadata["forward_last_duration"])   # seconds, last call
+  print(F.metadata["init_last_duration"])      # construction time
+  print(F.metadata["forward_durations"])       # [t1, t2, …] — all calls
+  print(F.metadata["adjoint_durations"])       # same for adjoint
   ```
 
 - **`checkshape`** — wraps `forward`, `adjoint`, and `fwadj`. Emits a
