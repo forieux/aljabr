@@ -660,7 +660,7 @@ class Symmetric(LinOp):
 
     def adjoint(self, point: Array) -> Array:
         """Returns the adjoint application `Aᴴ·y = A·y`."""
-        return self.forward(point)
+        return self._forward(point)
 
 
 class Adjoint(LinOp):
@@ -756,8 +756,6 @@ class Dense(LinOp):
     ):
         if matrix.ndim != 2:
             raise ValueError("matrix must be 2-dimensional")
-
-        xp = arr_api.get_namespace(matrix)
 
         if ishape is None:
             ishape = (matrix.shape[1], 1)
