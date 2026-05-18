@@ -246,9 +246,9 @@ methods.
   ```python
   F = FFT2((256, 256))
   y = F.forward(x)
-  print(F.metadata["forward_last"])  # seconds, last call
-  print(F.metadata["init_last"])     # construction time
+  print(F.metadata["init"])          # construction time (seconds)
   print(F.metadata["forward"])       # [t1, t2, …] — all calls
+  print(F.metadata["forward"][-1])   # seconds, last call
   print(F.metadata["adjoint"])       # same for adjoint
   ```
 
@@ -317,10 +317,11 @@ AtA = F.H @ F    # Symmetric, not a ProdOp(Adjoint(F), F)
 AAt = F @ F.H    # also Symmetric
 ```
 
-This matters because `Symmetric.fwadj` is `forward` (no extra adjoint call),
-and iterative solvers that call `fwadj` in a loop benefit from the saved work.
-When you override `fwadj` in your subclass — as in the `FFT2` example above —
-the `Symmetric` produced by `.S` or `@` automatically uses that override.
+For a `Symmetric` S, `forward` and `adjoint` are identical (no separate adjoint
+computation). `fwadj` inherits from `LinOp` and computes `S²x`, which is the
+correct `SᴴS` for a self-adjoint operator. When you override `fwadj` in your
+subclass — as in the `FFT2` example above — the `Symmetric` produced by `.S` or
+`@` automatically uses that override.
 
 ## Array-agnostic operators
 
