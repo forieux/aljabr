@@ -421,11 +421,12 @@ class Diff(LinOp):
     def forward(self, point: Array) -> Array:
         """The forward application `A·x`.
 
-        This corresponds to the application of the following matrix in 1D.
+        This corresponds to the application of the following matrix in 1D::
 
-        -1  1  0  0
-         0 -1  1  0
-         0  0 -1  1
+            -1  1  0  0
+             0 -1  1  0
+             0  0 -1  1
+
         """
         xp = arr_api.get_namespace(point)
         return xp.diff(point, axis=self.axis)
@@ -433,12 +434,12 @@ class Diff(LinOp):
     def adjoint(self, point: Array) -> Array:
         """The adjoint application `Aᴴ·y`.
 
-        This corresponds to the application of the following matrix in 1D
+        This corresponds to the application of the following matrix in 1D::
 
-        -1  0  0
-         1 -1  0
-         0  1 -1
-         0  0  1
+            -1  0  0
+             1 -1  0
+             0  1 -1
+             0  0  1
         """
         xp = arr_api.get_namespace(point)
         return -xp.diff(point, prepend=0, append=0, axis=self.axis)

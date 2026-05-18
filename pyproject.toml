@@ -44,7 +44,7 @@ scipy = [
 ]
 docs = [
     "sphinx>=7",
-    "sphinx-rtd-theme",
+    "furo",
     "myst-parser",
 ]
 

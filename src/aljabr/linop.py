@@ -52,7 +52,7 @@ from typing import (
 import array_api_compat as arr_api
 import numpy as np
 
-Array = Any  # array API standard array — no stable cross-backend type yet
+type Array = Any  # array API standard array — no stable cross-backend type yet
 
 
 __all__ = [
@@ -162,7 +162,9 @@ def timeit(func: Callable) -> Callable:
         # the call.  If metadata["init"] is already set, __init__ is running
         # on an existing object (Adjoint.__new__ returning an existing op) and
         # we must not overwrite the object's real construction time.
-        init_was_unset = not hasattr(self, "metadata") or self.metadata.get("init") is None
+        init_was_unset = (
+            not hasattr(self, "metadata") or self.metadata.get("init") is None
+        )
 
         timestamp = time.time()
         out = func(*args, **kwargs)
@@ -302,13 +304,7 @@ class LinOp(abc.ABC):
 
     @property
     def H(self) -> "LinOp":
-        """Return `Adjoint(self)`.
-
-        `Adjoint.__new__` ensures that double adjoints are unwrapped: if `self`
-        is already an `Adjoint`, calling `.H` returns the original operator.
-        Subclasses that know their own adjoint (e.g. `Symmetric`) override this
-        property to return ``self`` directly.
-        """
+        """Return `Adjoint(self)`."""
         return Adjoint(self)
 
     @property

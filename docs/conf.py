@@ -21,7 +21,7 @@ extensions = [
 exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 source_suffix = {".rst": "restructuredtext", ".md": "markdown"}
 
-html_theme = "sphinx_rtd_theme"
+html_theme = "furo"
 html_static_path = ["_static"]
 
 napoleon_numpy_docstring = True
@@ -39,11 +39,9 @@ autodoc_default_options = {
     "show-inheritance": True,
 }
 
+add_module_names = False
+autodoc_member_order = "bysource"
 autodoc_preserve_defaults = True
 autoclass_content = "class"
-autodoc_type_aliases = {
-    "Array": "Array",
-    "DType": "DType",
-}
 
 myst_enable_extensions = ["dollarmath", "colon_fence"]
