@@ -118,7 +118,7 @@ def fwadjtest(
     echo: bool = False,
     xp=np,
 ) -> bool:
-    """Test `fwadj` validity
+    """Test `fwadj` validity.
 
     Verify the validity of `fwadj` wrt. `forward` and `adjoint` methods with equality
 
@@ -269,7 +269,7 @@ def is_semi_neg_def(linop: Array | LinOp) -> bool:
 
 
 def cond(linop: Array | LinOp) -> float:
-    """Return the condition number κ
+    """Return the condition number κ.
 
     The condition number κ is defined as::
 
@@ -294,7 +294,7 @@ def cond(linop: Array | LinOp) -> float:
 
 
 def fcond(linop: LinOp, tol: float = 0.1) -> float:
-    """Estimate the condition number κ
+    """Estimate the condition number κ.
 
     The condition number κ is defined as::
 

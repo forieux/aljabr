@@ -163,9 +163,9 @@ class RealDFT(LinOp):
 
 
 class Conv(LinOp):
-    """ND convolution on last `N` axis.
+    """ND convolution on the last `N` axes.
 
-    Does not assume a periodic or circular bondary condition.
+    Does not assume a periodic or circular boundary condition.
 
     Parameters
     ----------
@@ -190,11 +190,11 @@ class Conv(LinOp):
 
     Notes
     -----
-    Use fft internally for fast computation. The `forward` method is equivalent
+    Uses FFT internally for fast computation. The `forward` method is equivalent
     to "valid" boundary condition and `adjoint` is equivalent to "full" boundary
     condition with zero filling.
 
-    Namespace is the same as the one of the impulse response.
+    Uses the array namespace of the impulse response.
     """
 
     def __init__(self, ir: Array, ishape: Shape, dim: int, name: str = "Conv"):
@@ -331,12 +331,12 @@ class FreqFilter(Diag):
 
     Attributes
     ----------
-    diag: Array
+    diag : Array
         The frequency response of the filter.
 
     Notes
     -----
-    Almost like diagonal but supposes complex Fourier space and is defined by an
+    Almost like diagonal but assumes a complex Fourier space and is defined by an
     impulse response. If you have the frequency response, just use Diag.
     """
 
@@ -404,9 +404,10 @@ class Diff(LinOp):
         The shape of the input array.
     name : str, optional
         Name of the operator.
+
     Attributes
     ----------
-    axis: int
+    axis : int
         The axis along which the differences are performed.
 
     Notes
@@ -468,7 +469,9 @@ class Sampling(LinOp):
         return point[self.index]
 
     def adjoint(self, point: Array) -> Array:
-        # Alternative to test: out = np.zeros(self.ishape, dtype=point.dtype); np.add.at(out, self.index, point)
+        # Alternative that need to be tested: out = np.zeros(self.ishape,
+        # dtype=point.dtype); np.add.at(out, self.index, point)
+
         flat_index = np.ravel_multi_index(self.index, self.ishape)
         return np.reshape(
             np.bincount(
@@ -551,7 +554,7 @@ class DWT(LinOp):
 
     Notes
     -----
-    Numpy-only, use pywt internally.
+    NumPy-only. Uses pywt internally.
     """
 
     def __init__(
@@ -610,10 +613,10 @@ class Analysis2(LinOp):
 
     Notes
     -----
-    Numpy-only, use pywt internally. The output is a 3D array where the first
+    NumPy-only. Uses pywt internally. The output is a 3D array where the first
     axis is the coefficient axis, with the approximation coefficients at index 0
     and the detail coefficients at indices 1 to 3*level. The second and third
-    axis are the spatial axes. See `pywt.swt2` documentation for more details on
+    axes are the spatial axes. See `pywt.swt2` documentation for more details on
     the output format.
 
     """

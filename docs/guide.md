@@ -52,7 +52,7 @@ matters in iterative algorithms that call `fwadj` thousands of times.
 
 Shapes are fixed at construction and describe the **array** shape of the input
 and output — not flattened vectors. They are required: this is a design decision
-and different than `np.fft.fft2` function.
+and different from the `np.fft.fft2` function.
 
 ```python
 F = FFT2((256, 256))  # Create the operator (like a matrix)
@@ -107,7 +107,7 @@ y = F(x)          # equivalent to F.forward(x)
 
 ### Column-vector interface: `matvec` and `rmatvec`
 
-`matvec` and `rmatvec` suppose column vectors for inputs and outputs, of shape
+`matvec` and `rmatvec` expect column vectors for inputs and outputs, of shape
 `(isize, 1)` and `(osize, 1)` respectively. They are useful when an algorithm
 expects 1D vectors regardless of the operator's native shapes:
 
@@ -326,5 +326,5 @@ the `Symmetric` produced by `.S` or `@` automatically uses that override.
 
 As the author of `forward` and `adjoint`, you can use the array library you want
 or even make them array-agnostic too. However, `asmatrix`, which builds canonical
-basis vectors, needs to know the backend and dtype if it's different from Numpy
+basis vectors, needs to know the backend and dtype if it's different from NumPy
 float64.

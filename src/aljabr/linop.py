@@ -195,7 +195,7 @@ def checkshape(func: Callable) -> Callable:
 
     @wraps(func)
     def shape_checked(self, inarray):
-        fname: str = func.__name__  # ty:ignore[unresolved-attribute]
+        fname: str = func.__name__  # ty: ignore[unresolved-attribute]
 
         if fname in ("forward", "fwadj") and inarray.shape != self.ishape:
             warnings.warn(
@@ -227,7 +227,7 @@ def checkshape(func: Callable) -> Callable:
 
 
 class LinOp(abc.ABC):
-    """An Abstract Base class for linear operator.
+    """An abstract base class for linear operator.
 
     User must implement at least `forward` and `adjoint` methods in their
     concrete class.
@@ -249,10 +249,10 @@ class LinOp(abc.ABC):
     """
 
     def __init_subclass__(cls, **kwargs):
-        """Automatically decorate methods of subclass
+        """Automatically decorate methods of subclasses.
 
         __init__ is timed
-        forward, adjoint and fwadj are timed and input and output shape are checked at runtime"""
+        forward, adjoint and fwadj are timed and input and output shapes are checked at runtime"""
         for name, value in vars(cls).items():
             if name == "__init__":
                 setattr(cls, name, timeit(value))
@@ -291,7 +291,6 @@ class LinOp(abc.ABC):
         """The shape `(self.osize, self.isize)` of the matrix."""
         return (self.osize, self.isize)
 
-    # property to be in read only
     @property
     def ndim(self) -> int:
         """The number of dimensions (always 2)."""
@@ -380,7 +379,7 @@ class LinOp(abc.ABC):
         Returns
         -------
         Array
-            2D array of shape ``shape=(osize, isize)``.
+            2D array of shape ``(osize, isize)``.
 
         Notes
         -----
@@ -476,7 +475,7 @@ class LinOp(abc.ABC):
         return self.rmatvec(point)
 
     def __call__(self, point: Array) -> Array:
-        """Return `A·x` as forward(x)."""
+        """Return `forward(x)`."""
         return self.forward(point)
 
     def __repr__(self):
@@ -771,9 +770,9 @@ class Dense(LinOp):
 
     def asmatrix(self, like: Array | None = None) -> Array:
         if like is None:
-            xp = arr_api.get_namespace(like)
-        else:
             xp = arr_api.get_namespace(self.mat)
+        else:
+            xp = arr_api.get_namespace(like)
         return xp.asarray(self.mat)
 
 
