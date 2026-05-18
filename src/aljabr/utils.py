@@ -1,7 +1,7 @@
 """The ``utils`` module
 ====================
 
-Utility functions for testing and analysing linear operators: dot test, adjoint
+Utility functions for testing and analyzing linear operators: dot test, adjoint
 consistency test, symmetry and definiteness checks, condition number
 estimation,...
 

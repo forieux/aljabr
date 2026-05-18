@@ -12,7 +12,7 @@ compose it with others — as if it were a matrix.
 
 The foundation is the `LinOp` type. Everything else — concrete operators,
 utilities, algebraic composition — is built on top of it and optional. I made
-this library for my own usage
+this library for my own use.
 
 ## Key differences from similar tools
 

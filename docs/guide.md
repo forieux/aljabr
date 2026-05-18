@@ -5,7 +5,7 @@ FFT as a running example (see `concrete.DFT`). Every concept introduced here
 applies to any operator you build on top of `LinOp` and are present or are used
 in operators in `concrete`.
 
-The idea is to be helpful, easy to use, and eliminate repetitive tasks — without
+The idea is to be helpful, easy to use, and to eliminate repetitive tasks — without
 doing the work for you or thinking for you.
 
 ## Subclassing LinOp: `forward` and `adjoint`
@@ -34,7 +34,7 @@ class FFT2(LinOp):
 The unitary normalization (`norm="ortho"`) ensures $F^H F = I$: the FFT is an
 isometry, so the adjoint equals the inverse.
 
-### Optimising with `fwadj`
+### Optimizing with `fwadj`
 
 `fwadj` computes $F^H \cdot F \cdot x$ in one shot. By default it calls
 `adjoint(forward(x))`, which is correct but not always optimal. When you know a
@@ -127,7 +127,7 @@ result; `rmatvec` does the same through `adjoint`.
 ```python
 repr(F)   # "F (FFT2): (256, 256) → (256, 256)"
 ```
-with `name`, `class`, `ishape -> oshape`.
+with `name`, `class`, `ishape → oshape`.
 
 ## SciPy compatibility
 
@@ -283,7 +283,7 @@ Fh = F.H                   # Adjoint of F
 y  = Fh.forward(x)         # = F.adjoint(x)
 ```
 
-`Adjoint` is a singleton — it avoids creating a chain of wrappers:
+`Adjoint` is an involution — it avoids creating a chain of wrappers:
 
 ```python
 F.H.H is F                 # True — double adjoint cancels

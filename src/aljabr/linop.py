@@ -28,7 +28,7 @@
 ====================
 
 This module implements an interface for implicit linear operators. It is mostly
-wrappers around callables or functions for ease of use as linear operator and
+wrappers around callables or functions for ease of use as linear operators and
 more expressiveness. For instance, it can wrap the `fft()` function, giving the
 impression that it is a matrix.
 
@@ -227,7 +227,7 @@ def checkshape(func: Callable) -> Callable:
 
 
 class LinOp(abc.ABC):
-    """An abstract base class for linear operator.
+    """An abstract base class for linear operators.
 
     User must implement at least `forward` and `adjoint` methods in their
     concrete class.
@@ -251,8 +251,9 @@ class LinOp(abc.ABC):
     def __init_subclass__(cls, **kwargs):
         """Automatically decorate methods of subclasses.
 
-        __init__ is timed
-        forward, adjoint and fwadj are timed and input and output shapes are checked at runtime"""
+        ``__init__`` is timed. ``forward``, ``adjoint``, and ``fwadj`` are
+        timed and have their input/output shapes checked at runtime.
+        """
         for name, value in vars(cls).items():
             if name == "__init__":
                 setattr(cls, name, timeit(value))
@@ -413,19 +414,19 @@ class LinOp(abc.ABC):
         """Add (as `+`) a `LinOp` to return an `AddOp`."""
         if isinstance(value, LinOpLike):
             return AddOp(self, value)
-        raise TypeError("the operand must be a LinOp")
+        raise TypeError("the operand must be a linear operator")
 
     def __sub__(self, value: "LinOp") -> "LinOp":
         """Subtract (as `-`) a `LinOp` to return a `SubOp`."""
         if isinstance(value, LinOpLike):
             return SubOp(self, value)
-        raise TypeError("the operand must be a LinOp")
+        raise TypeError("the operand must be a linear operator")
 
     def __mul__(self, value: Array | "LinOp") -> Array | "LinOp":
         """Left multiply `*` a LinOp or array.
 
         If `value` is a LinOp duck type, return a ProdOp. Else return `A·x`,
-        that is application of `forward(value)`.
+        that is, the application of `forward(value)`.
         """
         if isinstance(value, LinOpLike):
             return ProdOp(self, value)
@@ -451,7 +452,8 @@ class LinOp(abc.ABC):
 
         If `value` is a LinOp duck type, return a `ProdOp`.
 
-        If `value is self.H`, return `Symmetric(value)`.
+        If `value` is the adjoint of `self` (or vice versa), return a
+        `Symmetric` wrapping `value.fwadj`.
 
         If `value` is an array, return `matvec(value)`.
         """
@@ -603,10 +605,10 @@ class Scaled(LinOp):
 
 
 class Symmetric(LinOp):
-    """`A` operator as `A = Aᴴ`.
+    """`A` operator where `Aᴴ = A`.
 
-    For any `Symmetric` instance `A`, ``Adjoint(A) is A`` is ``True`` and
-    therefor is only defined by `forward` since `adjoint == forward`.
+    For any `Symmetric` instance `A`, ``Adjoint(A) is A`` is ``True``:
+    it is fully defined by `forward` since `adjoint` delegates to it.
 
     Parameters
     ----------
@@ -659,7 +661,7 @@ class Symmetric(LinOp):
 class Adjoint(LinOp):
     """The adjoint `Aᴴ` of a linear operator `A`.
 
-    `Adjoint` is a singleton: `Adjoint(Adjoint(A)) is A`.
+    `Adjoint` is an involution: `Adjoint(Adjoint(A)) is A`.
 
     Delegates to `A` methods.
 
@@ -805,7 +807,7 @@ class ProdOp(LinOp):
         super().__init__(
             right.ishape,
             left.oshape,
-            name=f"({left.name} * {right.name})",
+            name=f"({left.name}·{right.name})",
         )
         self.left = left
         self.right = right
@@ -906,7 +908,7 @@ class VStack(LinOp):
 
     >>> y_list = A.apply(x)          # list of per-operator outputs
     >>> y = A.forward(x)             # stacked column vector, shape A.oshape
-    >>> A.split(y) == y_list         # split back to per-operator shapes
+    >>> A.split(y)                   # per-operator shapes, same as y_list
 
     Parameters
     ----------
@@ -983,7 +985,7 @@ class HStack(LinOp):
 
     >>> x_list = A.split(x)          # list of per-operator inputs
     >>> y = A.forward(x)             # sum of op.forward(xᵢ), shape A.oshape
-    >>> A.apply(x) == x_list         # apply each op to its sub-input
+    >>> A.apply(x)                   # per-operator outputs, same as x_list
 
     Parameters
     ----------
