@@ -322,9 +322,9 @@ the `Symmetric` produced by `.S` or `@` automatically uses that override.
 
 `LinOp` is not tied to NumPy and uses the array API standard with the help of
 `array-api-compat`. This is also the case for many derived `LinOp` and concrete
-`Operator`.
+operators.
 
 As the author of `forward` and `adjoint`, you can use the array library you want
 or even make them array-agnostic too. However, `asmatrix`, which builds canonical
-basis vectors, needs to know the backend and dtype if it's different from NumPy
+basis vectors, needs to know the backend and dtype if different from NumPy
 float64.

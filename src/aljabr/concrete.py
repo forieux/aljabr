@@ -170,8 +170,8 @@ class Conv(LinOp):
     Parameters
     ----------
     ir : Array
-        The impulse response. Must have at least `dim` dimensions.
-        The array namespace is inferred from this array.
+        The impulse response. Must have at least `dim` dimensions. The array
+        namespace is inferred from this array.
     ishape : tuple of int
         The shape of the input. Images are on the last `dim` axes.
     dim : int
@@ -195,6 +195,7 @@ class Conv(LinOp):
     condition with zero filling.
 
     Uses the array namespace of the impulse response.
+
     """
 
     def __init__(self, ir: Array, ishape: Shape, dim: int, name: str = "Conv"):
@@ -469,7 +470,7 @@ class Sampling(LinOp):
         return point[self.index]
 
     def adjoint(self, point: Array) -> Array:
-        # Alternative that need to be tested: out = np.zeros(self.ishape,
+        # Alternative that needs to be tested: out = np.zeros(self.ishape,
         # dtype=point.dtype); np.add.at(out, self.index, point)
 
         flat_index = np.ravel_multi_index(self.index, self.ishape)

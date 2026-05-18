@@ -27,7 +27,7 @@
 """The ``linop`` module
 ====================
 
-This module implements an interface for implicit linear operator. It is mostly
+This module implements an interface for implicit linear operators. It is mostly
 wrappers around callables or functions for ease of use as linear operator and
 more expressiveness. For instance, it can wrap the `fft()` function, giving the
 impression that it is a matrix.
@@ -298,7 +298,13 @@ class LinOp(abc.ABC):
 
     @property
     def H(self) -> "LinOp":
-        """Return the adjoint `Aᴴ` as a `LinOp`. If `A` is already an `Adjoint`, return the original operator."""
+        """Return `Adjoint(self)`.
+
+        `Adjoint.__new__` ensures that double adjoints are unwrapped: if `self`
+        is already an `Adjoint`, calling `.H` returns the original operator.
+        Subclasses that know their own adjoint (e.g. `Symmetric`) override this
+        property to return ``self`` directly.
+        """
         return Adjoint(self)
 
     @property
@@ -383,7 +389,7 @@ class LinOp(abc.ABC):
 
         Notes
         -----
-        Can be very heavy depending on the size of operator.
+        Can be very heavy depending on the size of the operator.
 
         """
         xp = arr_api.get_namespace(like) if like is not None else np
@@ -430,8 +436,8 @@ class LinOp(abc.ABC):
 
         If `point` is a scalar, return a `Scaled`.
 
-        Otherwise, `point` is considered as an array and return `yᵀ·A`, the
-        adjoint application `Aᴴ·y`.
+        Otherwise, `point` is treated as an array and returns `Aᴴ·y`, the
+        adjoint application.
         """
         if isinstance(
             point,
@@ -464,8 +470,8 @@ class LinOp(abc.ABC):
 
         If `point` is a scalar, return a `Scaled`.
 
-        Otherwise, `point` is considered as an array and return `yᵀ·A = Aᴴ·y`,
-        as `rmatvec(point)`.
+        Otherwise, `point` is treated as a column vector and returns `Aᴴ·y`
+        via `rmatvec(point)`.
         """
         if isinstance(
             point,
@@ -597,9 +603,10 @@ class Scaled(LinOp):
 
 
 class Symmetric(LinOp):
-    """`A` operator where `Aᴴ = A = Bᴴ·B`.
+    """`A` operator as `A = Aᴴ`.
 
-    For any `Symmetric` instance `A`, ``Adjoint(A) is A`` is ``True``.
+    For any `Symmetric` instance `A`, ``Adjoint(A) is A`` is ``True`` and
+    therefor is only defined by `forward` since `adjoint == forward`.
 
     Parameters
     ----------
@@ -609,6 +616,7 @@ class Symmetric(LinOp):
         The (square) shape of the input and output.
     name : str, optional
         Name of the operator.
+
     """
 
     def __init__(
@@ -624,10 +632,14 @@ class Symmetric(LinOp):
     @classmethod
     def from_linop(cls, linop: LinOp) -> "Symmetric":
         """Given `B`, returns `A = Bᴴ·B` (and `Aᴴ = A`)."""
+        if isinstance(linop, Adjoint):
+            name = f"{linop.baseop.name}·{linop.name}"
+        else:
+            name = f"{linop.name}ᴴ·{linop.name}"
         return cls(
             linop.fwadj,
             linop.ishape,
-            name=f"{linop.name}ᴴ·{linop.name}",
+            name=name,
         )
 
     @property
@@ -738,9 +750,9 @@ class Dense(LinOp):
         xp = arr_api.get_namespace(matrix)
 
         if ishape is None:
-            ishape: tuple[int, int] = (matrix.shape[1], 1)
+            ishape = (matrix.shape[1], 1)
         if oshape is None:
-            oshape: tuple[int, int] = (matrix.shape[0], 1)
+            oshape = (matrix.shape[0], 1)
 
         if xp.prod(ishape) != matrix.shape[1]:
             raise ValueError("`ishape` must = matrix.shape[1]")
@@ -789,7 +801,7 @@ class ProdOp(LinOp):
 
     def __init__(self, left: LinOp, right: LinOp):
         if left.ishape != right.oshape:
-            warnings.warn("`left` input shape must equal `right` output shape")
+            raise ValueError("`left.ishape` must equal `right.oshape`")
         super().__init__(
             right.ishape,
             left.oshape,

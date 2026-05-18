@@ -47,7 +47,7 @@ def allclose(a: Array, b: Array, rtol: float = 1e-5, atol: float = 1e-8) -> bool
         True if all elements satisfy ``|a - b| <= atol + rtol * |b|``.
     """
     xp = arr_api.get_namespace(a)
-    if xp == np:
+    if xp is np:
         return np.allclose(a, b, rtol=rtol, atol=atol)
     return bool(xp.all(xp.abs(a - b) <= atol + rtol * xp.abs(b)))
 
