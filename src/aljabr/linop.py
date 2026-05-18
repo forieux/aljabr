@@ -158,13 +158,20 @@ def timeit(func: Callable) -> Callable:
     def timed(*args, **kwargs):
         self = args[0]
 
+        # For __init__, record whether metadata existed and was unset before
+        # the call.  If metadata["init"] is already set, __init__ is running
+        # on an existing object (Adjoint.__new__ returning an existing op) and
+        # we must not overwrite the object's real construction time.
+        init_was_unset = not hasattr(self, "metadata") or self.metadata.get("init") is None
+
         timestamp = time.time()
         out = func(*args, **kwargs)
         duration = time.time() - timestamp
         fname: str = func.__name__  # ty: ignore[unresolved-attribute]
 
         if fname == "__init__":
-            self.metadata["init"] = duration
+            if init_was_unset:
+                self.metadata["init"] = duration
         else:
             if fname in ("forward", "adjoint", "fwadj"):
                 self.metadata[f"{fname}"].append(duration)
