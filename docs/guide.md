@@ -51,7 +51,7 @@ matters in iterative algorithms that call `fwadj` thousands of times.
 ## Shapes: `ishape` and `oshape`
 
 Shapes are fixed at construction and describe the **array** shape of the input
-and output — not flattened vectors. They are required : this a design decision
+and output — not flattened vectors. They are required: this is a design decision
 and different than `np.fft.fft2` function.
 
 ```python
@@ -73,8 +73,8 @@ print(D.ishape)   # (256, 256)
 print(D.oshape)   # (255, 256)  — one fewer row after diff on axis 0.
 ```
 
-`Diff` is a concret operator than ask only for `ishape` at creation since
-`oshape` can be deducted (as `FFT2` above).
+`Diff` is a concrete operator that asks only for `ishape` at creation since
+`oshape` can be deduced (as `FFT2` above).
 
 ## Attributes and derived properties
 
@@ -127,7 +127,7 @@ result; `rmatvec` does the same through `adjoint`.
 ```python
 repr(F)   # "F (FFT2): (256, 256) → (256, 256)"
 ```
-wiht `name`, `class`, `ishape -> oshape`.
+with `name`, `class`, `ishape -> oshape`.
 
 ## SciPy compatibility
 
@@ -225,8 +225,8 @@ plain arrays.
 
 `asmatrix` allocates an `(osize, isize)` matrix and calls `forward` `isize`
 times. For a 256² image that is 65 536 calls and a 32 GB matrix. Use only for
-small operators or debugging. Moreover, asmatrix suppose Numpy float64 by
-default, if this is not the case you need to give the `like` parameters.
+small operators or debugging. Moreover, `asmatrix` assumes NumPy float64 by
+default; if this is not the case, pass the `like` parameter.
 
 :::
 
