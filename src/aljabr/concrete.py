@@ -97,12 +97,15 @@ class Diag(LinOp):
         return xp.abs(self.diag) ** 2 * point
 
     def asmatrix(self, like: Array | None = None) -> Array:
-        xp = arr_api.get_namespace(like)
+        if like is None:
+            xp = arr_api.get_namespace(self.diag)
+        else:
+            xp = arr_api.get_namespace(like)
         return xp.diag(xp.reshape(self.diag, (-1,)))
 
 
 class DFT(LinOp):
-    """Discrete Fourier Transform on the N last axis.
+    """Discrete Fourier Transform on the last N axes.
 
     Parameters
     ----------
@@ -131,7 +134,7 @@ class DFT(LinOp):
 
 
 class RealDFT(LinOp):
-    """Real Discrete Fourier Transform on the N last axis.
+    """Real Discrete Fourier Transform on the last N axes.
 
     Parameters
     ----------
@@ -162,7 +165,7 @@ class RealDFT(LinOp):
 class Conv(LinOp):
     """ND convolution on last `N` axis.
 
-    Does not suppose periodic or circular condition.
+    Does not assume a periodic or circular bondary condition.
 
     Parameters
     ----------

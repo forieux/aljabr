@@ -161,7 +161,7 @@ def timeit(func: Callable) -> Callable:
         timestamp = time.time()
         out = func(*args, **kwargs)
         duration = time.time() - timestamp
-        fname: str = func.__name__  # ty:ignore[unresolved-attribute]
+        fname: str = func.__name__  # ty: ignore[unresolved-attribute]
 
         if fname == "__init__":
             self.metadata["init_last_duration"] = duration
@@ -223,7 +223,6 @@ def checkshape(func: Callable) -> Callable:
 
         return outarray
 
-    # Return our shape checked function
     return shape_checked
 
 
@@ -559,7 +558,7 @@ class BaseOp(LinOp):
 
 
 class Scaled(LinOp):
-    """An operator `B` scaled by a scalar `γ` (i.e. `A = γ·B`)..
+    """An operator `B` scaled by a scalar `γ` (i.e. `A = γ·B`).
 
     Parameters
     ----------
@@ -771,7 +770,10 @@ class Dense(LinOp):
         )
 
     def asmatrix(self, like: Array | None = None) -> Array:
-        xp = arr_api.get_namespace(like)
+        if like is None:
+            xp = arr_api.get_namespace(like)
+        else:
+            xp = arr_api.get_namespace(self.mat)
         return xp.asarray(self.mat)
 
 

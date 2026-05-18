@@ -27,7 +27,7 @@
    :members:
    :show-inheritance:
 
-.. autoclass:: aljabr.linop.Explicit
+.. autoclass:: aljabr.linop.Dense
    :members:
    :show-inheritance:
 ```

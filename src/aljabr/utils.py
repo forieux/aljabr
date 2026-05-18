@@ -120,7 +120,7 @@ def fwadjtest(
 ) -> bool:
     """Test `fwadj` validity
 
-    Verify the validity `fwadj` wrt. `forward` and `adjoint` methods with equality
+    Verify the validity of `fwadj` wrt. `forward` and `adjoint` methods with equality
 
     `(Aᴴ·A)·v = Aᴴ·(A·v)`.
 
