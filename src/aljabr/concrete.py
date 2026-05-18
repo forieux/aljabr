@@ -474,14 +474,16 @@ class Sampling(LinOp):
         # dtype=point.dtype); np.add.at(out, self.index, point)
 
         flat_index = np.ravel_multi_index(self.index, self.ishape)
-        return np.reshape(
-            np.bincount(
-                flat_index.ravel(),
-                weights=point.ravel(),
-                minlength=np.prod(self.ishape),
-            ),
-            self.ishape,
-        )
+        flat = flat_index.ravel()
+        minlength = np.prod(self.ishape)
+        w = point.ravel()
+        if np.iscomplexobj(point):
+            result = np.bincount(
+                flat, weights=w.real, minlength=minlength
+            ) + 1j * np.bincount(flat, weights=w.imag, minlength=minlength)
+        else:
+            result = np.bincount(flat, weights=w, minlength=minlength)
+        return np.reshape(result, self.ishape)
 
 
 class Slice(LinOp):

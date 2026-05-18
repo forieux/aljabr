@@ -202,7 +202,7 @@ def is_pos_def(linop: Array | LinOp) -> bool:
     """
     mat = asmatrix(linop)
     xp = arr_api.get_namespace(mat)
-    return bool(xp.all(xp.linalg.eigvals(mat + xp.matrix_transpose(mat)) > 0))
+    return bool(xp.all(xp.linalg.eigvalsh(mat + xp.matrix_transpose(mat)) > 0))
 
 
 def is_semi_pos_def(linop: Array | LinOp) -> bool:
@@ -223,7 +223,7 @@ def is_semi_pos_def(linop: Array | LinOp) -> bool:
     """
     mat = asmatrix(linop)
     xp = arr_api.get_namespace(mat)
-    return bool(xp.all(xp.linalg.eigvals(mat + xp.matrix_transpose(mat)) >= 0))
+    return bool(xp.all(xp.linalg.eigvalsh(mat + xp.matrix_transpose(mat)) >= 0))
 
 
 def is_neg_def(linop: Array | LinOp) -> bool:
@@ -244,7 +244,7 @@ def is_neg_def(linop: Array | LinOp) -> bool:
     """
     mat = asmatrix(linop)
     xp = arr_api.get_namespace(mat)
-    return bool(xp.all(xp.linalg.eigvals(mat + xp.matrix_transpose(mat)) < 0))
+    return bool(xp.all(xp.linalg.eigvalsh(mat + xp.matrix_transpose(mat)) < 0))
 
 
 def is_semi_neg_def(linop: Array | LinOp) -> bool:
@@ -265,7 +265,7 @@ def is_semi_neg_def(linop: Array | LinOp) -> bool:
     """
     mat = asmatrix(linop)
     xp = arr_api.get_namespace(mat)
-    return bool(xp.all(xp.linalg.eigvals(mat + xp.matrix_transpose(mat)) <= 0))
+    return bool(xp.all(xp.linalg.eigvalsh(mat + xp.matrix_transpose(mat)) <= 0))
 
 
 def cond(linop: Array | LinOp) -> float:

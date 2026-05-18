@@ -403,7 +403,11 @@ class LinOp(abc.ABC):
                 inarray = inarray.at[idx].set(1)
             else:
                 inarray[idx] = 1
-            matrix[:, idx] = xp.reshape(self.matvec(inarray), (-1,))
+            col = xp.reshape(self.matvec(inarray), (-1,))
+            if arr_api.is_jax_array(matrix):
+                matrix = matrix.at[:, idx].set(col)
+            else:
+                matrix[:, idx] = col
             if arr_api.is_jax_array(inarray):
                 inarray = inarray.at[idx].set(0)
             else:
@@ -749,6 +753,9 @@ class Dense(LinOp):
         oshape: Shape | None = None,
         name: str = "_",
     ):
+        if matrix.ndim != 2:
+            raise ValueError("matrix must be 2-dimensional")
+
         xp = arr_api.get_namespace(matrix)
 
         if ishape is None:
@@ -760,9 +767,6 @@ class Dense(LinOp):
             raise ValueError("`ishape` must = matrix.shape[1]")
         if xp.prod(oshape) != matrix.shape[0]:
             raise ValueError("`oshape` must = matrix.shape[0]")
-
-        if matrix.ndim != 2:
-            raise ValueError("array must have attribute `ndim == 2`")
 
         self.mat: Array = matrix
         super().__init__(ishape, oshape, name=name)
@@ -926,6 +930,8 @@ class VStack(LinOp):
     """
 
     def __init__(self, oplist: Sequence[LinOp], name: str = "[·]"):
+        if not oplist:
+            raise ValueError("oplist must not be empty")
         if len({op.ishape for op in oplist}) > 1:
             raise ValueError("all operators must have the same ishape")
 
@@ -1003,6 +1009,8 @@ class HStack(LinOp):
     """
 
     def __init__(self, oplist: Sequence[LinOp], name: str = "[·|·]"):
+        if not oplist:
+            raise ValueError("oplist must not be empty")
         if len({op.oshape for op in oplist}) > 1:
             raise ValueError("all operators must have the same oshape")
 
