@@ -312,9 +312,9 @@ class LinOp(abc.ABC):
         return Adjoint(self)
 
     @property
-    def S(self) -> "LinOp":
-        """Return the `Symmetric` `Aᴴ·A`."""
-        return Symmetric.from_linop(self)
+    def G(self) -> "LinOp":
+        """Return the Gram operator `Aᴴ·A` as a `Symmetric`."""
+        return Symmetric.gram(self)
 
     @abc.abstractmethod
     def forward(self, point: Array) -> Array:
@@ -457,8 +457,8 @@ class LinOp(abc.ABC):
 
         If `value` is a LinOp duck type, return a `ProdOp`.
 
-        If `value` is the adjoint of `self` (or vice versa), return a
-        `Symmetric` wrapping `value.fwadj`.
+        If `value` is the adjoint of `self` (or vice versa), return the
+        Gram operator via `Symmetric.gram`.
 
         If `value` is an array, return `matvec(value)`.
         """
@@ -468,7 +468,7 @@ class LinOp(abc.ABC):
             # value=A, i.e. self @ value = Aᴴ·A. Symmetrically for self is
             # Adjoint(value).
             if Adjoint(self) is value or self is Adjoint(value):
-                return Symmetric.from_linop(value)
+                return Symmetric.gram(value)
             return ProdOp(self, value)
         return self.matvec(value)
 
@@ -637,8 +637,8 @@ class Symmetric(LinOp):
         super().__init__(shape, shape, name=name)
 
     @classmethod
-    def from_linop(cls, linop: LinOp) -> "Symmetric":
-        """Given `B`, returns `A = Bᴴ·B` (and `Aᴴ = A`)."""
+    def gram(cls, linop: LinOp) -> "Symmetric":
+        """Given `B`, return the Gram operator `Bᴴ·B` (self-adjoint)."""
         if isinstance(linop, Adjoint):
             name = f"{linop.baseop.name}·{linop.name}"
         else:
