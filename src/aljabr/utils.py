@@ -316,7 +316,7 @@ def fcond(linop: LinOp, tol: float = 0.1) -> float:
         Estimated condition number.
     """
     try:
-        import scipy.sparse.linalg  # ty:ignore[unresolved-import]
+        import scipy.sparse.linalg
     except ImportError as e:
         raise ImportError("scipy is required for fcond") from e
     eig = scipy.sparse.linalg.eigsh(

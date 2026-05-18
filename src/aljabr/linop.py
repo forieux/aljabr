@@ -53,7 +53,6 @@ import array_api_compat as arr_api
 import numpy as np
 
 Array = Any  # array API standard array — no stable cross-backend type yet
-DType = Any  # dtype — no stable cross-backend type yet
 
 
 __all__ = [
@@ -67,7 +66,7 @@ __all__ = [
     "Scaled",
     "Adjoint",
     "Symmetric",
-    "Explicit",
+    "Dense",
     "ProdOp",
     "AddOp",
     "SubOp",
@@ -123,13 +122,13 @@ class LinOpLike(Protocol):
     """Structural protocol for duck-type LinOp compatibility.
 
     Any object exposing ``forward``, ``adjoint``, ``fwadj``, ``ishape``,
-    ``oshape`` and ``dtype`` satisfies this protocol without inheriting from
-    ``LinOp``.  Used in operator overloads to accept external objects.
+    ``oshape`` satisfies this protocol without inheriting from ``LinOp``. Used
+    in operator overloads to accept external objects.
+
     """
 
     ishape: tuple[int, ...]
     oshape: tuple[int, ...]
-    dtype: Any
 
     def forward(self, point: Array) -> Array: ...
     def adjoint(self, point: Array) -> Array: ...
@@ -240,10 +239,6 @@ class LinOp(abc.ABC):
         The shape of the input.
     oshape : tuple of int
         The shape of the output.
-    dtype : dtype, optional
-        The dtype of the operator (float by default).
-    xp : array namespace, optional
-        The array API namespace to use (default: numpy).
     name : str, optional
         The name of the operator.
 
@@ -267,14 +262,10 @@ class LinOp(abc.ABC):
 
         super().__init_subclass__(**kwargs)
 
-    def __init__(
-        self, ishape: Shape, oshape: Shape, dtype: DType = float, xp=np, name: str = "·"
-    ):
+    def __init__(self, ishape: Shape, oshape: Shape, name: str = "·"):
         self.name: str = name
         self.ishape: tuple[int, ...] = tuple(ishape)
         self.oshape: tuple[int, ...] = tuple(oshape)
-        self.dtype: DType = dtype
-        self.xp = xp
 
         self.metadata: dict = {
             "init_last_duration": None,
@@ -288,12 +279,12 @@ class LinOp(abc.ABC):
 
     @property
     def isize(self) -> int:
-        """The input size `N = np.prod(ishape)`."""
+        """The input size `N = math.prod(ishape)`."""
         return math.prod(self.ishape)
 
     @property
     def osize(self) -> int:
-        """The output size `M = np.prod(oshape)`."""
+        """The output size `M = math.prod(oshape)`."""
         return math.prod(self.oshape)
 
     @property
@@ -340,9 +331,8 @@ class LinOp(abc.ABC):
         Array
             Column vector of shape ``(M, 1)``.
         """
-        return self.xp.reshape(
-            self.forward(self.xp.reshape(point, self.ishape)), (-1, 1)
-        )
+        xp = arr_api.get_namespace(point)
+        return xp.reshape(self.forward(xp.reshape(point, self.ishape)), (-1, 1))
 
     def rmatvec(self, point: Array) -> Array:
         """Vectorized adjoint application `Aᴴ·y`.
@@ -357,9 +347,8 @@ class LinOp(abc.ABC):
         Array
             Column vector of shape ``(N, 1)``.
         """
-        return self.xp.reshape(
-            self.adjoint(self.xp.reshape(point, self.oshape)), (-1, 1)
-        )
+        xp = arr_api.get_namespace(point)
+        return xp.reshape(self.adjoint(xp.reshape(point, self.oshape)), (-1, 1))
 
     def fwadj(self, point: Array) -> Array:
         """Apply `Aᴴ·A` to `point`.
@@ -376,26 +365,44 @@ class LinOp(abc.ABC):
         """
         return self.adjoint(self.forward(point))
 
-    def asmatrix(self) -> Array:
+    def asmatrix(self, like: Array | None = None) -> Array:
         """Return the matrix corresponding to the linear operator.
 
         Applies `forward` to `N` unit vectors where `N = linop.isize`.
 
+        Parameters
+        ----------
+        like : Array, optional
+            If provided, use its array namespace; otherwise use float64 numpy
+            array. Recommended to pass an array of the same type, dtype, and on
+            the same device as the operator for best performance, otherwise the
+            library will certainly do conversion or raise an error.
+
         Returns
         -------
         Array
-            2D array of shape ``(osize, isize)``.
+            2D array of shape ``shape=(osize, isize)``.
 
         Notes
         -----
         Can be very heavy depending on the size of operator.
+
         """
-        inarray = self.xp.empty((self.isize, 1))
-        matrix = self.xp.zeros(self.shape, dtype=self.dtype)
+        xp = arr_api.get_namespace(like) if like is not None else np
+        inarray = xp.zeros((self.isize, 1))
+        matrix = xp.zeros(
+            self.shape, dtype=like.dtype if like is not None else np.float64
+        )
         for idx in range(self.isize):
-            inarray[idx] = 1
-            matrix[:, idx] = self.xp.reshape(self.matvec(inarray), (-1,))
-            inarray[idx] = 0
+            if arr_api.is_jax_array(inarray):
+                inarray = inarray.at[idx].set(1)
+            else:
+                inarray[idx] = 1
+            matrix[:, idx] = xp.reshape(self.matvec(inarray), (-1,))
+            if arr_api.is_jax_array(inarray):
+                inarray = inarray.at[idx].set(0)
+            else:
+                inarray[idx] = 0
         return matrix
 
     def __add__(self, value: "LinOp") -> "LinOp":
@@ -500,7 +507,7 @@ def asmatrix(linop: Array | LinOp, like: Array | None = None) -> Array:
     The `LinOp.asmatrix()` method can be very heavy depending on operator size.
     """
     if isinstance(linop, LinOp):
-        return linop.asmatrix()
+        return linop.asmatrix(like=like)
     if like is not None:
         return arr_api.get_namespace(like).asarray(linop)
     return np.asarray(linop)
@@ -521,10 +528,6 @@ class BaseOp(LinOp):
         Shape of the output.
     fwadj : callable, optional
         The ``Aᴴ·A`` function. Defaults to ``adjoint(forward(x))``.
-    dtype : dtype, optional
-        Dtype of the operator.
-    xp : array namespace, optional
-        The array API namespace (default: numpy).
     name : str, optional
         Name of the operator.
     """
@@ -536,11 +539,9 @@ class BaseOp(LinOp):
         ishape: Shape,
         oshape: Shape,
         fwadj: Callable[[Array], Array] | None = None,
-        dtype: DType = float,
-        xp=np,
         name: str = "·",
     ):
-        super().__init__(ishape, oshape, dtype=dtype, xp=xp, name=name)
+        super().__init__(ishape, oshape, name=name)
         self.f_forward = forward
         self.f_adjoint = adjoint
         self.f_fwadj = fwadj
@@ -581,8 +582,6 @@ class Scaled(LinOp):
         super().__init__(
             baseop.ishape,
             baseop.oshape,
-            dtype=baseop.dtype,
-            xp=baseop.xp,
             name=f"γ{baseop.name}",
         )
 
@@ -590,7 +589,7 @@ class Scaled(LinOp):
         return self.scale * self.baseop.forward(point)
 
     def adjoint(self, point: Array) -> Array:
-        return self.xp.conj(self.scale) * self.baseop.adjoint(point)
+        return self.scale.conjugate() * self.baseop.adjoint(point)
 
     def fwadj(self, point: Array) -> Array:
         return abs(self.scale) ** 2 * self.baseop.fwadj(point)
@@ -612,10 +611,6 @@ class Symmetric(LinOp):
         The (square) shape of the input and output.
     name : str, optional
         Name of the operator.
-    dtype : dtype, optional
-        Dtype of the operator.
-    xp : array namespace, optional
-        The array API namespace (default: numpy).
     """
 
     def __init__(
@@ -623,12 +618,10 @@ class Symmetric(LinOp):
         forward: Callable[[Array], Array],
         shape: Shape,
         name: str = "S",
-        dtype: DType = float,
-        xp=np,
     ):
         self._forward = forward
 
-        super().__init__(shape, shape, dtype=dtype, xp=xp, name=name)
+        super().__init__(shape, shape, name=name)
 
     @classmethod
     def from_linop(cls, linop: LinOp) -> "Symmetric":
@@ -636,8 +629,6 @@ class Symmetric(LinOp):
         return cls(
             linop.fwadj,
             linop.ishape,
-            dtype=linop.dtype,
-            xp=linop.xp,
             name=f"{linop.name}ᴴ·{linop.name}",
         )
 
@@ -702,8 +693,6 @@ class Adjoint(LinOp):
         super().__init__(
             linop.oshape,
             linop.ishape,
-            dtype=linop.dtype,
-            xp=linop.xp,
             name=f"{linop.name}ᴴ",
         )
         self.baseop = linop
@@ -719,12 +708,14 @@ class Adjoint(LinOp):
     def adjoint(self, point: Array) -> Array:
         return self.baseop.forward(point)
 
-    def asmatrix(self) -> Array:
-        return self.xp.matrix_transpose(self.xp.conj(self.baseop.asmatrix()))
+    def asmatrix(self, like: Array | None = None) -> Array:
+        mat = self.baseop.asmatrix(like=like)
+        xp = arr_api.get_namespace(mat)
+        return xp.matrix_transpose(xp.conj(mat))
 
 
-class Explicit(LinOp):
-    """Explicit linear operator from matrix instance.
+class Dense(LinOp):
+    """Dense linear operator from matrix instance.
 
     Parameters
     ----------
@@ -762,25 +753,26 @@ class Explicit(LinOp):
             raise ValueError("array must have attribute `ndim == 2`")
 
         self.mat: Array = matrix
-        super().__init__(ishape, oshape, dtype=matrix.dtype, xp=xp, name=name)
+        super().__init__(ishape, oshape, name=name)
 
     def forward(self, point: Array) -> Array:
-        return self.xp.reshape(
-            self.xp.asarray(self.mat @ self.xp.reshape(point, (-1, 1))),
-            self.oshape,
+        xp = arr_api.get_namespace(self.mat)
+        return xp.reshape(
+            xp.asarray(self.mat @ xp.reshape(point, (-1, 1))), self.oshape
         )
 
     def adjoint(self, point: Array) -> Array:
-        return self.xp.reshape(
-            self.xp.asarray(
-                self.xp.conj(self.xp.matrix_transpose(self.mat))
-                @ self.xp.reshape(point, (-1, 1))
+        xp = arr_api.get_namespace(self.mat)
+        return xp.reshape(
+            xp.asarray(
+                xp.conj(xp.matrix_transpose(self.mat)) @ xp.reshape(point, (-1, 1))
             ),
             self.ishape,
         )
 
-    def asmatrix(self) -> Array:
-        return self.xp.asarray(self.mat)
+    def asmatrix(self, like: Array | None = None) -> Array:
+        xp = arr_api.get_namespace(like)
+        return xp.asarray(self.mat)
 
 
 class ProdOp(LinOp):
@@ -797,14 +789,10 @@ class ProdOp(LinOp):
     def __init__(self, left: LinOp, right: LinOp):
         if left.ishape != right.oshape:
             warnings.warn("`left` input shape must equal `right` output shape")
-        if left.xp != right.xp:
-            warnings.warn("`left` and `right` must have the same array API namespace")
         super().__init__(
             right.ishape,
             left.oshape,
             name=f"({left.name} * {right.name})",
-            dtype=left.dtype,
-            xp=left.xp,
         )
         self.left = left
         self.right = right
@@ -818,8 +806,11 @@ class ProdOp(LinOp):
     def fwadj(self, point: Array) -> Array:
         return self.right.adjoint(self.left.fwadj(self.right.forward(point)))
 
-    def asmatrix(self) -> Array:
-        return self.xp.matmul(asmatrix(self.left), asmatrix(self.right))
+    def asmatrix(self, like: Array | None = None) -> Array:
+        left_mat = asmatrix(self.left, like=like)
+        right_mat = asmatrix(self.right, like=like)
+        xp = arr_api.get_namespace(left_mat)
+        return xp.matmul(left_mat, right_mat)
 
 
 class AddOp(LinOp):
@@ -836,14 +827,10 @@ class AddOp(LinOp):
     def __init__(self, left: LinOp, right: LinOp):
         if (left.ishape != right.ishape) or (left.oshape != right.oshape):
             raise ValueError("operators must have the same input and output shape")
-        if left.xp != right.xp:
-            warnings.warn("`left` and `right` must have the same array API namespace")
         super().__init__(
             left.ishape,
             left.oshape,
             name=f"({left.name} + {right.name})",
-            dtype=left.dtype,
-            xp=left.xp,
         )
         self.left = left
         self.right = right
@@ -854,8 +841,8 @@ class AddOp(LinOp):
     def adjoint(self, point: Array) -> Array:
         return self.right.adjoint(point) + self.left.adjoint(point)
 
-    def asmatrix(self) -> Array:
-        return asmatrix(self.left) + asmatrix(self.right)
+    def asmatrix(self, like: Array | None = None) -> Array:
+        return asmatrix(self.left, like=like) + asmatrix(self.right, like=like)
 
 
 class SubOp(LinOp):
@@ -872,14 +859,10 @@ class SubOp(LinOp):
     def __init__(self, left: LinOp, right: LinOp):
         if (left.ishape != right.ishape) or (left.oshape != right.oshape):
             raise ValueError("operators must have the same input and output shape")
-        if left.xp != right.xp:
-            warnings.warn("`left` and `right` must have the same array API namespace")
         super().__init__(
             left.ishape,
             left.oshape,
             name=f"({left.name} - {right.name})",
-            dtype=left.dtype,
-            xp=left.xp,
         )
         self.left = left
         self.right = right
@@ -890,8 +873,8 @@ class SubOp(LinOp):
     def adjoint(self, point: Array) -> Array:
         return self.left.adjoint(point) - self.right.adjoint(point)
 
-    def asmatrix(self) -> Array:
-        return asmatrix(self.left) - asmatrix(self.right)
+    def asmatrix(self, like: Array | None = None) -> Array:
+        return asmatrix(self.left, like=like) - asmatrix(self.right, like=like)
 
 
 class VStack(LinOp):
@@ -930,8 +913,6 @@ class VStack(LinOp):
     def __init__(self, oplist: Sequence[LinOp], name: str = "[·]"):
         if len({op.ishape for op in oplist}) > 1:
             raise ValueError("all operators must have the same ishape")
-        if len({id(op.xp) for op in oplist}) > 1:
-            warnings.warn("operators have different array API namespaces")
 
         self.oplist: list[LinOp] = list(oplist)
 
@@ -944,8 +925,6 @@ class VStack(LinOp):
             oplist[0].ishape,
             (sum(osizes), 1),
             name=name,
-            dtype=oplist[0].dtype,
-            xp=oplist[0].xp,
         )
 
     @property
@@ -1011,8 +990,6 @@ class HStack(LinOp):
     def __init__(self, oplist: Sequence[LinOp], name: str = "[·|·]"):
         if len({op.oshape for op in oplist}) > 1:
             raise ValueError("all operators must have the same oshape")
-        if len({id(op.xp) for op in oplist}) > 1:
-            warnings.warn("operators have different array API namespaces")
 
         self.oplist: list[LinOp] = list(oplist)
 
@@ -1025,8 +1002,6 @@ class HStack(LinOp):
             (sum(isizes), 1),
             oplist[0].oshape,
             name=name,
-            dtype=oplist[0].dtype,
-            xp=oplist[0].xp,
         )
 
     @property

@@ -7,15 +7,17 @@ diagonal, difference, sampling operators, ...
 
 """
 
+import types
+
 import numpy as np
 import array_api_compat as arr_api
 
-import udft  # ty:ignore[unresolved-import]
+import udft
 
 try:
-    import pywt  # ty:ignore[unresolved-import]
+    import pywt
 except ImportError:
-    pywt = None
+    pywt: types.ModuleType | None = None
 
 from .linop import LinOp, Shape, Array
 
@@ -46,21 +48,20 @@ class Identity(LinOp):
         The shape of the input and output.
     name : str, optional
         Name of the operator.
-    xp : array namespace, optional
-        The array API namespace (default: numpy).
     """
 
-    def __init__(self, shape: Shape, name: str = "I", xp=np):
-        super().__init__(shape, shape, name=name, dtype=float, xp=xp)
+    def __init__(self, shape: Shape, name: str = "I"):
+        super().__init__(shape, shape, name=name)
 
     def forward(self, point: Array) -> Array:
-        return self.xp.asarray(point)
+        return point
 
     def adjoint(self, point: Array) -> Array:
-        return self.xp.asarray(point)
+        return point
 
-    def asmatrix(self) -> Array:
-        return self.xp.eye(self.isize)
+    def asmatrix(self, like: Array | None = None) -> Array:
+        xp = arr_api.get_namespace(like) if like is not None else np
+        return xp.eye(self.isize)
 
 
 class Diag(LinOp):
@@ -79,20 +80,25 @@ class Diag(LinOp):
         xp = arr_api.get_namespace(diag)
         self.diag = xp.asarray(diag)
         super().__init__(
-            self.diag.shape, self.diag.shape, name=name, dtype=self.diag.dtype, xp=xp
+            self.diag.shape,
+            self.diag.shape,
+            name=name,
         )
 
     def forward(self, point: Array) -> Array:
         return self.diag * point
 
     def adjoint(self, point: Array) -> Array:
-        return self.xp.conj(self.diag) * point
+        xp = arr_api.get_namespace(self.diag)
+        return xp.conj(self.diag) * point
 
     def fwadj(self, point: Array) -> Array:
-        return self.xp.abs(self.diag) ** 2 * point
+        xp = arr_api.get_namespace(self.diag)
+        return xp.abs(self.diag) ** 2 * point
 
-    def asmatrix(self) -> Array:
-        return self.xp.diag(self.xp.reshape(self.diag, (-1,)))
+    def asmatrix(self, like: Array | None = None) -> Array:
+        xp = arr_api.get_namespace(like)
+        return xp.diag(xp.reshape(self.diag, (-1,)))
 
 
 class DFT(LinOp):
@@ -111,7 +117,7 @@ class DFT(LinOp):
     def __init__(self, shape: Shape, ndim: int, name: str = "DFT"):
         self._udft = udft
 
-        super().__init__(shape, shape, name=name, dtype=complex)
+        super().__init__(shape, shape, name=name)
         self.dim = ndim
 
     def forward(self, point: Array) -> Array:
@@ -140,9 +146,7 @@ class RealDFT(LinOp):
     def __init__(self, shape: Shape, ndim: int, name: str = "rDFT"):
         self._udft = udft
 
-        super().__init__(
-            shape, shape[:-1] + (shape[-1] // 2 + 1,), name=name, dtype=complex
-        )
+        super().__init__(shape, shape[:-1] + (shape[-1] // 2 + 1,), name=name)
         self.dim = ndim
 
     def forward(self, point: Array) -> Array:
@@ -206,7 +210,6 @@ class Conv(LinOp):
                 for (s, pad) in zip(ishape, (len(ishape) - dim) * (1,) + ir.shape)
             ),
             name=name,
-            xp=arr_api.get_namespace(ir),
         )
 
         self.dim = dim
@@ -243,12 +246,13 @@ class Conv(LinOp):
         return self._idft(self._dft(point) * self.freq_resp)[self._slices]
 
     def adjoint(self, point: Array) -> Array:
-        out = self.xp.zeros(self.ishape, dtype=point.dtype)
+        xp = arr_api.get_namespace(self.freq_resp)
+        out = xp.zeros(self.ishape, dtype=point.dtype)
         if arr_api.is_jax_array(out):
             out = out.at[self._slices].set(point)
         else:
             out[self._slices] = point
-        return self._idft(self._dft(out) * self.xp.conj(self.freq_resp))
+        return self._idft(self._dft(out) * xp.conj(self.freq_resp))
 
 
 class DirectConv(LinOp):
@@ -274,7 +278,7 @@ class DirectConv(LinOp):
 
     def __init__(self, ir: Array, ishape: Shape, name: str = "DConv"):
         try:
-            from scipy.signal import oaconvolve  # ty:ignore[unresolved-import]
+            from scipy.signal import oaconvolve
         except ImportError as e:
             raise ImportError("scipy is required for DirectConv") from e
 
@@ -291,7 +295,6 @@ class DirectConv(LinOp):
             ishape=ishape,
             oshape=oshape,
             name=name,
-            xp=np,
         )
 
         self._conv = oaconvolve
@@ -362,7 +365,7 @@ class CircConv(LinOp):
         self.imp_resp = imp_resp
         self.ffilter = FreqFilter(imp_resp, shape)
 
-        super().__init__(ishape=shape, oshape=shape, name=name, xp=self.ffilter.xp)
+        super().__init__(ishape=shape, oshape=shape, name=name)
 
     @property
     def freq_resp(self) -> Array:
@@ -398,9 +401,6 @@ class Diff(LinOp):
         The shape of the input array.
     name : str, optional
         Name of the operator.
-    xp : array namespace, optional
-        The array API namespace (default: numpy).
-
     Attributes
     ----------
     axis: int
@@ -408,13 +408,13 @@ class Diff(LinOp):
 
     Notes
     -----
-    Uses `xp.diff` — array-API compatible.
+    Numpy-only. Uses ``numpy.diff``.
     """
 
-    def __init__(self, axis: int, ishape: Shape, name: str = "Diff", xp=np):
+    def __init__(self, axis: int, ishape: Shape, name: str = "Diff"):
         oshape = list(ishape)
         oshape[axis] = ishape[axis] - 1
-        super().__init__(ishape, tuple(oshape), name=name + f"[{axis}]", xp=xp)
+        super().__init__(ishape, tuple(oshape), name=name + f"[{axis}]")
         self.axis = axis
 
     def forward(self, point: Array) -> Array:
@@ -426,7 +426,8 @@ class Diff(LinOp):
          0 -1  1  0
          0  0 -1  1
         """
-        return self.xp.diff(point, axis=self.axis)
+        xp = arr_api.get_namespace(point)
+        return xp.diff(point, axis=self.axis)
 
     def adjoint(self, point: Array) -> Array:
         """The adjoint application `Aᴴ·y`.
@@ -438,7 +439,8 @@ class Diff(LinOp):
          0  1 -1
          0  0  1
         """
-        return -self.xp.diff(point, prepend=0, append=0, axis=self.axis)
+        xp = arr_api.get_namespace(point)
+        return -xp.diff(point, prepend=0, append=0, axis=self.axis)
 
 
 class Sampling(LinOp):
@@ -456,7 +458,7 @@ class Sampling(LinOp):
     """
 
     def __init__(self, ishape: Shape, index: tuple):
-        super().__init__(ishape, index[0].shape, name="Sampling", xp=np)
+        super().__init__(ishape, index[0].shape, name="Sampling")
         self.index = index
 
     def forward(self, point: Array) -> Array:
@@ -485,9 +487,6 @@ class Slice(LinOp):
     idx : index expression
         The index expression to apply (use ``np.index_exp`` to build it).
         The output shape is inferred as ``np.empty(ishape)[idx].shape``.
-    xp : array namespace, optional
-        The array API namespace (default: numpy).
-
     See Also
     --------
     Sampling : when you have an array of indices that can handle multiple
@@ -504,8 +503,8 @@ class Slice(LinOp):
     >>> x = s.adjoint(y)                   # shape (10, 10)
     """
 
-    def __init__(self, ishape: Shape, idx: tuple, xp=np):
-        super().__init__(ishape, np.empty(ishape)[idx].shape, name=f"S[{idx}]", xp=xp)
+    def __init__(self, ishape: Shape, idx: tuple):
+        super().__init__(ishape, np.empty(ishape)[idx].shape, name=f"S[{idx}]")
         self._idx = idx
 
     @property
@@ -517,7 +516,8 @@ class Slice(LinOp):
         return point[self._idx]
 
     def adjoint(self, point: Array) -> Array:
-        out = self.xp.zeros(self.ishape, dtype=point.dtype)
+        xp = arr_api.get_namespace(point)
+        out = xp.zeros(self.ishape, dtype=point.dtype)
         if arr_api.is_jax_array(out):
             out = out.at[self._idx].set(point)
         else:
@@ -562,7 +562,7 @@ class DWT(LinOp):
             raise ImportError("pywt is required for DWT")
         self._pywt = pywt
 
-        super().__init__(shape, shape, dtype=np.float64, xp=np, name=name)
+        super().__init__(shape, shape, name=name)
 
         self.wlt = wavelet
         self.lvl = level
@@ -626,7 +626,7 @@ class Analysis2(LinOp):
             raise ImportError("pywt is required for Analysis2")
         self._pywt = pywt
 
-        super().__init__(shape, (3 * level + 1,) + shape, dtype=np.float64, xp=np, name=name)
+        super().__init__(shape, (3 * level + 1,) + shape, name=name)
         self.wlt = wavelet
         self.lvl = level
         self.norm = True
@@ -728,9 +728,7 @@ class Synthesis2(LinOp):
         name: str = "S",
     ):
         self.analysis = Analysis2(shape, level, wavelet)
-        super().__init__(
-            self.analysis.oshape, self.analysis.ishape, dtype=np.float64, xp=np, name=name
-        )
+        super().__init__(self.analysis.oshape, self.analysis.ishape, name=name)
         self.wlt = self.analysis.wlt
         self.lvl = self.analysis.lvl
 

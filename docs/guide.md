@@ -22,7 +22,7 @@ class FFT2(LinOp):
     """Unitary 2D FFT — maps an image to its Fourier coefficients."""
 
     def __init__(self, shape: Shape):
-        super().__init__(ishape=shape, oshape=shape, dtype=complex, name="F")
+        super().__init__(ishape=shape, oshape=shape, name="F")
 
     def forward(self, x: Array) -> Array:
         return np.fft.fft2(x, norm="ortho")   # F·x
@@ -87,7 +87,6 @@ Once constructed, several attributes and read-only properties are available:
 | `isize`  | `int`             | `prod(ishape)` — number of input elements  |
 | `osize`  | `int`             | `prod(oshape)` — number of output elements |
 | `shape`  | `tuple[int, int]` | `(osize, isize)` — matrix shape            |
-| `dtype`  | dtype             | Element dtype                              |
 | `name`   | `str`             | Human-readable label                       |
 
 ```python
@@ -223,9 +222,12 @@ The module-level function `asmatrix(linop)` works the same way and also accepts
 plain arrays.
 
 :::{warning}
+
 `asmatrix` allocates an `(osize, isize)` matrix and calls `forward` `isize`
 times. For a 256² image that is 65 536 calls and a 32 GB matrix. Use only for
-small operators or debugging.
+small operators or debugging. Moreover, asmatrix suppose Numpy float64 by
+default, if this is not the case you need to give the `like` parameters.
+
 :::
 
 ## Automatic timing and shape checking
@@ -265,7 +267,6 @@ fft2_op = BaseOp(
     adjoint=lambda y: np.fft.ifft2(y, norm="ortho"),
     ishape=(256, 256),
     oshape=(256, 256),
-    dtype=complex,
     name="F",
 )
 ```
@@ -316,3 +317,14 @@ This matters because `Symmetric.fwadj` is `forward` (no extra adjoint call),
 and iterative solvers that call `fwadj` in a loop benefit from the saved work.
 When you override `fwadj` in your subclass — as in the `FFT2` example above —
 the `Symmetric` produced by `.S` or `@` automatically uses that override.
+
+## Array-agnostic operators
+
+`LinOp` is not tied to NumPy and uses the array API standard with the help of
+`array-api-compat`. This is also the case for many derived `LinOp` and concrete
+`Operator`.
+
+As the author of `forward` and `adjoint`, you can use the array library you want
+or even make them array-agnostic too. However, `asmatrix`, which builds canonical
+basis vectors, needs to know the backend and dtype if it's different from Numpy
+float64.
