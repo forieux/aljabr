@@ -410,10 +410,6 @@ class Diff(LinOp):
     ----------
     axis : int
         The axis along which the differences are performed.
-
-    Notes
-    -----
-    Numpy-only. Uses ``numpy.diff``.
     """
 
     def __init__(self, axis: int, ishape: Shape, name: str = "Diff"):

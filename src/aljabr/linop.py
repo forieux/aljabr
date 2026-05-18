@@ -113,7 +113,7 @@ def unvectorize(point: Array, shapes: Sequence[Shape]) -> list[Array]:
         List of arrays with the given shapes.
     """
     xp = arr_api.get_namespace(point)
-    idxs: list[int] = list(np.cumsum([0] + [int(np.prod(s)) for s in shapes]))
+    idxs: list[int] = np.cumsum([0] + [int(np.prod(s)) for s in shapes]).tolist()
     return [xp.reshape(point[idxs[i] : idxs[i + 1]], s) for i, s in enumerate(shapes)]
 
 
@@ -138,10 +138,9 @@ class LinOpLike(Protocol):
 def timeit(func: Callable) -> Callable:
     """Decorator to time the execution of methods.
 
-    After each call, updates ``self.metadata`` with the measured duration.
-    For ``__init__``, sets ``metadata["init_last_duration"]``; for any other
-    method named ``name``, sets ``metadata["name_last_duration"]``. For
-    ``forward`` and ``adjoint``, also appends to ``metadata["name_durations"]``.
+    After each call, updates ``self.metadata`` with the measured duration. For
+    ``__init__``, sets ``metadata["init"]``; for any other method named
+    ``name``, sets ``metadata["name"]``.
 
     Parameters
     ----------
@@ -152,6 +151,7 @@ def timeit(func: Callable) -> Callable:
     -------
     Callable
         Wrapped method with timing.
+
     """
 
     @wraps(func)
@@ -164,11 +164,10 @@ def timeit(func: Callable) -> Callable:
         fname: str = func.__name__  # ty: ignore[unresolved-attribute]
 
         if fname == "__init__":
-            self.metadata["init_last_duration"] = duration
+            self.metadata["init"] = duration
         else:
-            self.metadata[f"{fname}_last_duration"] = duration
             if fname in ("forward", "adjoint", "fwadj"):
-                self.metadata[f"{fname}_durations"].append(duration)
+                self.metadata[f"{fname}"].append(duration)
 
         return out
 
@@ -268,13 +267,10 @@ class LinOp(abc.ABC):
         self.oshape: tuple[int, ...] = tuple(oshape)
 
         self.metadata: dict = {
-            "init_last_duration": None,
-            "forward_last_duration": None,
-            "adjoint_last_duration": None,
-            "fwadj_last_duration": None,
-            "forward_durations": [],
-            "adjoint_durations": [],
-            "fwadj_durations": [],
+            "init": None,
+            "forward": [],
+            "adjoint": [],
+            "fwadj": [],
         }
 
     @property
@@ -379,9 +375,7 @@ class LinOp(abc.ABC):
         ----------
         like : Array, optional
             If provided, use its array namespace; otherwise use float64 numpy
-            array. Recommended to pass an array of the same type, dtype, and on
-            the same device as the operator for best performance, otherwise the
-            library will certainly do conversion or raise an error.
+            array. See guide.
 
         Returns
         -------
@@ -763,9 +757,9 @@ class Dense(LinOp):
         if oshape is None:
             oshape = (matrix.shape[0], 1)
 
-        if xp.prod(ishape) != matrix.shape[1]:
+        if math.prod(ishape) != matrix.shape[1]:
             raise ValueError("`ishape` must = matrix.shape[1]")
-        if xp.prod(oshape) != matrix.shape[0]:
+        if math.prod(oshape) != matrix.shape[0]:
             raise ValueError("`oshape` must = matrix.shape[0]")
 
         self.mat: Array = matrix

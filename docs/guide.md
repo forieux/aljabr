@@ -228,6 +228,10 @@ times. For a 256² image that is 65 536 calls and a 32 GB matrix. Use only for
 small operators or debugging. Moreover, `asmatrix` assumes NumPy float64 by
 default; if this is not the case, pass the `like` parameter.
 
+Moreover it is recommended to use the `like` parameter to pass an array of the
+same type, dtype, and on the same device as the operator for best performance,
+otherwise the library will certainly do conversion or raise an error.
+
 :::
 
 ## Automatic timing and shape checking
@@ -242,10 +246,10 @@ methods.
   ```python
   F = FFT2((256, 256))
   y = F.forward(x)
-  print(F.metadata["forward_last_duration"])   # seconds, last call
-  print(F.metadata["init_last_duration"])      # construction time
-  print(F.metadata["forward_durations"])       # [t1, t2, …] — all calls
-  print(F.metadata["adjoint_durations"])       # same for adjoint
+  print(F.metadata["forward_last"])  # seconds, last call
+  print(F.metadata["init_last"])     # construction time
+  print(F.metadata["forward"])       # [t1, t2, …] — all calls
+  print(F.metadata["adjoint"])       # same for adjoint
   ```
 
 - **`checkshape`** — wraps `forward`, `adjoint`, and `fwadj`. Emits a
@@ -310,7 +314,7 @@ The `@` operator detects the pattern $A^H \cdot A$ at composition time:
 
 ```python
 AtA = F.H @ F    # Symmetric, not a ProdOp(Adjoint(F), F)
-AtA = F @ F.H    # also Symmetric
+AAt = F @ F.H    # also Symmetric
 ```
 
 This matters because `Symmetric.fwadj` is `forward` (no extra adjoint call),
