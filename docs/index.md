@@ -38,23 +38,22 @@ offering only readability and convenience.
   wavelet, …
 - Utilities: `dottest`, `fwadjtest`, `is_sym`, `is_pos_def`, `cond`, …
 
+
 ## Installation
 
-aljabr is not yet on PyPI. Install directly from the repository:
-
 ```bash
-# with uv (or poetry)
-uv add "git+https://github.com/forieux/aljabr.git"
+# with uv (or uv)
+poetry add aljabr
 
 # with pip
-pip install "git+https://github.com/forieux/aljabr.git"
+pip install aljabr
 ```
 
 Optional dependencies:
 
 ```bash
-pip install aljabr[wavelet]   # PyWavelets — required for DWT, Analysis2, Synthesis2
-pip install aljabr[scipy]     # SciPy — required for DirectConv and fcond
+poetry add aljabr[wavelet]   # PyWavelets — required for DWT, Analysis2, Synthesis2
+poetry add aljabr[scipy]     # SciPy — required for DirectConv and fcond
 ```
 
 ## Quick example
