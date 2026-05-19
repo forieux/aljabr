@@ -102,4 +102,4 @@ Pre-Alpha. The API may change. Feedback welcome:
 
 ## License
 
-Public domain — see [LICENSE](https://github.com/forieux/aljabr/blob/main/LICENSE).
+MIT — see [LICENSE](https://github.com/forieux/aljabr/blob/main/LICENSE).

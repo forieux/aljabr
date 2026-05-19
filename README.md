@@ -90,4 +90,4 @@ Pre-Alpha. The API may change. Feedback welcome:
 
 ## License
 
-Public domain — see [LICENSE](LICENSE).
+MIT — see [LICENSE](LICENSE).
