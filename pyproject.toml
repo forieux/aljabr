@@ -9,7 +9,7 @@ maintainers = [
     { name = "François Orieux", email = "francois.orieux@universite-paris-saclay.fr" }
 ]
 readme = "README.md"
-license = "Public Domain"
+license = "MIT"
 keywords = ["linear algebra", "implicit operator"]
 classifiers = [
     "Development Status :: 2 - Pre-Alpha",
@@ -20,8 +20,6 @@ classifiers = [
     "Operating System :: OS Independent",
     "Programming Language :: Python :: Implementation :: CPython",
     "Typing :: Typed",]
-include = ["py.typed", "LICENSE"]
-packages = [{include = "aljabr", from = "src"}]
 requires-python = ">=3.12"
 dependencies = [
     "array-api-compat>=1.13.0",
@@ -51,4 +49,15 @@ docs = [
 [dependency-groups]
 dev = [
     "ipython>=9.9.0",
+    "pytest>=8",
 ]
+
+[build-system]
+requires = ["uv_build>=0.11.15,<0.12"]
+build-backend = "uv_build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/aljabr"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
