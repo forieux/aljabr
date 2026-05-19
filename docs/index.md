@@ -73,6 +73,8 @@ y = F * x
 y = F(x)
 
 z = F.adjoint(y)        # Fᴴ·y
+# or
+z = y * F  # (= Fʰ·yᵗ)
 
 # Algebraic composition
 A = aljabr.Diff(axis=0, ishape=(256, 256))
