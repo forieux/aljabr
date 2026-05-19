@@ -6,7 +6,7 @@ sys.path.insert(0, os.path.abspath("../src"))
 project = "aljabr"
 copyright = "2013, 2026, François Orieux"
 author = "François Orieux"
-release = "0.5.0"
+release = "0.5.1"
 version = ".".join(release.split(".")[:2])
 
 extensions = [
