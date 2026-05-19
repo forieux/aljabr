@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-05-19
+
+### Changed
+
+Major update of the library before switch to beta. Switch to __ini_subclass__, many bug fixing, many cleaning, many consolidation, add test, add docs.
+
 ## [0.4.0] - 2024-07-04
 
 ### Changed
