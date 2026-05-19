@@ -67,6 +67,11 @@ F = aljabr.DFT(shape=(256, 256), ndim=2)
 
 x = np.random.randn(256, 256)
 y = F.forward(x)        # F·x
+# or
+y = F * x
+# or
+y = F(x)
+
 z = F.adjoint(y)        # Fᴴ·y
 
 # Algebraic composition
