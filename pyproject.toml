@@ -1,6 +1,6 @@
 [project]
 name = "aljabr"
-version = "0.5.1"
+version = "0.5.2"
 description = "Linear operators interfaces"
 authors = [
     { name = "François Orieux", email = "francois.orieux@universite-paris-saclay.fr" }
