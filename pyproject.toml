@@ -28,6 +28,8 @@ dependencies = [
 ]
 
 [project.urls]
+homepage = "https://aljabr.readthedocs.io/"
+documentation = "https://udft.readthedocs.io/"
 repository = "https://github.com/forieux/aljabr/"
 changelog = "https://github.com/forieux/aljabr/blob/main/CHANGELOG.md"
 "Bug Tracker" = "https://github.com/forieux/aljabr/issues"
