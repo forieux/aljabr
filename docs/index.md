@@ -42,7 +42,7 @@ offering only readability and convenience.
 ## Installation
 
 ```bash
-# with uv (or uv)
+# with poetry (or uv)
 poetry add aljabr
 
 # with pip
