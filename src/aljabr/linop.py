@@ -252,6 +252,9 @@ class LinOp(abc.ABC):
         the guide for details.
     """
 
+    # let numpy defer to __rmul__ instead of broadcasting element-wise
+    __array_ufunc__ = None
+
     def __init_subclass__(cls, **kwargs):
         """Automatically decorate methods of subclasses.
 
