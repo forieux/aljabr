@@ -296,31 +296,33 @@ F.H.H is F                 # True — double adjoint cancels
 For operators that know their own adjoint (`Symmetric`, `Adjoint`), `.H`
 delegates to them directly rather than wrapping in a new `Adjoint`.
 
-## `Symmetric` and `.S` — the normal operator $A^H A$
+## `Symmetric` and `.G` — the Gram operator $F^H F$
 
-`.S` returns the operator $A^H A$ as a `Symmetric`:
+`F.G` returns the Gram operator $F^H F$ as a `Symmetric`:
 
 ```python
-AtA = F.S                  # Symmetric wrapping F.fwadj
-z   = AtA.forward(x)       # = F.fwadj(x)  (optimised path if overridden)
+FtF = F.G                  # Symmetric wrapping F.fwadj
+z   = AtA.forward(x)       # = F.fwadj(x)  (optimised path if overridden in F)
 ```
 
-`Symmetric` enforces $A^H A = A$ at the type level: its `.H` property returns
-`self`, and `Adjoint(A)` is `A` for any `Symmetric` instance.
+`Adjoint(A)` is `A` for any `Symmetric` instance (same apply fo the `.H`)
 
 ### `@` and the automatic detection
 
 The `@` operator detects the pattern $A^H \cdot A$ at composition time:
 
 ```python
-AtA = F.H @ F    # Symmetric, not a ProdOp(Adjoint(F), F)
-AAt = F @ F.H    # also Symmetric
+AtA = F.H @ F    # Symmetric, or F.G, not a ProdOp(Adjoint(F), F)
+AAt = F @ F.H    # also Symmetric, F.H.G (but does not use an optimized fwadj)
 ```
 
-For a `Symmetric` S, `forward` and `adjoint` are identical (no separate adjoint
+The second form can't use an optimized version of `fwadj` since `Adjoint`,
+obtained from `F.H` don't have one.
+
+For a `Symmetric` `S`, `forward` and `adjoint` are identical (no separate adjoint
 computation). `fwadj` inherits from `LinOp` and computes `S²x`, which is the
 correct `SᴴS` for a self-adjoint operator. When you override `fwadj` in your
-subclass — as in the `FFT2` example above — the `Symmetric` produced by `.S` or
+subclass — as in the `FFT2` example above — the `Symmetric` produced by `.G` or
 `@` automatically uses that override.
 
 ## Array-agnostic operators
