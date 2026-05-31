@@ -225,12 +225,12 @@ plain arrays.
 
 `asmatrix` allocates an `(osize, isize)` matrix and calls `forward` `isize`
 times. For a 256² image that is 65 536 calls and a 32 GB matrix. Use only for
-small operators or debugging. Moreover, `asmatrix` assumes NumPy float64 by
-default; if this is not the case, pass the `like` parameter.
+small operators or debugging.
 
 Moreover it is recommended to use the `like` parameter to pass an array of the
 same type, dtype, and on the same device as the operator for best performance,
-otherwise the library will certainly do conversion or raise an error.
+otherwise the library will certainly do conversion or raise an error. `asmatrix`
+assumes NumPy float64 by default.
 
 :::
 

@@ -51,6 +51,7 @@ docs = [
 [dependency-groups]
 dev = [
     "ipython>=9.9.0",
+    "pyrefly>=1.0.0",
     "pytest>=8",
 ]
 
@@ -63,3 +64,9 @@ packages = ["src/aljabr"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+
+[tool.pyrefly]
+project-includes = [
+    "**/*.py*",
+    "**/*.ipynb",
+]
