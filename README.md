@@ -17,9 +17,9 @@ this library for my own use.
 ## Key differences from similar tools
 
 **vs. `scipy.sparse.linalg.LinearOperator`** — input and output arrays can have
-any shape, not just vectors. A 2D FFT operator maps an image to an image. Shapes
-are fixed at construction: a `DFT` on a 512² image is a different object than
-one on a 256² image. This is intentional.
+any shape with aljabr, not just vectors. A 2D FFT operator maps an image to an
+image. Shapes are fixed at construction: a `DFT` on a 512² image is a different
+object than one on a 256² image. This is intentional.
 
 **vs. PyLops** — aljabr is deliberately minimal. It does not provide solvers or
 choose algorithms for you. There is no `x = A / y`. It stays out of your way,
