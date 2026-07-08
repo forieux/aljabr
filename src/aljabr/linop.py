@@ -410,19 +410,19 @@ class LinOp(abc.ABC):
                 inarray[idx] = 0
         return matrix
 
-    def __add__(self, value: "LinOp") -> "LinOp":
+    def __add__(self, value: LinOp) -> LinOp:
         """Add (as `+`) a `LinOp` to return an `AddOp`."""
         if isinstance(value, LinOpLike):
             return AddOp(self, value)
         raise TypeError("the operand must be a linear operator")
 
-    def __sub__(self, value: "LinOp") -> "LinOp":
+    def __sub__(self, value: LinOp) -> LinOp:
         """Subtract (as `-`) a `LinOp` to return a `SubOp`."""
         if isinstance(value, LinOpLike):
             return SubOp(self, value)
         raise TypeError("the operand must be a linear operator")
 
-    def __mul__(self, value: Array | "LinOp") -> Array | "LinOp":
+    def __mul__(self, value: Array | LinOp) -> Array | LinOp:
         """Left multiply `*` a LinOp or array.
 
         If `value` is a LinOp duck type, return a ProdOp. Else return `A·x`,
@@ -432,7 +432,7 @@ class LinOp(abc.ABC):
             return ProdOp(self, value)
         return self.forward(value)
 
-    def __rmul__(self, point: Array) -> Array | "LinOp":
+    def __rmul__(self, point: Array) -> Array | LinOp:
         """Right multiply `*` a scalar or array.
 
         If `point` is a scalar, return a `Scaled`.
@@ -447,7 +447,7 @@ class LinOp(abc.ABC):
             return Scaled(self, point)
         return self.adjoint(point)
 
-    def __matmul__(self, value: Array | "LinOp") -> Array | "LinOp":
+    def __matmul__(self, value: Array | LinOp) -> Array | LinOp:
         """Left matrix multiply `@` a LinOp or array.
 
         If `value` is a LinOp duck type, return a `ProdOp`.
@@ -467,7 +467,7 @@ class LinOp(abc.ABC):
             return ProdOp(self, value)
         return self.matvec(value)
 
-    def __rmatmul__(self, point: Array | complex) -> Array | "LinOp":
+    def __rmatmul__(self, point: Array | complex) -> Array | LinOp:
         """Right matrix multiply `@` a scalar or array.
 
         If `point` is a scalar, return a `Scaled`.
@@ -645,7 +645,7 @@ class Symmetric(LinOp):
         )
 
     @property
-    def H(self) -> "LinOp":
+    def H(self) -> LinOp:
         """Return self: the adjoint of a symmetric operator is itself."""
         return self
 
@@ -710,7 +710,7 @@ class Adjoint(LinOp):
         self.baseop = linop
 
     @property
-    def H(self) -> "LinOp":
+    def H(self) -> LinOp:
         """Return the original operator (adjoint of adjoint is identity)."""
         return self.baseop
 
