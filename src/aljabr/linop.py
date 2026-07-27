@@ -915,12 +915,6 @@ class VStack(LinOp):
     name : str, optional
         Name of the operator.
 
-    Notes
-    -----
-    This operator is for convenience. The recommendation is to write a custom
-    operator that directly inherits from `LinOp` and implements `forward` and
-    `adjoint`.
-
     """
 
     def __init__(self, oplist: Sequence[LinOp], name: str = "[·]"):
@@ -993,12 +987,6 @@ class HStack(LinOp):
         Operators to stack. All must share the same ``oshape``.
     name : str, optional
         Name of the operator.
-
-    Notes
-    -----
-    This operator is for convenience. The recommendation is to write a custom
-    operator that directly inherits from `LinOp` and implements `forward` and
-    `adjoint`.
 
     """
 
