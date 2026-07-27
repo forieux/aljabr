@@ -577,7 +577,7 @@ class Scaled(LinOp):
         The scale factor `γ`.
     """
 
-    def __init__(self, baseop: LinOp, scale: complex | float):
+    def __init__(self, baseop: LinOp, scale: complex):
         self.baseop = baseop
         self.scale = scale
         super().__init__(
