@@ -36,9 +36,9 @@ import abc
 import math
 import time
 import warnings
+from collections.abc import Callable, Iterator, Sequence
 from functools import wraps
 from typing import Any, Protocol, runtime_checkable
-from collections.abc import Callable, Iterator, Sequence
 
 import array_api_compat as arr_api
 import numpy as np
@@ -47,22 +47,22 @@ type Array = Any  # array API standard array — no stable cross-backend type ye
 
 
 __all__ = [
-    "Shape",
-    "Array",
-    "vectorize",
-    "unvectorize",
-    "asmatrix",
-    "LinOp",
-    "BaseOp",
-    "Scaled",
-    "Adjoint",
-    "Symmetric",
-    "Dense",
-    "ProdOp",
     "AddOp",
-    "SubOp",
-    "VStack",
+    "Adjoint",
+    "Array",
+    "BaseOp",
+    "Dense",
     "HStack",
+    "LinOp",
+    "ProdOp",
+    "Scaled",
+    "Shape",
+    "SubOp",
+    "Symmetric",
+    "VStack",
+    "asmatrix",
+    "unvectorize",
+    "vectorize",
 ]
 
 Shape = tuple[int, ...]
