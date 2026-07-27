@@ -37,14 +37,8 @@ import math
 import time
 import warnings
 from functools import wraps
-from typing import (
-    Any,
-    Callable,
-    Iterator,
-    Protocol,
-    Sequence,
-    runtime_checkable,
-)
+from typing import Any, Protocol, runtime_checkable
+from collections.abc import Callable, Iterator, Sequence
 
 import array_api_compat as arr_api
 import numpy as np
@@ -303,12 +297,12 @@ class LinOp(abc.ABC):
         return 2
 
     @property
-    def H(self) -> "LinOp":
+    def H(self) -> LinOp:
         """Return `Adjoint(self)`."""
         return Adjoint(self)
 
     @property
-    def G(self) -> "LinOp":
+    def G(self) -> LinOp:
         """Return the Gram operator `Aᴴ·A` as a `Symmetric`."""
         return Symmetric.gram(self)
 
@@ -633,7 +627,7 @@ class Symmetric(LinOp):
         super().__init__(shape, shape, name=name)
 
     @classmethod
-    def gram(cls, linop: LinOp) -> "Symmetric":
+    def gram(cls, linop: LinOp) -> Symmetric:
         """Given `B`, return the Gram operator `Bᴴ·B` (self-adjoint)."""
         if isinstance(linop, Adjoint):
             name = f"{linop.baseop.name}·{linop.name}"
@@ -932,7 +926,7 @@ class VStack(LinOp):
         osizes = [math.prod(op.oshape) for op in oplist]
         self._oshapes: list[Shape] = [op.oshape for op in oplist]
 
-        self._hstack: "HStack | None" = None
+        self._hstack: HStack | None = None
 
         super().__init__(
             oplist[0].ishape,
@@ -941,7 +935,7 @@ class VStack(LinOp):
         )
 
     @property
-    def H(self) -> "HStack":
+    def H(self) -> HStack:
         """Return `HStack([Aᴴ, Bᴴ, ...])`, cached."""
         if self._hstack is None:
             self._hstack = HStack([Adjoint(op) for op in self.oplist])
@@ -1017,7 +1011,7 @@ class HStack(LinOp):
         isizes = [math.prod(op.ishape) for op in oplist]
         self._ishapes: list[Shape] = [op.ishape for op in oplist]
 
-        self._vstack: "VStack | None" = None
+        self._vstack: VStack | None = None
 
         super().__init__(
             (sum(isizes), 1),
@@ -1026,7 +1020,7 @@ class HStack(LinOp):
         )
 
     @property
-    def H(self) -> "VStack":
+    def H(self) -> VStack:
         """Return `VStack([Aᴴ, Bᴴ, ...])`, cached."""
         if self._vstack is None:
             self._vstack = VStack([Adjoint(op) for op in self.oplist])
