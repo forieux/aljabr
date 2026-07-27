@@ -40,6 +40,7 @@ from functools import wraps
 from typing import (
     Any,
     Callable,
+    Iterator,
     Protocol,
     Sequence,
     runtime_checkable,
@@ -898,6 +899,9 @@ class VStack(LinOp):
     outputs as a list, or ``split`` to slice a column vector back into
     per-operator shapes.
 
+    ``VStack`` also supports ``len(stack)``, ``stack[i]``, and iteration
+    (``for op in stack``) over the stacked operators.
+
     ``VStack([A, B, C]).H`` returns ``HStack([Aᴴ, Bᴴ, Cᴴ])``, and
     ``HStack([A, B, C]).H`` returns ``VStack([Aᴴ, Bᴴ, Cᴴ])``.
 
@@ -943,6 +947,15 @@ class VStack(LinOp):
             self._hstack = HStack([Adjoint(op) for op in self.oplist])
         return self._hstack
 
+    def __len__(self) -> int:
+        return len(self.oplist)
+
+    def __iter__(self) -> Iterator[LinOp]:
+        return iter(self.oplist)
+
+    def __getitem__(self, index: int) -> LinOp:
+        return self.oplist[index]
+
     def apply(self, point: Array) -> list[Array]:
         """Apply each operator and return results as a list preserving shapes."""
         return [op.forward(point) for op in self.oplist]
@@ -970,6 +983,9 @@ class HStack(LinOp):
     ``forward`` splits the input column vector by each operator's ``ishape``,
     applies ``op.forward``, and sums. ``adjoint`` applies each ``op.adjoint``
     to the same input and vectorizes the results.
+
+    ``HStack`` also supports ``len(stack)``, ``stack[i]``, and iteration
+    (``for op in stack``) over the stacked operators.
 
     ``VStack([A, B, C]).H`` returns ``HStack([Aᴴ, Bᴴ, Cᴴ])``, and
     ``HStack([A, B, C]).H`` returns ``VStack([Aᴴ, Bᴴ, Cᴴ])``.
@@ -1015,6 +1031,15 @@ class HStack(LinOp):
         if self._vstack is None:
             self._vstack = VStack([Adjoint(op) for op in self.oplist])
         return self._vstack
+
+    def __len__(self) -> int:
+        return len(self.oplist)
+
+    def __iter__(self) -> Iterator[LinOp]:
+        return iter(self.oplist)
+
+    def __getitem__(self, index: int) -> LinOp:
+        return self.oplist[index]
 
     def forward(self, point: Array) -> Array:
         arrays = self.split(point)
