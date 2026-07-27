@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- type checker annotations fix
+
+### Added
+
+- Add Iterator protocol to HStack and VStack.
 
 ## [0.5.2] - 2026-05-19
 
