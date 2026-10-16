@@ -45,7 +45,7 @@ except ImportError:
 try:
     import scipy.signal as spsignal  # ty: ignore
 except ImportError:
-    signal = None
+    spsignal = None
 
 from .linop import Array, LinOp, Shape
 

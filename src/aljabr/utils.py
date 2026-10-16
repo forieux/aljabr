@@ -36,7 +36,7 @@ from numpy.random import standard_normal as randn
 
 from .linop import Array, LinOp, asmatrix
 
-splinal: types.ModuleType | None
+splinalg: types.ModuleType | None
 
 try:
     import scipy.sparse.linalg as splinalg  # ty: ignore

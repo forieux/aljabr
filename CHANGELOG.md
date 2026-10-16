@@ -11,6 +11,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - type checker annotations fix
 
+### Removed
+
+- `LinOpLike` protocol: operator overloads (`+`, `-`, `*`, `@`) now only
+  compose `LinOp` subclasses. Duck types were never fully supported (`ProdOp`
+  and `Adjoint` require `name` and `H`).
+
 ### Added
 
 - Add Iterator protocol to HStack and VStack.

@@ -38,7 +38,7 @@ import time
 import warnings
 from collections.abc import Callable, Iterator, Sequence
 from functools import wraps
-from typing import Any, Protocol, runtime_checkable
+from typing import Any
 
 import array_api_compat as arr_api
 import numpy as np
@@ -106,24 +106,6 @@ def unvectorize(point: Array, shapes: Sequence[Shape]) -> list[Array]:
     xp = arr_api.get_namespace(point)
     idxs: list[int] = np.cumsum([0] + [int(np.prod(s)) for s in shapes]).tolist()
     return [xp.reshape(point[idxs[i] : idxs[i + 1]], s) for i, s in enumerate(shapes)]
-
-
-@runtime_checkable
-class LinOpLike(Protocol):
-    """Structural protocol for duck-type LinOp compatibility.
-
-    Any object exposing ``forward``, ``adjoint``, ``fwadj``, ``ishape``,
-    ``oshape`` satisfies this protocol without inheriting from ``LinOp``. Used
-    in operator overloads to accept external objects.
-
-    """
-
-    ishape: tuple[int, ...]
-    oshape: tuple[int, ...]
-
-    def forward(self, point: Array) -> Array: ...
-    def adjoint(self, point: Array) -> Array: ...
-    def fwadj(self, point: Array) -> Array: ...
 
 
 def timeit(func: Callable) -> Callable:
@@ -407,23 +389,23 @@ class LinOp(abc.ABC):
 
     def __add__(self, value: LinOp) -> LinOp:
         """Add (as `+`) a `LinOp` to return an `AddOp`."""
-        if isinstance(value, LinOpLike):
+        if isinstance(value, LinOp):
             return AddOp(self, value)
         raise TypeError("the operand must be a linear operator")
 
     def __sub__(self, value: LinOp) -> LinOp:
         """Subtract (as `-`) a `LinOp` to return a `SubOp`."""
-        if isinstance(value, LinOpLike):
+        if isinstance(value, LinOp):
             return SubOp(self, value)
         raise TypeError("the operand must be a linear operator")
 
     def __mul__(self, value: Array | LinOp) -> Array | LinOp:
         """Left multiply `*` a LinOp or array.
 
-        If `value` is a LinOp duck type, return a ProdOp. Else return `A·x`,
+        If `value` is a `LinOp`, return a `ProdOp`. Else return `A·x`,
         that is, the application of `forward(value)`.
         """
-        if isinstance(value, LinOpLike):
+        if isinstance(value, LinOp):
             return ProdOp(self, value)
         return self.forward(value)
 
@@ -445,14 +427,14 @@ class LinOp(abc.ABC):
     def __matmul__(self, value: Array | LinOp) -> Array | LinOp:
         """Left matrix multiply `@` a LinOp or array.
 
-        If `value` is a LinOp duck type, return a `ProdOp`.
+        If `value` is a `LinOp`, return a `ProdOp`.
 
         If `value` is the adjoint of `self` (or vice versa), return the
         Gram operator via `Symmetric.gram`.
 
         If `value` is an array, return `matvec(value)`.
         """
-        if isinstance(value, LinOpLike):
+        if isinstance(value, LinOp):
             # Adjoint.__new__ unwraps double adjoints: Adjoint(Adjoint(A)) is A.
             # So Adjoint(self) is value is True when self=Adjoint(A) and
             # value=A, i.e. self @ value = Aᴴ·A. Symmetrically for self is
