@@ -1,3 +1,5 @@
+from typing import Any, cast
+
 import numpy as np
 import pytest
 from conftest import RNG, make_dense
@@ -296,6 +298,36 @@ class TestAddSubOp:
 
     def test_sub_dottest(self):
         assert dottest(make_dense(4, 3) - make_dense(4, 3), num=5)
+
+    @pytest.mark.parametrize("operand", [3, 2.0, "x", np.ones((4, 3))])
+    def test_non_linop_operand_raises(self, operand):
+        a = make_dense(4, 3)
+        with pytest.raises(TypeError):
+            a + operand
+        with pytest.raises(TypeError):
+            a - operand
+
+    def test_duck_operand_raises(self):
+        # Only LinOp subclasses compose: an object merely exposing the LinOp
+        # methods and attributes is rejected.
+        class Duck:
+            ishape = (3,)
+            oshape = (4,)
+
+            def forward(self, point):
+                return point
+
+            def adjoint(self, point):
+                return point
+
+            def fwadj(self, point):
+                return point
+
+        a, duck = make_dense(4, 3), cast(Any, Duck())
+        with pytest.raises(TypeError):
+            a + duck
+        with pytest.raises(TypeError):
+            a - duck
 
 
 # ---------------------------------------------------------------------------
