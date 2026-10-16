@@ -1,15 +1,14 @@
 import numpy as np
 import pytest
+from conftest import RNG, make_dense
 
 from aljabr.linop import (
-    AddOp,
     Adjoint,
     BaseOp,
     Dense,
     HStack,
     ProdOp,
     Scaled,
-    SubOp,
     Symmetric,
     VStack,
     asmatrix,
@@ -17,9 +16,6 @@ from aljabr.linop import (
     vectorize,
 )
 from aljabr.utils import dottest, fwadjtest
-
-from conftest import RNG, make_dense
-
 
 # ---------------------------------------------------------------------------
 # vectorize / unvectorize

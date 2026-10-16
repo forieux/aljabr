@@ -30,9 +30,8 @@ diagonal, difference, sampling operators, ...
 
 import types
 
-import numpy as np
 import array_api_compat as arr_api
-
+import numpy as np
 import udft
 
 try:
@@ -40,22 +39,22 @@ try:
 except ImportError:
     pywt: types.ModuleType | None = None
 
-from .linop import LinOp, Shape, Array
+from .linop import Array, LinOp, Shape
 
 __all__ = [
-    "Identity",
-    "Diag",
     "DFT",
-    "RealDFT",
-    "Conv",
-    "DirectConv",
-    "FreqFilter",
-    "CircConv",
-    "Diff",
-    "Sampling",
-    "Slice",
     "DWT",
     "Analysis2",
+    "CircConv",
+    "Conv",
+    "Diag",
+    "Diff",
+    "DirectConv",
+    "FreqFilter",
+    "Identity",
+    "RealDFT",
+    "Sampling",
+    "Slice",
     "Synthesis2",
 ]
 

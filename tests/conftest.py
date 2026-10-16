@@ -1,4 +1,5 @@
 import numpy as np
+
 from aljabr.linop import Dense
 
 RNG = np.random.default_rng(42)

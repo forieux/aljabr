@@ -1,11 +1,11 @@
 import numpy as np
-import pytest
+from conftest import RNG
 
 from aljabr.concrete import (
+    DFT,
     CircConv,
     Conv,
     Diag,
-    DFT,
     Diff,
     Identity,
     RealDFT,
@@ -13,9 +13,6 @@ from aljabr.concrete import (
     Slice,
 )
 from aljabr.utils import dottest, fwadjtest
-
-from conftest import RNG
-
 
 # ---------------------------------------------------------------------------
 # Identity

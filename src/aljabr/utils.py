@@ -28,23 +28,23 @@ estimation,...
 
 """
 
-from numpy.random import standard_normal as randn
-import numpy as np
 import array_api_compat as arr_api
+import numpy as np
+from numpy.random import standard_normal as randn
 
-from .linop import LinOp, Array, asmatrix
+from .linop import Array, LinOp, asmatrix
 
 __all__ = [
     "allclose",
-    "dottest",
-    "fwadjtest",
-    "is_sym",
-    "is_pos_def",
-    "is_semi_pos_def",
-    "is_neg_def",
-    "is_semi_neg_def",
     "cond",
+    "dottest",
     "fcond",
+    "fwadjtest",
+    "is_neg_def",
+    "is_pos_def",
+    "is_semi_neg_def",
+    "is_semi_pos_def",
+    "is_sym",
 ]
 
 
