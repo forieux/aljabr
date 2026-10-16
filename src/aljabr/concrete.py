@@ -34,10 +34,18 @@ import array_api_compat as arr_api
 import numpy as np
 import udft
 
+pywt: types.ModuleType | None
+spsignal: types.ModuleType | None
+
 try:
-    import pywt
+    import pywt  # ty: ignore
 except ImportError:
-    pywt: types.ModuleType | None = None
+    pywt = None
+
+try:
+    import scipy.signal as spsignal  # ty: ignore
+except ImportError:
+    signal = None
 
 from .linop import Array, LinOp, Shape
 
@@ -301,10 +309,9 @@ class DirectConv(LinOp):
     """
 
     def __init__(self, ir: Array, ishape: Shape, name: str = "DConv"):
-        try:
-            from scipy.signal import oaconvolve
-        except ImportError as e:
-            raise ImportError("scipy is required for DirectConv") from e
+
+        if spsignal is None:
+            raise ImportError("scipy is required for DirectConv")
 
         oshape = tuple(
             (
@@ -321,7 +328,7 @@ class DirectConv(LinOp):
             name=name,
         )
 
-        self._conv = oaconvolve
+        self._conv = spsignal.oaconvolve
         self._ir = np.reshape(
             np.asarray(ir), (len(self.ishape) - ir.ndim) * (1,) + ir.shape
         )

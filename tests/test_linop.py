@@ -194,9 +194,7 @@ class TestSymmetric:
 
     def test_gram_equals_AH_at_A(self):
         op = make_dense(4, 3)
-        np.testing.assert_allclose(
-            asmatrix(op.G), asmatrix(op.H @ op), atol=1e-12
-        )
+        np.testing.assert_allclose(asmatrix(op.G), asmatrix(op.H @ op), atol=1e-12)
 
     def test_matmul_detects_AH_A(self):
         op = make_dense(4, 3)

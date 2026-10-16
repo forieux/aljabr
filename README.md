@@ -66,22 +66,23 @@ F = aljabr.DFT(shape=(256, 256), ndim=2)
 
 x = np.random.randn(256, 256)
 
-y = F.forward(x)        # F·x
+y = F.forward(x)  # F·x
 # or
 y = F * x
 # or
 y = F(x)
 
-z = F.adjoint(y)        # Fᴴ·y
+z = F.adjoint(y)  # Fᴴ·y
 # or
 z = y * F  # (= Fʰ·yᵗ)
 
 # Algebraic composition
 A = aljabr.Diff(axis=0, ishape=(256, 256))
-B = A.H @ A             # AᴴA as a Symmetric operator
+B = A.H @ A  # AᴴA as a Symmetric operator
 
 # Validate with the dot test
 from aljabr import dottest
+
 assert dottest(A, num=5)
 ```
 

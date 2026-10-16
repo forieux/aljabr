@@ -18,6 +18,7 @@ The only requirement is to subclass `LinOp` and implement `forward` and
 import numpy as np
 from aljabr import LinOp, Array, Shape
 
+
 class FFT2(LinOp):
     """Unitary 2D FFT — maps an image to its Fourier coefficients."""
 
@@ -25,7 +26,7 @@ class FFT2(LinOp):
         super().__init__(ishape=shape, oshape=shape, name="F")
 
     def forward(self, x: Array) -> Array:
-        return np.fft.fft2(x, norm="ortho")   # F·x
+        return np.fft.fft2(x, norm="ortho")  # F·x
 
     def adjoint(self, y: Array) -> Array:
         return np.fft.ifft2(y, norm="ortho")  # Fᴴ·y
@@ -41,8 +42,8 @@ isometry, so the adjoint equals the inverse.
 cheaper formula — as here, where $F^H F = I$ — override it:
 
 ```python
-    def fwadj(self, x: Array) -> Array:
-        return x   # Fᴴ·(F·x) = x since the FFT is unitary
+def fwadj(self, x: Array) -> Array:
+    return x  # Fᴴ·(F·x) = x since the FFT is unitary
 ```
 
 This short-circuits two FFT calls into a no-op. The optimisation is optional but
@@ -56,8 +57,8 @@ and different from the `np.fft.fft2` function.
 
 ```python
 F = FFT2((256, 256))  # Create the operator (like a matrix)
-print(F.ishape)   # (256, 256)
-print(F.oshape)   # (256, 256)
+print(F.ishape)  # (256, 256)
+print(F.oshape)  # (256, 256)
 
 x = np.empty(F.ishape)
 coef = F.forward(x)
@@ -68,9 +69,10 @@ For a non-square operator (e.g., a difference along axis 0):
 
 ```python
 from aljabr import Diff
+
 D = Diff(axis=0, ishape=(256, 256))
-print(D.ishape)   # (256, 256)
-print(D.oshape)   # (255, 256)  — one fewer row after diff on axis 0.
+print(D.ishape)  # (256, 256)
+print(D.oshape)  # (255, 256)  — one fewer row after diff on axis 0.
 ```
 
 `Diff` is a concrete operator that asks only for `ishape` at creation since
@@ -90,9 +92,9 @@ Once constructed, several attributes and read-only properties are available:
 | `name`   | `str`             | Human-readable label                       |
 
 ```python
-print(F.isize)    # 65536  (= 256*256)
-print(F.shape)    # (65536, 65536)
-print(repr(F))    # F (FFT2): (256, 256) → (256, 256)
+print(F.isize)  # 65536  (= 256*256)
+print(F.shape)  # (65536, 65536)
+print(repr(F))  # F (FFT2): (256, 256) → (256, 256)
 ```
 
 ## Practical conveniences
@@ -102,7 +104,7 @@ print(repr(F))    # F (FFT2): (256, 256) → (256, 256)
 `F(x)` is the same as `F.forward(x)`:
 
 ```python
-y = F(x)          # equivalent to F.forward(x)
+y = F(x)  # equivalent to F.forward(x)
 ```
 
 ### Column-vector interface: `matvec` and `rmatvec`
@@ -112,9 +114,9 @@ y = F(x)          # equivalent to F.forward(x)
 expects 1D vectors regardless of the operator's native shapes:
 
 ```python
-x_col = x.reshape(-1, 1)          # (65536, 1)
-y_col = F.matvec(x_col)           # y = Fx — forward on flat vector x
-u_col = F.rmatvec(y_col)          # u = yᵀ F = Fᴴ y — adjoint on flat vector y
+x_col = x.reshape(-1, 1)  # (65536, 1)
+y_col = F.matvec(x_col)  # y = Fx — forward on flat vector x
+u_col = F.rmatvec(y_col)  # u = yᵀ F = Fᴴ y — adjoint on flat vector y
 ```
 
 Internally, `matvec` reshapes to `ishape`, calls `forward`, then flattens the
@@ -125,7 +127,7 @@ result; `rmatvec` does the same through `adjoint`.
 `__repr__` returns a compact description
 
 ```python
-repr(F)   # "F (FFT2): (256, 256) → (256, 256)"
+repr(F)  # "F (FFT2): (256, 256) → (256, 256)"
 ```
 with `name`, `class`, `ishape → oshape`.
 
@@ -139,7 +141,7 @@ Any `LinOp` can be passed directly to SciPy functions that accept a
 ```python
 import scipy.sparse.linalg as spla
 
-AtA = spla.aslinearoperator(F)          # wraps F transparently
+AtA = spla.aslinearoperator(F)  # wraps F transparently
 vals = spla.eigsh(AtA, k=5, return_eigenvectors=False)
 ```
 
@@ -157,10 +159,10 @@ import numpy as np
 from aljabr import Identity, Diag
 
 I = Identity((256, 256))
-W = Diag(np.full((256, 256), 0.5))   # element-wise ½
+W = Diag(np.full((256, 256), 0.5))  # element-wise ½
 
-C = I + W   # AddOp — forward: x + 0.5·x
-D = I - W   # SubOp — forward: x − 0.5·x
+C = I + W  # AddOp — forward: x + 0.5·x
+D = I - W  # SubOp — forward: x − 0.5·x
 ```
 
 Both operands must share the same `ishape` and `oshape` (even if they have the same `shape`).
@@ -170,19 +172,19 @@ Both operands must share the same `ishape` and `oshape` (even if they have the s
 When the right operand is an **array**, `*` applies the operator:
 
 ```python
-y = F * x         # F.forward(x), same as F(x)
+y = F * x  # F.forward(x), same as F(x)
 ```
 
 When the right operand is a **scalar**, `*` returns a scaled operator:
 
 ```python
-G = 2.0 * F       # Scaled — G.forward(x) = 2 * F.forward(x)
+G = 2.0 * F  # Scaled — G.forward(x) = 2 * F.forward(x)
 ```
 
 When the right operand is a **LinOp**, `*` returns a composition:
 
 ```python
-H = F * D         # ProdOp — H.forward(x) = F.forward(D.forward(x))
+H = F * D  # ProdOp — H.forward(x) = F.forward(D.forward(x))
 ```
 
 ### `@` — matrix-multiply style
@@ -192,14 +194,14 @@ vectors), and detects the special case $A^H \cdot A$:
 
 ```python
 # On arrays (column vectors): uses matvec
-y_col = F @ x_col      # F.matvec(x_col)
+y_col = F @ x_col  # F.matvec(x_col)
 
 # On LinOp: composition
-H = F @ D              # ProdOp
+H = F @ D  # ProdOp
 
 # Special case: FᴴF → Symmetric automatically
-S = F.H @ F            # Symmetric (not a generic ProdOp)
-S = F @ F.H            # also Symmetric
+S = F.H @ F  # Symmetric (not a generic ProdOp)
+S = F @ F.H  # also Symmetric
 ```
 
 This automatic detection avoids wrapping $A^H A$ in a generic `ProdOp` when a
@@ -211,7 +213,7 @@ This automatic detection avoids wrapping $A^H A$ in a generic `ProdOp` when a
 canonical basis vector. Useful for debugging and small operators:
 
 ```python
-M = F.asmatrix()    # shape (65536, 65536) — very large for 256²!
+M = F.asmatrix()  # shape (65536, 65536) — very large for 256²!
 
 # More realistic example
 D_small = Diff(axis=0, ishape=(4, 4))
@@ -246,10 +248,10 @@ methods.
   ```python
   F = FFT2((256, 256))
   y = F.forward(x)
-  print(F.metadata["init"])          # construction time (seconds)
-  print(F.metadata["forward"])       # [t1, t2, …] — all calls
-  print(F.metadata["forward"][-1])   # seconds, last call
-  print(F.metadata["adjoint"])       # same for adjoint
+  print(F.metadata["init"])  # construction time (seconds)
+  print(F.metadata["forward"])  # [t1, t2, …] — all calls
+  print(F.metadata["forward"][-1])  # seconds, last call
+  print(F.metadata["adjoint"])  # same for adjoint
   ```
 
 - **`checkshape`** — wraps `forward`, `adjoint`, and `fwadj`. Emits a
@@ -283,14 +285,14 @@ above. It is otherwise identical to a hand-written subclass.
 `.H` returns the adjoint as a proper `LinOp`, not just a callable:
 
 ```python
-Fh = F.H                   # Adjoint of F
-y  = Fh.forward(x)         # = F.adjoint(x)
+Fh = F.H  # Adjoint of F
+y = Fh.forward(x)  # = F.adjoint(x)
 ```
 
 `Adjoint` is an involution — it avoids creating a chain of wrappers:
 
 ```python
-F.H.H is F                 # True — double adjoint cancels
+F.H.H is F  # True — double adjoint cancels
 ```
 
 For operators that know their own adjoint (`Symmetric`, `Adjoint`), `.H`
@@ -301,8 +303,8 @@ delegates to them directly rather than wrapping in a new `Adjoint`.
 `F.G` returns the Gram operator $F^H F$ as a `Symmetric`:
 
 ```python
-FtF = F.G                  # Symmetric wrapping F.fwadj
-z   = AtA.forward(x)       # = F.fwadj(x)  (optimised path if overridden in F)
+FtF = F.G  # Symmetric wrapping F.fwadj
+z = AtA.forward(x)  # = F.fwadj(x)  (optimised path if overridden in F)
 ```
 
 `Adjoint(A)` is `A` for any `Symmetric` instance (same apply fo the `.H`)
@@ -312,8 +314,8 @@ z   = AtA.forward(x)       # = F.fwadj(x)  (optimised path if overridden in F)
 The `@` operator detects the pattern $A^H \cdot A$ at composition time:
 
 ```python
-AtA = F.H @ F    # Symmetric, or F.G, not a ProdOp(Adjoint(F), F)
-AAt = F @ F.H    # also Symmetric, F.H.G (but does not use an optimized fwadj)
+AtA = F.H @ F  # Symmetric, or F.G, not a ProdOp(Adjoint(F), F)
+AAt = F @ F.H  # also Symmetric, F.H.G (but does not use an optimized fwadj)
 ```
 
 The second form can't use an optimized version of `fwadj` since `Adjoint`,

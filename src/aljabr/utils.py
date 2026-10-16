@@ -28,11 +28,20 @@ estimation,...
 
 """
 
+import types
+
 import array_api_compat as arr_api
 import numpy as np
 from numpy.random import standard_normal as randn
 
 from .linop import Array, LinOp, asmatrix
+
+splinal: types.ModuleType | None
+
+try:
+    import scipy.sparse.linalg as splinalg  # ty: ignore
+except ImportError:
+    splinalg = None
 
 __all__ = [
     "allclose",
@@ -336,12 +345,11 @@ def fcond(linop: LinOp, tol: float = 0.1) -> float:
     float
         Estimated condition number.
     """
-    try:
-        import scipy.sparse.linalg
-    except ImportError as e:
-        raise ImportError("scipy is required for fcond") from e
-    eig = scipy.sparse.linalg.eigsh(
-        scipy.sparse.linalg.aslinearoperator(linop),
+    if splinalg is None:
+        raise ImportError("scipy is required for fcond")
+
+    eig = splinalg.eigsh(
+        splinalg.aslinearoperator(linop),
         k=2,
         return_eigenvectors=False,
         which="BE",
