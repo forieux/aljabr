@@ -107,6 +107,20 @@ utils
 Pre-Alpha. The API may change. Feedback welcome:
 <francois.orieux@universite-paris-saclay.fr>
 
+## How AI is used
+
+This project is not vibecoded. But with performant AI agents, I use them for bug
+tracking and design reflection, not for code writing. I write the code, but the
+one proposed by the agent is in the window on the side, obviously.
+
+The agent and I write documentation. I reread the agent part, and the agent
+reread my part, and I chose to commit. The agent writes all tests. I chose that
+approach because I don't have the time to write all the documentation and tests.
+
+I think this is a good trade-off for a project maintained by one person. It
+allows me to propose a more polished version of what I publish, as if I were a
+full-time developer, which is also good for my own use.
+
 ## License
 
 MIT — see [LICENSE](https://github.com/forieux/aljabr/blob/main/LICENSE).
