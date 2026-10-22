@@ -576,7 +576,7 @@ class Slice(LinOp):
         The shape of the input array.
     idx : index expression
         The index expression to apply (use ``np.index_exp`` to build it).
-        The output shape is inferred as ``np.empty(ishape)[idx].shape``.
+        The output shape is the shape of ``x[idx]`` for ``x`` of shape ``ishape``.
     See Also
     --------
     Sampling : when you have an array of indices that can handle multiple
@@ -594,7 +594,10 @@ class Slice(LinOp):
     """
 
     def __init__(self, ishape: Shape, idx: tuple):
-        super().__init__(ishape, np.empty(ishape)[idx].shape, name=f"S[{idx}]")
+        # A broadcast view: no allocation of `ishape`, only of the output for
+        # advanced indexing.
+        oshape = np.broadcast_to(np.int8(0), ishape)[idx].shape
+        super().__init__(ishape, oshape, name=f"S[{idx}]")
         self._idx = idx
 
     @property

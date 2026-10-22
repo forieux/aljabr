@@ -33,6 +33,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `forward`, `adjoint` and `fwadj` of subclasses accept extra arguments.
 - `Sampling.adjoint` keeps the input dtype.
 - `FreqFilter` docstring: the operator acts on the half-spectrum.
+- `Slice` no longer allocates an `ishape` array to infer `oshape`.
 
 ### Changed
 

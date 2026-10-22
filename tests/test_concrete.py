@@ -217,6 +217,25 @@ class TestSlice:
     def test_dottest(self):
         assert dottest(Slice((10,), np.index_exp[::2]), num=5)
 
+    def test_large_ishape_without_allocation(self):
+        # 8 TB as float64: must not be allocated to infer oshape
+        op = Slice((10**6, 10**6), np.index_exp[::2, 3])
+        assert op.oshape == (500_000,)
+
+    @pytest.mark.parametrize(
+        "idx",
+        [
+            np.index_exp[1:4, ::-1],
+            np.index_exp[..., 0],
+            np.index_exp[None, 2],
+            np.index_exp[[0, 2], 1:],
+            (np.arange(4) % 2 == 0,),
+        ],
+    )
+    def test_oshape_like_numpy(self, idx):
+        x = np.zeros((4, 5))
+        assert Slice(x.shape, idx).oshape == x[idx].shape
+
 
 # ---------------------------------------------------------------------------
 # Sampling
