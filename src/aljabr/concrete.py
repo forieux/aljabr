@@ -250,6 +250,12 @@ class Conv(LinOp):
     dim : int
         The last `dim` axes where convolution applies.
 
+    Raises
+    ------
+    ValueError
+        If `ir` has less than `dim` axes, if its batch axes do not broadcast to
+        the input ones, or if it is larger than the input on a convolved axis.
+
     Notes
     -----
     Uses FFT internally for fast computation. The `forward` method is equivalent
@@ -286,6 +292,11 @@ class Conv(LinOp):
         #
         # oshape = (B, H-Kh+1, W-Kw+1)
         kshape = ir.shape[-dim:]
+        if any(k > n for (n, k) in zip(ishape[-dim:], kshape)):
+            raise ValueError(
+                f"`ir` shape {kshape} must not exceed the input shape "
+                f"{tuple(ishape[-dim:])} on the convolved axes"
+            )
         super().__init__(
             ishape=ishape,
             oshape=batch + tuple(n - k + 1 for (n, k) in zip(ishape[-dim:], kshape)),
@@ -347,6 +358,11 @@ class DirectConv(LinOp):
     name : str, optional
         Name of the operator.
 
+    Raises
+    ------
+    ValueError
+        If `ir` is larger than the input on a convolved axis.
+
     Notes
     -----
     Numpy-only. Uses `scipy.signal.oaconvolve` (Overlap-Add method), which is
@@ -358,6 +374,13 @@ class DirectConv(LinOp):
 
         if spsignal is None:
             raise ImportError("scipy is required for DirectConv")
+
+        # Otherwise `oaconvolve` in "valid" mode swaps `ir` and the input
+        if any(k > n for (n, k) in zip(ishape[-ir.ndim :], ir.shape)):
+            raise ValueError(
+                f"`ir` shape {ir.shape} must not exceed the input shape "
+                f"{tuple(ishape[-ir.ndim :])} on the convolved axes"
+            )
 
         oshape = tuple(
             (
@@ -452,7 +475,8 @@ class CircConv(LinOp):
     ------
     ValueError
         If ``imp_resp.ndim != len(shape)``. A 1D convolution of a 2D array,
-        for instance, needs an `imp_resp` of shape ``(1, K)``.
+        for instance, needs an `imp_resp` of shape ``(1, K)``. Or if
+        `imp_resp` is larger than `shape` on an axis.
     """
 
     def __init__(self, imp_resp: Array, shape: Shape, name: str = "CConv"):
@@ -460,6 +484,11 @@ class CircConv(LinOp):
             raise ValueError(
                 f"`imp_resp.ndim` ({imp_resp.ndim}) must equal `len(shape)` "
                 f"({len(shape)})"
+            )
+        if any(k > n for (n, k) in zip(shape, imp_resp.shape)):
+            raise ValueError(
+                f"`imp_resp` shape {imp_resp.shape} must not exceed `shape` "
+                f"{tuple(shape)}"
             )
 
         self._udft = udft

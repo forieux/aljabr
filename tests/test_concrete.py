@@ -587,3 +587,34 @@ def test_list_shape(make):
     from_list, from_tuple = make([8, 8]), make((8, 8))
     assert from_list.ishape == from_tuple.ishape
     assert from_list.oshape == from_tuple.oshape
+
+
+# ---------------------------------------------------------------------------
+# Kernel larger than the input
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "make",
+    [
+        lambda ir, s: Conv(ir, s, 2),
+        lambda ir, s: DirectConv(ir, s),
+        lambda ir, s: CircConv(ir, s),
+    ],
+    ids=["Conv", "DirectConv", "CircConv"],
+)
+def test_kernel_larger_than_input_raises(make):
+    with pytest.raises(ValueError, match="must not exceed"):
+        make(np.ones((3, 5)), (8, 4))
+
+
+@pytest.mark.parametrize(
+    "make",
+    [lambda ir, s: Conv(ir, s, 2), lambda ir, s: DirectConv(ir, s)],
+    ids=["Conv", "DirectConv"],
+)
+def test_kernel_as_large_as_input(make):
+    op = make(RNG.standard_normal((3, 4)), (8, 4))
+    assert op.oshape == (6, 1)
+    assert op.forward(RNG.standard_normal(op.ishape)).shape == op.oshape
+    assert dottest(op, num=3)

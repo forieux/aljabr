@@ -44,6 +44,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `RealDFT`, `FreqFilter`, `CircConv`, `Analysis2` and `Synthesis2` accept a
   shape given as a list.
 - `Sampling` accepts index lists, broadcast index arrays and negative indices.
+- `Conv`, `DirectConv` and `CircConv` raise `ValueError` if `ir` is larger
+  than the input on a convolved axis.
 
 ### Changed
 
