@@ -348,44 +348,42 @@ class LinOp(abc.ABC):
     def asmatrix(self, like: Array | None = None) -> Array:
         """Return the matrix corresponding to the linear operator.
 
-        Applies `forward` to `N` unit vectors where `N = linop.isize`.
+        Applies `forward` to `N` unit vectors where `N = linop.isize` and
+        stacks the results as columns.
 
         Parameters
         ----------
         like : Array, optional
-            If provided, use its array namespace; otherwise use float64 numpy
-            array. See guide.
+            If provided, the unit vectors use its array namespace, dtype, and
+            device; otherwise they are float64 numpy arrays. See guide.
 
         Returns
         -------
         Array
-            2D array of shape ``(osize, isize)``.
+            2D array of shape ``(osize, isize)`` with dtype of operator.
 
         Notes
         -----
         Can be very heavy depending on the size of the operator.
 
         """
+        # Columns are stacked rather than written into a preallocated matrix
+        # whose dtype would be taken from the first column: simpler, with no
+        # in-place update and therefore no special case for immutable arrays
+        # like JAX, at the cost of twice the matrix memory during construction.
         xp = arr_api.get_namespace(like) if like is not None else np
-        inarray = xp.zeros((self.isize, 1))
-        matrix = xp.zeros(
-            self.shape, dtype=like.dtype if like is not None else np.float64
+        dtype = like.dtype if like is not None else np.float64
+        device = arr_api.device(like) if like is not None else None
+        # Unit vector `e_idx` built without in-place update (immutable arrays
+        # like JAX) and without the `isize × isize` identity.
+        indices = xp.reshape(xp.arange(self.isize, device=device), (-1, 1))
+        return xp.stack(
+            [
+                xp.reshape(self.matvec(xp.astype(indices == idx, dtype)), (-1,))
+                for idx in range(self.isize)
+            ],
+            axis=1,
         )
-        for idx in range(self.isize):
-            if arr_api.is_jax_array(inarray):
-                inarray = inarray.at[idx].set(1)
-            else:
-                inarray[idx] = 1
-            col = xp.reshape(self.matvec(inarray), (-1,))
-            if arr_api.is_jax_array(matrix):
-                matrix = matrix.at[:, idx].set(col)
-            else:
-                matrix[:, idx] = col
-            if arr_api.is_jax_array(inarray):
-                inarray = inarray.at[idx].set(0)
-            else:
-                inarray[idx] = 0
-        return matrix
 
     def __add__(self, value: LinOp) -> LinOp:
         """Add (as `+`) a `LinOp` to return an `AddOp`."""
@@ -478,7 +476,8 @@ def asmatrix(linop: Array | LinOp, like: Array | None = None) -> Array:
     linop : Array or LinOp
         The linear operator or array to convert.
     like : Array, optional
-        If provided and `linop` is not a `LinOp`, use its array namespace.
+        If `linop` is a `LinOp`, passed to `LinOp.asmatrix`. Otherwise, if
+        provided, use its array namespace.
 
     Returns
     -------

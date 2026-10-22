@@ -10,6 +10,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - type checker annotations fix
+- `LinOp.asmatrix` keeps the dtype returned by the operator.
+- `Identity.asmatrix` honours the `like` dtype and device.
 
 ### Removed
 

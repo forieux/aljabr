@@ -210,7 +210,8 @@ This automatic detection avoids wrapping $A^H A$ in a generic `ProdOp` when a
 ## `asmatrix` — materialise the operator
 
 `asmatrix()` builds the explicit dense matrix by applying `forward` to each
-canonical basis vector. Useful for debugging and small operators:
+canonical basis vector and stacking the results as columns. Useful for debugging
+and small operators:
 
 ```python
 M = F.asmatrix()  # shape (65536, 65536) — very large for 256²!
@@ -225,14 +226,14 @@ plain arrays.
 
 :::{warning}
 
-`asmatrix` allocates an `(osize, isize)` matrix and calls `forward` `isize`
-times. For a 256² image that is 65 536 calls and a 32 GB matrix. Use only for
-small operators or debugging.
+`asmatrix` calls `forward` `isize` times and allocates an `(osize, isize)`
+matrix, twice during construction (columns, then the stacked matrix). For a
+256² image that is 65 536 calls and 32 GB per matrix. Use only for small
+operators or debugging.
 
 Moreover it is recommended to use the `like` parameter to pass an array of the
-same type, dtype, and on the same device as the operator for best performance,
-otherwise the library will certainly do conversion or raise an error. `asmatrix`
-assumes NumPy float64 by default.
+same type, dtype, and on the same device as the operator. Without `like`, basis
+vectors are NumPy float64.
 
 :::
 
@@ -335,5 +336,5 @@ operators.
 
 As the author of `forward` and `adjoint`, you can use the array library you want
 or even make them array-agnostic too. However, `asmatrix`, which builds canonical
-basis vectors, needs to know the backend and dtype if different from NumPy
-float64.
+basis vectors, needs to know the backend, dtype, and device (with `like`) if
+different from NumPy float64.

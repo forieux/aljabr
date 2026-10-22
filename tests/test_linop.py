@@ -81,6 +81,46 @@ class TestLinOpShapes:
 
 
 # ---------------------------------------------------------------------------
+# LinOp.asmatrix (generic implementation)
+# ---------------------------------------------------------------------------
+
+
+def make_fft(n: int) -> BaseOp:
+    """Return the unitary 1D FFT as a BaseOp (complex output from real input)."""
+    return BaseOp(
+        forward=lambda x: np.fft.fft(x, norm="ortho"),
+        adjoint=lambda y: np.fft.ifft(y, norm="ortho"),
+        ishape=(n,),
+        oshape=(n,),
+    )
+
+
+class TestLinOpAsmatrix:
+    def test_real_operator_is_float64(self):
+        op = BaseOp(lambda x: 2 * x, lambda y: 2 * y, ishape=(3,), oshape=(3,))
+        mat = op.asmatrix()
+        assert mat.dtype == np.float64
+        np.testing.assert_array_equal(mat, 2 * np.eye(3))
+
+    def test_non_square(self):
+        op = BaseOp(lambda x: x[:2], lambda y: np.r_[y, 0], ishape=(3,), oshape=(2,))
+        np.testing.assert_array_equal(op.asmatrix(), np.eye(2, 3))
+
+    def test_complex_operator_keeps_imaginary_part(self):
+        mat = make_fft(4).asmatrix()
+        assert np.iscomplexobj(mat)
+        np.testing.assert_allclose(mat, np.fft.fft(np.eye(4), axis=0, norm="ortho"))
+
+    def test_complex_operator_adjoint(self):
+        op = make_fft(4)
+        np.testing.assert_allclose(op.H.asmatrix(), op.asmatrix().conj().T)
+
+    def test_like_dtype(self):
+        op = BaseOp(lambda x: 2 * x, lambda y: 2 * y, ishape=(3,), oshape=(3,))
+        assert op.asmatrix(like=np.zeros(1, dtype=np.float32)).dtype == np.float32
+
+
+# ---------------------------------------------------------------------------
 # Dense
 # ---------------------------------------------------------------------------
 

@@ -32,6 +32,10 @@ class TestIdentity:
     def test_asmatrix_is_eye(self):
         np.testing.assert_array_equal(Identity((3,)).asmatrix(), np.eye(3))
 
+    def test_asmatrix_like_dtype(self):
+        mat = Identity((3,)).asmatrix(like=np.zeros(1, dtype=np.float32))
+        assert mat.dtype == np.float32
+
     def test_dottest(self):
         assert dottest(Identity((4,)), num=5)
 
@@ -84,6 +88,19 @@ class TestDFT:
     def test_dottest_2d(self):
         assert dottest(DFT((4, 4), 2), num=3)
 
+    def test_asmatrix_is_complex_unitary(self):
+        mat = DFT((4, 4), 2).asmatrix()
+        assert np.iscomplexobj(mat)
+        np.testing.assert_allclose(mat.conj().T @ mat, np.eye(16), atol=1e-12)
+
+    def test_asmatrix_2d_is_kron(self):
+        f1 = np.fft.fft(np.eye(4), axis=0, norm="ortho")
+        np.testing.assert_allclose(DFT((4, 4), 2).asmatrix(), np.kron(f1, f1))
+
+    def test_asmatrix_adjoint(self):
+        op = DFT((8,), 1)
+        np.testing.assert_allclose(op.H.asmatrix(), op.asmatrix().conj().T)
+
 
 # ---------------------------------------------------------------------------
 # RealDFT
@@ -98,6 +115,11 @@ class TestRealDFT:
 
     def test_fwadjtest(self):
         assert fwadjtest(RealDFT((8,), 1), num=5)
+
+    def test_asmatrix_is_complex(self):
+        mat = RealDFT((8,), 1).asmatrix()
+        assert mat.shape == (5, 8)
+        np.testing.assert_allclose(mat, np.fft.rfft(np.eye(8), axis=0, norm="ortho"))
 
 
 # ---------------------------------------------------------------------------

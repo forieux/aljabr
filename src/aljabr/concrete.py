@@ -88,8 +88,10 @@ class Identity(LinOp):
         return point
 
     def asmatrix(self, like: Array | None = None) -> Array:
-        xp = arr_api.get_namespace(like) if like is not None else np
-        return xp.eye(self.isize)
+        if like is None:
+            return np.eye(self.isize)
+        xp = arr_api.get_namespace(like)
+        return xp.eye(self.isize, dtype=like.dtype, device=arr_api.device(like))
 
 
 class Diag(LinOp):
