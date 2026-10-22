@@ -30,6 +30,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `DirectConv.ir` returns the impulse response as given.
 - `A * s`, `s * A`, `A @ s` and `s @ A` return a `Scaled`.
 - `V.H.H is V` for VStack and HStack.
+- `forward`, `adjoint` and `fwadj` of subclasses accept extra arguments.
 
 ### Removed
 

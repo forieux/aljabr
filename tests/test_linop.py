@@ -9,6 +9,7 @@ from aljabr.linop import (
     BaseOp,
     Dense,
     HStack,
+    LinOp,
     ProdOp,
     Scaled,
     Symmetric,
@@ -79,6 +80,25 @@ class TestLinOpShapes:
         op = make_dense(4, 3)
         op.forward(np.ones(3))
         assert len(op.metadata["forward"]) == 1
+
+    def test_input_is_positional_only(self):
+        # Subclasses are free to name the input, so it cannot be a keyword
+        op = make_dense(4, 3)
+        with pytest.raises(TypeError):
+            op.forward(point=np.ones(3))
+
+    def test_extra_argument(self):
+        class Gain(LinOp):
+            def forward(self, x, gain=1.0):
+                return gain * x
+
+            def adjoint(self, y, gain=1.0):
+                return gain * y
+
+        op = Gain((3,), (3,))
+        x = np.ones(3)
+        np.testing.assert_array_equal(op.forward(x, gain=2.0), 2 * x)
+        np.testing.assert_array_equal(op.adjoint(x, gain=3.0), 3 * x)
 
 
 # ---------------------------------------------------------------------------

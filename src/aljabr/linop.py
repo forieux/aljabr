@@ -202,8 +202,10 @@ def checkshape(func: Callable) -> Callable:
         Wrapped method with shape checking.
     """
 
+    # The input is positional-only since subclasses are free to name it.
+    # Extra arguments of the subclass, if any, are passed through.
     @wraps(func)
-    def shape_checked(self, inarray):
+    def shape_checked(self, inarray, /, *args, **kwargs):
         fname: str = func.__name__  # ty: ignore[unresolved-attribute]
 
         if fname in ("forward", "fwadj") and inarray.shape != self.ishape:
@@ -217,7 +219,7 @@ def checkshape(func: Callable) -> Callable:
                 f"does not equal [{type(self)}]{self.name}.oshape={self.oshape}"
             )
 
-        outarray = func(self, inarray)
+        outarray = func(self, inarray, *args, **kwargs)
 
         if fname == "forward" and outarray.shape != self.oshape:
             warnings.warn(
@@ -317,12 +319,12 @@ class LinOp(abc.ABC):
         return Symmetric.gram(self)
 
     @abc.abstractmethod
-    def forward(self, point: Array) -> Array:
+    def forward(self, point: Array, /) -> Array:
         """Returns the forward application `A·x`."""
         ...
 
     @abc.abstractmethod
-    def adjoint(self, point: Array) -> Array:
+    def adjoint(self, point: Array, /) -> Array:
         """Returns the adjoint application `Aᴴ·y`."""
         ...
 
@@ -358,7 +360,7 @@ class LinOp(abc.ABC):
         xp = arr_api.get_namespace(point)
         return xp.reshape(self.adjoint(xp.reshape(point, self.oshape)), (-1, 1))
 
-    def fwadj(self, point: Array) -> Array:
+    def fwadj(self, point: Array, /) -> Array:
         """Apply `Aᴴ·A` to `point`.
 
         Parameters

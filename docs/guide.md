@@ -35,6 +35,9 @@ class FFT2(LinOp):
 The unitary normalization (`norm="ortho"`) ensures $F^H F = I$: the FFT is an
 isometry, so the adjoint equals the inverse.
 
+The input array is always positional only. Extra parameters after it, if any,
+are passed through.
+
 ### Optimizing with `fwadj`
 
 `fwadj` computes $F^H \cdot F \cdot x$ in one shot. By default it calls
