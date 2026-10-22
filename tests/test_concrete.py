@@ -467,6 +467,18 @@ class TestWavelets:
         assert dottest(Analysis2((32, 32), 2, wavelet), num=3)
         assert dottest(Synthesis2((32, 32), 2, wavelet), num=3)
 
+    @pytest.mark.parametrize("wavelet", ["haar", "db2"])
+    def test_synthesis_irs(self, wavelet):
+        op = Synthesis2((8, 8), 1, wavelet)
+        irs = op.get_irs()
+        for chan in range(op.ishape[0]):
+            delta = np.zeros(op.ishape)
+            delta[chan, 0, 0] = 1
+            np.testing.assert_allclose(irs[chan], op.forward(delta), atol=1e-12)
+        np.testing.assert_allclose(
+            op.get_frs(), np.conj(op.analysis.get_frs()), atol=1e-12
+        )
+
     @pytest.mark.parametrize("wavelet", ["bior2.2", "rbio3.3"])
     @pytest.mark.parametrize(
         "make",

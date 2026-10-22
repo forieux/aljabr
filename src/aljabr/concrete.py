@@ -859,7 +859,9 @@ class Analysis2(LinOp):
 
     def get_frs(self) -> Array:
         """Return the frequency response of the filter bank."""
-        return np.ascontiguousarray(np.fft.rfftn(self.get_irs(), self.ishape[-2:]))
+        return np.ascontiguousarray(
+            np.fft.rfftn(self.get_irs(), self.ishape[-2:], axes=(-2, -1))
+        )
 
 
 class Synthesis2(LinOp):
@@ -926,8 +928,12 @@ class Synthesis2(LinOp):
 
     def get_irs(self) -> Array:
         """Return the impulse response of the filter bank."""
-        return np.flip(self.analysis.get_irs(), axis=(1, 2))
+        # The adjoint of the circular convolution by `h` is the circular
+        # convolution by `h[-n mod N]`: a flip then a shift of one sample.
+        return np.roll(np.flip(self.analysis.get_irs(), axis=(1, 2)), 1, axis=(1, 2))
 
     def get_frs(self) -> Array:
         """Return the frequency response of the filter bank."""
-        return np.ascontiguousarray(np.fft.rfftn(self.get_irs(), self.ishape[-2:]))
+        return np.ascontiguousarray(
+            np.fft.rfftn(self.get_irs(), self.ishape[-2:], axes=(-2, -1))
+        )

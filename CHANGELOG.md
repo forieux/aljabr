@@ -38,6 +38,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `CircConv` raises `ValueError` if `imp_resp.ndim != len(shape)`.
 - `Diff.adjoint` keeps the input dtype and works with array API namespaces
   other than numpy.
+- `Synthesis2.get_irs` and `get_frs` were shifted by one sample.
+- `Analysis2.get_frs` and `Synthesis2.get_frs` pass `axes` to `rfftn`.
 
 ### Changed
 
