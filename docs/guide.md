@@ -304,7 +304,7 @@ delegates to them directly rather than wrapping in a new `Adjoint`.
 
 ```python
 FtF = F.G  # Symmetric wrapping F.fwadj
-z = AtA.forward(x)  # = F.fwadj(x)  (optimised path if overridden in F)
+z = FtF.forward(x)  # = F.fwadj(x)  (optimised path if overridden in F)
 ```
 
 `Adjoint(A)` is `A` for any `Symmetric` instance (same apply fo the `.H`)
