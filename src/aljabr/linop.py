@@ -954,9 +954,11 @@ class VStack(LinOp):
 
     @property
     def H(self) -> HStack:
-        """Return `HStack([Aᴴ, Bᴴ, ...])`, cached."""
+        """Return `HStack([Aᴴ, Bᴴ, ...])`, cached, with `S.H.H is S`."""
         if self._hstack is None:
             self._hstack = HStack([Adjoint(op) for op in self.oplist])
+            # So that `S.H.H is S`, like `Adjoint`
+            self._hstack._vstack = self
         return self._hstack
 
     def __len__(self) -> int:
@@ -1039,9 +1041,11 @@ class HStack(LinOp):
 
     @property
     def H(self) -> VStack:
-        """Return `VStack([Aᴴ, Bᴴ, ...])`, cached."""
+        """Return `VStack([Aᴴ, Bᴴ, ...])`, cached, with `S.H.H is S`."""
         if self._vstack is None:
             self._vstack = VStack([Adjoint(op) for op in self.oplist])
+            # So that `S.H.H is S`, like `Adjoint`
+            self._vstack._hstack = self
         return self._vstack
 
     def __len__(self) -> int:

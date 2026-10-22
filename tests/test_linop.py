@@ -401,6 +401,16 @@ class TestVStack:
         assert vhh.oplist[0] is a
         assert vhh.oplist[1] is b
 
+    def test_H_H_is_self(self):
+        v = VStack([make_dense(2, 3), make_dense(4, 3)])
+        assert v.H.H is v
+        assert v.H.H.H is v.H
+
+    def test_HStack_H_H_is_self(self):
+        h = HStack([make_dense(3, 2), make_dense(3, 4)])
+        assert h.H.H is h
+        assert h.H.H.H is h.H
+
     def test_split_shapes(self):
         a, b = make_dense(2, 3), make_dense(4, 3)
         v = VStack([a, b])
