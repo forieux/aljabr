@@ -21,6 +21,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `Conv` with an even kernel size
 - require `udft>=5.0.0` for correct normalisation. `Conv`, `CircConv` and
   `FreqFilter` raise `ValueError` for a complex `ir`.
+- `Conv`, `CircConv` and `FreqFilter` work with an `ir` on any device (with
+  `udft>=5.0.0`).
 - `Conv` with batch axes in `ir` (e.g. one kernel per channel)
 - `RealDFT` docstring: its adjoint is the inverse
 - `DWT`, `Analysis2` and `Synthesis2` raise `ValueError` for non-orthogonal

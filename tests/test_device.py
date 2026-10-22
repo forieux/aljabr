@@ -9,7 +9,7 @@ import numpy as np
 import pytest
 from conftest import RNG
 
-from aljabr.concrete import Conv, Diag, Diff, Identity, Slice
+from aljabr.concrete import CircConv, Conv, Diag, Diff, Identity, Slice
 from aljabr.linop import Dense, asmatrix
 from aljabr.utils import dottest, fwadjtest
 
@@ -38,9 +38,13 @@ class TestAdjointDevice:
         assert arr_api.device(out) == DEVICE
         assert dottest(op, xp=xp, device=DEVICE)
 
-    @pytest.mark.xfail(strict=True, reason="udft.ir2fr ignores the ir device")
     def test_conv(self):
         op = Conv(on_device(np.ones((3, 3)) / 9), (8, 8), dim=2)
+        out = op.adjoint(on_device(RNG.standard_normal(op.oshape)))
+        assert arr_api.device(out) == DEVICE
+
+    def test_circ_conv(self):
+        op = CircConv(on_device(np.ones((3, 3)) / 9), (8, 8))
         out = op.adjoint(on_device(RNG.standard_normal(op.oshape)))
         assert arr_api.device(out) == DEVICE
 

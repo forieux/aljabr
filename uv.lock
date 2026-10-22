@@ -65,7 +65,7 @@ requires-dist = [
     { name = "pywavelets", marker = "extra == 'wavelet'", specifier = ">=1.9.0" },
     { name = "scipy", marker = "extra == 'scipy'", specifier = ">=1.13.0" },
     { name = "sphinx", marker = "extra == 'docs'", specifier = ">=7" },
-    { name = "udft", specifier = ">=4.1.0" },
+    { name = "udft", specifier = ">=5.0.0" },
 ]
 provides-extras = ["wavelet", "scipy", "docs"]
 
@@ -974,15 +974,15 @@ wheels = [
 
 [[package]]
 name = "udft"
-version = "4.1.0"
+version = "5.0.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "array-api-compat" },
     { name = "numpy" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/64/b5/fa3a75a9ebf2bd4d423e489d0123b9620621f7bd95e335c01ea8b469967b/udft-4.1.0.tar.gz", hash = "sha256:ba2377a89f0c11321ba1a4040d7e77641cf97de11a35a73f3ff792aaa7bfc55e", size = 47107, upload-time = "2026-10-15T19:26:34.83Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/cf/09/fef5706e7dbc9d6b153c44fc1a89be876ccc4c3e700ab544f505aef7d819/udft-5.0.0.tar.gz", hash = "sha256:626ca7fe658deca3db6a2fae4e6048186852d27f0f27e26b995f92337931d3db", size = 56916, upload-time = "2026-10-22T21:54:23.336Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/9c/97/4f7d0bb4a418932259be7ddde5428c40eae0c87323514f117940f475f5ae/udft-4.1.0-py3-none-any.whl", hash = "sha256:ce75df36166c1977ba8d08401c44611a28956629620358629dee27d51f7675c6", size = 9445, upload-time = "2026-10-15T19:26:32.779Z" },
+    { url = "https://files.pythonhosted.org/packages/6f/e5/20086c14880fc3176a032efcc2a5bfe9005b1b4dc040e7fb34406201a872/udft-5.0.0-py3-none-any.whl", hash = "sha256:19ef21eb8b55ddfda1b0d7044f5859554beb16790cc1cfaa6d8ddadb531775c8", size = 10649, upload-time = "2026-10-22T21:54:19.302Z" },
 ]
 
 [[package]]

@@ -644,5 +644,5 @@ def test_complex_circ_conv_on_full_spectrum():
     shape = (8, 8)
     ir = RNG.standard_normal((3, 3)) + 1j * RNG.standard_normal((3, 3))
     F = DFT(shape, len(shape))
-    op = F.H @ Diag(udft.ir2fr(ir, shape, real=False)) @ F
+    op = F.H @ Diag(udft.ir2fr(ir, shape, onesided=False)) @ F
     assert dottest(op, num=3)

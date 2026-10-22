@@ -196,9 +196,7 @@ x_hat = sol.reshape(H.ishape)
 of their inputs (or of the array given at construction: `diag`, `ir`,
 `matrix`), so they work with NumPy, PyTorch, JAX, CuPy… JAX in-place updates
 are handled. `DirectConv`, `Sampling`, `DWT`, `Analysis2`, `Synthesis2` and
-`fcond` are NumPy only. `Conv`, `CircConv` and `FreqFilter` rely on
-`udft.ir2fr`, which creates the frequency response on the default device: an
-impulse response on another device (e.g. GPU) currently fails. In your own `forward`/`adjoint`, either use one library
+`fcond` are NumPy only. In your own `forward`/`adjoint`, either use one library
 or `array_api_compat.get_namespace(x)` to stay agnostic.
 
 ## Pitfalls

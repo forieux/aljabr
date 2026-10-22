@@ -446,7 +446,7 @@ class FreqFilter(Diag):
     ------
     ValueError
         If `ir` is complex (from `udft.ir2fr`). On the full spectrum of
-        `udft.dftn`, use ``Diag(udft.ir2fr(ir, shape, real=False))``.
+        `udft.dftn`, use ``Diag(udft.ir2fr(ir, shape, onesided=False))``.
 
     Notes
     -----
@@ -488,7 +488,7 @@ class CircConv(LinOp):
         for instance, needs an `imp_resp` of shape ``(1, K)``. Or if
         `imp_resp` is larger than `shape` on an axis. If `imp_resp` is complex
         (from `udft.ir2fr`): use ``F.H @ Diag(udft.ir2fr(imp_resp, shape,
-        real=False)) @ F`` with ``F = DFT(shape, len(shape))``.
+        onesided=False)) @ F`` with ``F = DFT(shape, len(shape))``.
     """
 
     def __init__(self, imp_resp: Array, shape: Shape, name: str = "CConv"):
