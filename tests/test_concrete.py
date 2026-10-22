@@ -303,6 +303,11 @@ class TestSampling:
         np.testing.assert_array_equal(op.adjoint(np.ones(3)), [1.0, 0.0, 0.0, 0.0, 2.0])
         assert dottest(op, num=3)
 
+    @pytest.mark.parametrize("bad", [5, -6])
+    def test_index_out_of_bounds_raises(self, bad):
+        with pytest.raises(ValueError, match="out of bounds on axis 1"):
+            Sampling(ishape=(4, 5), index=(np.array([0, 1]), np.array([0, bad])))
+
     def test_index_count_raises(self):
         with pytest.raises(ValueError, match="one array per dimension"):
             Sampling(ishape=(4, 6), index=(np.array([0, 1]),))

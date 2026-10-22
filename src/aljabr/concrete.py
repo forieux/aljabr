@@ -619,7 +619,8 @@ class Sampling(LinOp):
     Raises
     ------
     ValueError
-        If there is not one index array per dimension of `ishape`.
+        If there is not one index array per dimension of `ishape`, or if an
+        index is out of bounds.
     """
 
     def __init__(self, ishape: Shape, index: tuple):
@@ -635,6 +636,9 @@ class Sampling(LinOp):
             np.where(idx < 0, idx + n, idx)
             for idx, n in zip((np.asarray(i) for i in index), ishape)
         )
+        for axis, (idx, n) in enumerate(zip(self.index, ishape)):
+            if np.any((idx < 0) | (idx >= n)):
+                raise ValueError(f"`index` out of bounds on axis {axis} of size {n}")
         super().__init__(
             ishape,
             np.broadcast_shapes(*(idx.shape for idx in self.index)),
