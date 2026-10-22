@@ -555,7 +555,8 @@ class Sampling(LinOp):
             ) + 1j * np.bincount(flat, weights=w.imag, minlength=minlength)
         else:
             result = np.bincount(flat, weights=w, minlength=minlength)
-        return np.reshape(result, self.ishape)
+        # bincount always returns float64
+        return np.reshape(result, self.ishape).astype(point.dtype, copy=False)
 
 
 class Slice(LinOp):

@@ -31,6 +31,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `A * s`, `s * A`, `A @ s` and `s @ A` return a `Scaled`.
 - `V.H.H is V` for VStack and HStack.
 - `forward`, `adjoint` and `fwadj` of subclasses accept extra arguments.
+- `Sampling.adjoint` keeps the input dtype.
 
 ### Removed
 

@@ -231,6 +231,21 @@ class TestSampling:
         idx = (np.array([0, 2, 3, 1]),)
         assert dottest(Sampling(ishape=(6,), index=idx), num=5)
 
+    @pytest.mark.parametrize(
+        "dtype", [np.float32, np.float64, np.complex64, np.complex128]
+    )
+    def test_adjoint_keeps_dtype(self, dtype):
+        # Repeated index 0 to check accumulation
+        op = Sampling(ishape=(4,), index=(np.array([0, 2, 0]),))
+        y = np.array([1.0, 3.0, 5.0], dtype=dtype)
+        if np.iscomplexobj(y):
+            y = y + 1j * np.array([2.0, -1.0, 1.0], dtype=dtype)
+        x = op.adjoint(y)
+        assert x.dtype == dtype
+        expected = np.zeros(4, dtype=dtype)
+        np.add.at(expected, op.index, y)
+        np.testing.assert_allclose(x, expected)
+
 
 # ---------------------------------------------------------------------------
 # CircConv
