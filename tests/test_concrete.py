@@ -282,6 +282,31 @@ class TestSampling:
         np.add.at(expected, op.index, y)
         np.testing.assert_allclose(x, expected)
 
+    def test_list_index(self):
+        op = Sampling(ishape=(6,), index=([0, 2, 3],))
+        assert op.oshape == (3,)
+        np.testing.assert_array_equal(op.forward(np.arange(6.0)), [0.0, 2.0, 3.0])
+        assert dottest(op, num=3)
+
+    def test_broadcast_index(self):
+        index = (np.array([[0], [2]]), np.array([1, 3, 4]))
+        op = Sampling(ishape=(4, 6), index=index)
+        assert op.oshape == (2, 3)
+        x = RNG.standard_normal((4, 6))
+        np.testing.assert_array_equal(op.forward(x), x[index])
+        assert dottest(op, num=3)
+
+    def test_negative_index(self):
+        op = Sampling(ishape=(5,), index=(np.array([-1, 0, -1]),))
+        x = np.arange(5.0)
+        np.testing.assert_array_equal(op.forward(x), [4.0, 0.0, 4.0])
+        np.testing.assert_array_equal(op.adjoint(np.ones(3)), [1.0, 0.0, 0.0, 0.0, 2.0])
+        assert dottest(op, num=3)
+
+    def test_index_count_raises(self):
+        with pytest.raises(ValueError, match="one array per dimension"):
+            Sampling(ishape=(4, 6), index=(np.array([0, 1]),))
+
 
 # ---------------------------------------------------------------------------
 # CircConv

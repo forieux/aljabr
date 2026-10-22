@@ -557,14 +557,40 @@ class Sampling(LinOp):
     ----------
     ishape : tuple of int
         The shape of the input array.
-    index : tuple of array of int
+    index : tuple of array_like of int
         Tuple of index arrays, one per dimension, as in numpy fancy indexing.
-        All arrays must have the same shape, which becomes the output shape.
+        Negative indices count from the end. The arrays are broadcast
+        together and their broadcast shape is the output shape.
+
+    Attributes
+    ----------
+    index : tuple of array of int
+        The index arrays, with negative indices made positive.
+
+    Raises
+    ------
+    ValueError
+        If there is not one index array per dimension of `ishape`.
     """
 
     def __init__(self, ishape: Shape, index: tuple):
-        super().__init__(ishape, index[0].shape, name="Sampling")
-        self.index = index
+        ishape = tuple(ishape)
+        if len(index) != len(ishape):
+            raise ValueError(
+                f"`index` must have one array per dimension of `ishape`: "
+                f"{len(index)} for {len(ishape)}"
+            )
+        # Positive indices since `np.ravel_multi_index` in `adjoint` refuses
+        # negative ones, unlike indexing in `forward`
+        self.index = tuple(
+            np.where(idx < 0, idx + n, idx)
+            for idx, n in zip((np.asarray(i) for i in index), ishape)
+        )
+        super().__init__(
+            ishape,
+            np.broadcast_shapes(*(idx.shape for idx in self.index)),
+            name="Sampling",
+        )
 
     def forward(self, point: Array) -> Array:
         return point[self.index]
