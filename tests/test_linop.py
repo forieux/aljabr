@@ -1,3 +1,5 @@
+import copy
+import pickle
 from typing import Any, cast
 
 import numpy as np
@@ -588,3 +590,56 @@ class TestScipy:
         vals = spla.eigsh(spla.aslinearoperator(op.G), k=2, return_eigenvectors=False)
         expected = np.linalg.eigvalsh(op.mat.T @ op.mat)[-2:]
         np.testing.assert_allclose(np.sort(vals), expected)
+
+
+# ---------------------------------------------------------------------------
+# Pickle and copy of compositions
+# ---------------------------------------------------------------------------
+
+
+def _compositions():
+    a, b = make_dense(4, 3), make_dense(4, 3)
+    v = VStack([a, b])
+    return {
+        "Adjoint": a.H,
+        "ProdOp": a.H
+        @ Dense(RNG.standard_normal((4, 4)), ishape=(4,), oshape=(4,))
+        @ a,
+        "Gram": a.G,
+        "Scaled": (1 + 2j) * a,
+        "AddOp": a + b,
+        "VStack": v,
+        "VStack.H": v.H,
+    }
+
+
+@pytest.mark.parametrize("name", list(_compositions()))
+@pytest.mark.parametrize(
+    "clone",
+    [lambda op: pickle.loads(pickle.dumps(op)), copy.deepcopy, copy.copy],
+    ids=["pickle", "deepcopy", "copy"],
+)
+def test_pickle_and_copy(name, clone):
+    op = _compositions()[name]
+    other = clone(op)
+    assert type(other) is type(op)
+    x = RNG.standard_normal(op.ishape)
+    np.testing.assert_allclose(other.forward(x), op.forward(x))
+
+
+@pytest.mark.parametrize(
+    "clone",
+    [lambda op: pickle.loads(pickle.dumps(op)), copy.deepcopy],
+    ids=["pickle", "deepcopy"],
+)
+def test_pickle_keeps_stack_H_H(clone):
+    v = VStack([make_dense(4, 3), make_dense(2, 3)])
+    other = clone(v.H)
+    assert other.H.H is other
+    assert isinstance(other.H @ other, Symmetric)
+
+
+def test_copy_of_adjoint_shares_baseop():
+    op = make_dense(4, 3)
+    assert copy.copy(op.H).baseop is op
+    assert copy.deepcopy(op.H).baseop is not op

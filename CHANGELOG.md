@@ -64,6 +64,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Guide: the `eigsh` example used the unitary FFT, which is not Hermitian. Typo.
 - `DFT`, `RealDFT`, `Conv`, `CircConv`, `DWT`, `Analysis2` and `Synthesis2`
   can be pickled and deep-copied.
+- `Adjoint`, and so any composition with an adjoint, can be pickled and
+  copied.
 
 ### Changed
 

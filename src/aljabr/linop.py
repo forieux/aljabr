@@ -738,6 +738,12 @@ class Adjoint(LinOp):
         )
         self.baseop = linop
 
+    def __getnewargs__(self) -> tuple[LinOp]:
+        # `pickle` and `copy` call `__new__` without argument by default, but
+        # `__new__` needs `linop`. The state is then restored without
+        # `__init__`.
+        return (self.baseop,)
+
     @property
     def H(self) -> LinOp:
         """Return the original operator (adjoint of adjoint is identity)."""
