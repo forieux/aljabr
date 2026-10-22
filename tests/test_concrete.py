@@ -12,6 +12,7 @@ from aljabr.concrete import (
     Conv,
     Diag,
     Diff,
+    DirectConv,
     Identity,
     RealDFT,
     Sampling,
@@ -319,6 +320,44 @@ class TestConv:
     def test_invalid_kernel_batch(self, irshape, ishape):
         with pytest.raises(ValueError):
             Conv(RNG.standard_normal(irshape), ishape=ishape, dim=2)
+
+
+# ---------------------------------------------------------------------------
+# DirectConv
+# ---------------------------------------------------------------------------
+
+
+class TestDirectConv:
+    def test_shape(self):
+        op = DirectConv(np.ones((3, 4)), ishape=(8, 8))
+        assert op.oshape == (6, 5)
+
+    @pytest.mark.parametrize("kshape", [(3, 3), (4, 4), (2, 5)])
+    def test_forward_is_valid_conv(self, kshape):
+        ir, x = RNG.standard_normal(kshape), RNG.standard_normal((12, 13))
+        out = DirectConv(ir, ishape=x.shape).forward(x)
+        np.testing.assert_allclose(out, valid_conv(x, ir))
+
+    def test_same_as_conv(self):
+        ir, x = RNG.standard_normal((4, 3)), RNG.standard_normal((12, 13))
+        np.testing.assert_allclose(
+            DirectConv(ir, ishape=x.shape).forward(x),
+            Conv(ir, ishape=x.shape, dim=2).forward(x),
+        )
+
+    def test_dottest(self):
+        assert dottest(DirectConv(RNG.standard_normal((3, 3)), ishape=(8, 8)), num=3)
+
+    def test_dottest_batch(self):
+        assert dottest(DirectConv(RNG.standard_normal(3), ishape=(4, 8)), num=3)
+
+    def test_ir_keeps_shape(self):
+        ir = RNG.standard_normal((1, 3))
+        assert DirectConv(ir, ishape=(4, 8, 8)).ir.shape == (1, 3)
+
+    def test_dottest_complex_ir(self):
+        ir = RNG.standard_normal((3, 3)) + 1j * RNG.standard_normal((3, 3))
+        assert dottest(DirectConv(ir, ishape=(8, 8)), num=3)
 
 
 def valid_conv(x: np.ndarray, ir: np.ndarray) -> np.ndarray:

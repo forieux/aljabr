@@ -26,6 +26,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   wavelets.
 - `DWT` raises `ValueError` if `shape` is not divisible by `2**level` (wrong
   number of coefficients). The default level is the largest compatible one.
+- `DirectConv.adjoint` conjugates the impulse response (complex `ir`).
+- `DirectConv.ir` returns the impulse response as given.
 
 ### Removed
 

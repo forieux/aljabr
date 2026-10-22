@@ -374,20 +374,23 @@ class DirectConv(LinOp):
         )
 
         self._conv = spsignal.oaconvolve
+        self._imp_resp = np.asarray(ir)
+        # Leading singleton axes to broadcast against the batch axes of input
         self._ir = np.reshape(
-            np.asarray(ir), (len(self.ishape) - ir.ndim) * (1,) + ir.shape
+            self._imp_resp, (len(self.ishape) - ir.ndim) * (1,) + ir.shape
         )
 
     @property
     def ir(self) -> Array:
-        """The impulse response."""
-        return np.squeeze(self._ir)
+        """The impulse response, as given at construction."""
+        return self._imp_resp
 
     def forward(self, point: Array) -> Array:
         return self._conv(point, self._ir, mode="valid")
 
     def adjoint(self, point: Array) -> Array:
-        return self._conv(point, np.flip(self._ir), mode="full")
+        # Correlation with `ir`: convolution with the conjugate flipped `ir`
+        return self._conv(point, np.conj(np.flip(self._ir)), mode="full")
 
 
 class FreqFilter(Diag):
