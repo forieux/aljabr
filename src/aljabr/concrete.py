@@ -29,16 +29,14 @@ diagonal, difference, sampling operators, ...
 """
 
 import types
-from typing import Any
 
 import array_api_compat as arr_api
 import numpy as np
 import udft
 
-# `Any` rather than `ModuleType | None`: the methods use `pywt` once the
-# constructor checked it is installed, where `None` can not be narrowed.
-# Modules are not stored on `self`, since a module can not be pickled.
-pywt: Any
+# Modules are not stored on `self`, since a module can not be pickled. Methods
+# narrow `pywt` with an `assert`: the constructor checked it is installed.
+pywt: types.ModuleType | None
 spsignal: types.ModuleType | None
 
 try:
@@ -805,11 +803,13 @@ class DWT(LinOp):
         )[1]
 
     def forward(self, point: Array) -> Array:
+        assert pywt is not None
         return pywt.coeffs_to_array(
             pywt.wavedecn(point, wavelet=self.wlt, mode=self._mode, level=self.lvl)
         )[0]
 
     def adjoint(self, point: Array) -> Array:
+        assert pywt is not None
         return pywt.waverecn(
             pywt.array_to_coeffs(point, self._slices),
             wavelet=self.wlt,
@@ -860,21 +860,23 @@ class Analysis2(LinOp):
             raise ImportError("pywt is required for Analysis2")
         _check_orthogonal(wavelet, pywt)
 
-        shape = tuple(shape)  # tuple concatenation below, `shape` may be a list
-        if len(shape) != 2:
-            raise ValueError(f"`shape` {shape} must be 2D")
-        super().__init__(shape, (3 * level + 1,) + shape, name=name)
+        ishape = tuple(shape)  # tuple concatenation below, `shape` may be a list
+        if len(ishape) != 2:
+            raise ValueError(f"`shape` {ishape} must be 2D")
+        super().__init__(ishape, (3 * level + 1,) + ishape, name=name)
         self.wlt = wavelet
         self.lvl = level
         self.norm = True
 
     def forward(self, point: Array) -> Array:
+        assert pywt is not None
         coeffs = pywt.swt2(
             point, wavelet=self.wlt, level=self.lvl, norm=self.norm, trim_approx=True
         )
         return self.coeffs2cube(coeffs)
 
     def adjoint(self, point: Array) -> Array:
+        assert pywt is not None
         return pywt.iswt2(self.cube2coeffs(point), self.wlt, norm=self.norm)
 
     def cube2coeffs(self, point: Array) -> list:
