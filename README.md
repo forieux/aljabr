@@ -28,7 +28,7 @@ offering only readability and convenience.
 ## Features
 
 - Abstract base class `LinOp` with `forward` (`A·x`) and `adjoint` (`Aᴴ·y`)
-- Algebraic composition: `A + B`, `A - B`, `A @ B`, `scalar * A`, `A.H`, `A.S`
+- Algebraic composition: `A + B`, `A - B`, `A @ B`, `scalar * A`, `A.H`, `A.G`
 - Array-API compatible — works with NumPy, PyTorch, JAX, and others via
   [array-api-compat](https://data-apis.org/array-api-compat/)
 - Compatible with `scipy.sparse.linalg.LinearOperator` — can also be passed
