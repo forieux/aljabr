@@ -56,6 +56,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `Conv` raises `ValueError` if `dim` is not in `[1, len(ishape)]`.
 - `DirectConv` raises `ValueError` if `ir.ndim > len(ishape)`.
 - `fcond` works for operators with `isize <= 2` (`eigsh` raised).
+- `unvectorize`, and so `VStack` and `HStack`, work with array API namespaces
+  other than numpy.
 
 ### Changed
 

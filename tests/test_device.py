@@ -10,7 +10,7 @@ import pytest
 from conftest import RNG
 
 from aljabr.concrete import CircConv, Conv, Diag, Diff, Identity, Slice
-from aljabr.linop import Dense, asmatrix
+from aljabr.linop import Dense, HStack, VStack, asmatrix
 from aljabr.utils import dottest, fwadjtest
 
 xp = pytest.importorskip("array_api_strict")
@@ -88,3 +88,26 @@ class TestScalarScaling:
             scaled.adjoint(u) == xp.asarray(1 - 2j, device=DEVICE) * op.adjoint(u)
         )
         assert dottest(scaled, xp=xp, device=DEVICE)
+
+
+class TestStackDevice:
+    @pytest.mark.parametrize(
+        "make",
+        [
+            lambda: VStack([Diff(0, (4, 5)), Diff(1, (4, 5))]),
+            lambda: HStack([Diff(0, (4, 5)).H, Diff(1, (4, 5)).H]),
+        ],
+        ids=["VStack", "HStack"],
+    )
+    def test_stack(self, make):
+        op = make()
+        assert (
+            arr_api.device(op.forward(on_device(RNG.standard_normal(op.ishape))))
+            == DEVICE
+        )
+        assert (
+            arr_api.device(op.adjoint(on_device(RNG.standard_normal(op.oshape))))
+            == DEVICE
+        )
+        assert arr_api.device(op.asmatrix(like=like())) == DEVICE
+        assert dottest(op, xp=xp, device=DEVICE)

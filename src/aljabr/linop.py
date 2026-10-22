@@ -108,7 +108,10 @@ def unvectorize(point: Array, shapes: Sequence[Shape]) -> list[Array]:
     """
     xp = arr_api.get_namespace(point)
     idxs: list[int] = np.cumsum([0] + [int(np.prod(s)) for s in shapes]).tolist()
-    return [xp.reshape(point[idxs[i] : idxs[i + 1]], s) for i, s in enumerate(shapes)]
+    # `...` since the array API requires an index for each axis
+    return [
+        xp.reshape(point[idxs[i] : idxs[i + 1], ...], s) for i, s in enumerate(shapes)
+    ]
 
 
 def is_scalar(value: Any, shape: Shape | None = None) -> bool:
