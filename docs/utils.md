@@ -13,6 +13,8 @@
 ## Matrix properties
 
 ```{eval-rst}
+.. autofunction:: aljabr.utils.herm
+
 .. autofunction:: aljabr.utils.is_sym
 
 .. autofunction:: aljabr.utils.is_pos_def

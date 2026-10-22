@@ -16,17 +16,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   device.
 - `Diag.asmatrix` no longer uses the non-standard `xp.diag`.
 - `Conv.adjoint` and `Slice.adjoint` return arrays on the input device.
+- `is_*` correctly handle hermitian matrix.
+- `is_pos_def` docstring: broken LaTeX (`\f` escape).
 
 ### Removed
 
 - `LinOpLike` protocol: operator overloads (`+`, `-`, `*`, `@`) now only
-  compose `LinOp` subclasses. Duck types were never fully supported (`ProdOp`
-  and `Adjoint` require `name` and `H`).
+  compose `LinOp` subclasses. Duck types were never fully supported.
 
 ### Added
 
 - Add Iterator protocol to HStack and VStack.
+- `llms.txt` and an `aljabr` agent skill (`skills/aljabr/SKILL.md`).
 - `device` parameter to `dottest` and `fwadjtest`.
+- `herm` function returning the conjugate transpose `Mᴴ`.
+- `rtol` parameter to `is_*`.
 
 ## [0.5.2] - 2026-05-19
 

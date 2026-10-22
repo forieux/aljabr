@@ -49,6 +49,7 @@ __all__ = [
     "dottest",
     "fcond",
     "fwadjtest",
+    "herm",
     "is_neg_def",
     "is_pos_def",
     "is_semi_neg_def",
@@ -196,8 +197,27 @@ def fwadjtest(
     return test
 
 
+def herm(mat: Array) -> Array:
+    """Return the conjugate transpose `Mᴴ` of a matrix.
+
+    Parameters
+    ----------
+    mat : Array
+        A matrix, or a stack of matrices on the last two axes.
+
+    Returns
+    -------
+    Array
+        The conjugate transpose, equal to the transpose for a real matrix.
+    """
+    xp = arr_api.get_namespace(mat)
+    return xp.conj(xp.matrix_transpose(mat))
+
+
 def is_sym(linop: Array | LinOp) -> bool:
-    """Return True if `linop` is symmetric.
+    """Return True if `linop` is symmetric, that is `M = Mᴴ`.
+
+    For a complex matrix, this is the Hermitian property (as for `Symmetric`).
 
     Parameters
     ----------
@@ -214,17 +234,29 @@ def is_sym(linop: Array | LinOp) -> bool:
     scipy.linalg.ishermitian
     """
     mat = asmatrix(linop)
+    return mat.shape[0] == mat.shape[1] and allclose(herm(mat), mat)
+
+
+def _herm_part_eigvals(linop: Array | LinOp, rtol: float | None) -> tuple:
+    """Return the eigenvalues of `M + Mᴴ` and the absolute tolerance on them."""
+    mat = asmatrix(linop)
     xp = arr_api.get_namespace(mat)
-    return mat.shape[0] == mat.shape[1] and allclose(xp.matrix_transpose(mat), mat)
+    eig = xp.linalg.eigvalsh(mat + herm(mat))
+    if rtol is None:
+        rtol = max(mat.shape) * xp.finfo(eig.dtype).eps
+    return eig, rtol * xp.max(xp.abs(eig))
 
 
-def is_pos_def(linop: Array | LinOp) -> bool:
-    """Return True if `linop` is positive definite.
+def is_pos_def(linop: Array | LinOp, rtol: float | None = None) -> bool:
+    r"""Return True if `linop` is positive definite.
 
     Parameters
     ----------
     linop : Array or LinOp
         The operator or matrix to test.
+    rtol : float, optional
+        Eigenvalues `λ` of `M + Mᴴ` must satisfy `λ > rtol·max(|λ|)`. Defaults
+        to `max(M.shape)·eps`, as `numpy.linalg.matrix_rank`.
 
     Returns
     -------
@@ -233,23 +265,27 @@ def is_pos_def(linop: Array | LinOp) -> bool:
     Notes
     -----
     A positive definite matrix $M$ has strictly positive eigenvalues, but the
-    converse is not true for non-symmetric matrices. The function therefore tests
-    all eigenvalues of $M + M^T$: since $x^T M x = x^T \frac{M + M^T}{2} x$
-    for any vector $x$, positive definiteness of $M$ is equivalent to positive
-    definiteness of $M + M^T$.
+    converse is not true for non-Hermitian matrices. The function therefore
+    tests all eigenvalues of $M + M^H$: since $\Re(x^H M x) = x^H \frac{M +
+    M^H}{2} x$ for any vector $x$, the condition $\Re(x^H M x) > 0$ is
+    equivalent to the positive definiteness of the Hermitian matrix $M + M^H$.
+    For a Hermitian $M$, this is the usual definition.
     """
-    mat = asmatrix(linop)
-    xp = arr_api.get_namespace(mat)
-    return bool(xp.all(xp.linalg.eigvalsh(mat + xp.matrix_transpose(mat)) > 0))
+    eig, tol = _herm_part_eigvals(linop, rtol)
+    xp = arr_api.get_namespace(eig)
+    return bool(xp.all(eig > tol))
 
 
-def is_semi_pos_def(linop: Array | LinOp) -> bool:
+def is_semi_pos_def(linop: Array | LinOp, rtol: float | None = None) -> bool:
     """Return True if `linop` is semi positive definite.
 
     Parameters
     ----------
     linop : Array or LinOp
         The operator or matrix to test.
+    rtol : float, optional
+        Eigenvalues `λ` of `M + Mᴴ` must satisfy `λ ≥ -rtol·max(|λ|)`. See
+        `is_pos_def`.
 
     Returns
     -------
@@ -259,18 +295,21 @@ def is_semi_pos_def(linop: Array | LinOp) -> bool:
     --------
     is_pos_def
     """
-    mat = asmatrix(linop)
-    xp = arr_api.get_namespace(mat)
-    return bool(xp.all(xp.linalg.eigvalsh(mat + xp.matrix_transpose(mat)) >= 0))
+    eig, tol = _herm_part_eigvals(linop, rtol)
+    xp = arr_api.get_namespace(eig)
+    return bool(xp.all(eig >= -tol))
 
 
-def is_neg_def(linop: Array | LinOp) -> bool:
+def is_neg_def(linop: Array | LinOp, rtol: float | None = None) -> bool:
     """Return True if `linop` is negative definite.
 
     Parameters
     ----------
     linop : Array or LinOp
         The operator or matrix to test.
+    rtol : float, optional
+        Eigenvalues `λ` of `M + Mᴴ` must satisfy `λ < -rtol·max(|λ|)`. See
+        `is_pos_def`.
 
     Returns
     -------
@@ -280,18 +319,21 @@ def is_neg_def(linop: Array | LinOp) -> bool:
     --------
     is_pos_def
     """
-    mat = asmatrix(linop)
-    xp = arr_api.get_namespace(mat)
-    return bool(xp.all(xp.linalg.eigvalsh(mat + xp.matrix_transpose(mat)) < 0))
+    eig, tol = _herm_part_eigvals(linop, rtol)
+    xp = arr_api.get_namespace(eig)
+    return bool(xp.all(eig < -tol))
 
 
-def is_semi_neg_def(linop: Array | LinOp) -> bool:
+def is_semi_neg_def(linop: Array | LinOp, rtol: float | None = None) -> bool:
     """Return True if `linop` is semi negative definite.
 
     Parameters
     ----------
     linop : Array or LinOp
         The operator or matrix to test.
+    rtol : float, optional
+        Eigenvalues `λ` of `M + Mᴴ` must satisfy `λ ≤ rtol·max(|λ|)`. See
+        `is_pos_def`.
 
     Returns
     -------
@@ -301,9 +343,9 @@ def is_semi_neg_def(linop: Array | LinOp) -> bool:
     --------
     is_pos_def
     """
-    mat = asmatrix(linop)
-    xp = arr_api.get_namespace(mat)
-    return bool(xp.all(xp.linalg.eigvalsh(mat + xp.matrix_transpose(mat)) <= 0))
+    eig, tol = _herm_part_eigvals(linop, rtol)
+    xp = arr_api.get_namespace(eig)
+    return bool(xp.all(eig <= tol))
 
 
 def cond(linop: Array | LinOp) -> float:
@@ -324,6 +366,12 @@ def cond(linop: Array | LinOp) -> float:
     -------
     float
         The condition number.
+
+    Notes
+    -----
+    This is the usual condition number `σ_max / σ_min` (ratio of eigen values)
+    only for normal matrices.
+
     """
     mat = asmatrix(linop)
     xp = arr_api.get_namespace(mat)
@@ -352,6 +400,12 @@ def fcond(linop: LinOp, tol: float = 0.1) -> float:
     -------
     float
         Estimated condition number.
+
+    Notes
+    -----
+    `eigsh` assumes that `linop` is Hermitian and `which="BE"` returns the
+    algebraically smallest and largest eigenvalues. The estimate is therefore
+    valid for Hermitian definite operators, not for indefinite ones.
     """
     if splinalg is None:
         raise ImportError("scipy is required for fcond")
