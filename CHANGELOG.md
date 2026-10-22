@@ -28,7 +28,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `DWT`, `Analysis2` and `Synthesis2` raise `ValueError` for non-orthogonal
   wavelets.
 - `DWT` raises `ValueError` if `shape` is not divisible by `2**level` (wrong
-  number of coefficients). The default level is the largest compatible one.
+  number of coefficients). The default level is the largest compatible one,
+  at most `pywt.dwtn_max_level`.
 - `DirectConv.adjoint` conjugates the impulse response (complex `ir`).
 - `DirectConv.ir` returns the impulse response as given.
 - `A * s`, `s * A`, `A @ s` and `s @ A` return a `Scaled`.

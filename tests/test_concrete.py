@@ -565,6 +565,15 @@ class TestWavelets:
         assert op.lvl == level
         assert dottest(op, num=3)
 
+    def test_dwt_beyond_pywt_max_level(self):
+        # Documented: pywt warns, but the transform is still orthogonal
+        with pytest.warns(UserWarning, match="boundary effects"):
+            op = DWT((8, 4), level=2, wavelet="db2")
+        with pytest.warns(UserWarning, match="boundary effects"):
+            assert dottest(op, num=3)
+        with pytest.warns(UserWarning, match="boundary effects"):
+            assert fwadjtest(op, num=3)
+
     def test_dwt_default_level_odd_size_raises(self):
         with pytest.raises(ValueError, match="no decomposition level"):
             DWT((9,))

@@ -740,8 +740,8 @@ class DWT(LinOp):
         The input shape.
     level : int, optional
         The decomposition level. All sizes of `shape` must be divisible by
-        `2**level`. Defaults to the largest level allowed by `shape` and the
-        wavelet filter length.
+        `2**level`. Defaults to the largest level allowed by `shape` and by
+        `pywt.dwtn_max_level`.
     wavelet : str, optional
         The wavelet to use. Must be orthogonal.
     name : str, optional
@@ -763,6 +763,8 @@ class DWT(LinOp):
     Notes
     -----
     NumPy-only. Uses pywt internally.
+
+    The default level follows pywt: it is at most `pywt.dwtn_max_level`.
     """
 
     def __init__(

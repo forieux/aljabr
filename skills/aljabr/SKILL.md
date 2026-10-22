@@ -143,7 +143,7 @@ device, e.g. `device="cuda"` for an operator on GPU).
 | `Diff` | `(axis, ishape)` | first-order difference, `oshape[axis] = ishape[axis] - 1` |
 | `Slice` | `(ishape, idx)` | `x[idx]`, build `idx` with `np.index_exp[::2, 1]`; adjoint zero-fills |
 | `Sampling` | `(ishape, index)` | NumPy fancy indexing, `index` = one int array per axis (broadcast, negatives allowed); adjoint accumulates repeated indices; NumPy only |
-| `DWT` | `(shape, level=None, wavelet="haar")` | unitary nD wavelet transform (periodization); orthogonal wavelets only (haar, dbN, symN, coifN); every size divisible by `2**level` (default: largest valid level); needs pywt |
+| `DWT` | `(shape, level=None, wavelet="haar")` | unitary nD wavelet transform (periodization); orthogonal wavelets only (haar, dbN, symN, coifN); every size divisible by `2**level` (default: largest valid level, at most `pywt.dwtn_max_level`; a larger one works but pywt warns about boundary effects); needs pywt |
 | `Analysis2` | `(shape, level, wavelet="haar")` | 2D stationary wavelet analysis, `(H, W) → (3·level+1, H, W)`; orthogonal wavelets only; needs pywt |
 | `Synthesis2` | `(shape, level, wavelet="haar")` | adjoint of `Analysis2`, `(3·level+1, H, W) → (H, W)` |
 
