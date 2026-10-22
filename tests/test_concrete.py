@@ -373,6 +373,11 @@ class TestConv:
         op = Conv(ir, ishape=(8, 8), dim=2)
         assert op.oshape == (6, 6)
 
+    @pytest.mark.parametrize("dim", [0, 2])
+    def test_dim_out_of_range_raises(self, dim):
+        with pytest.raises(ValueError, match="must be in"):
+            Conv(np.ones((3, 3)), ishape=(8,), dim=dim)
+
     def test_dottest_1d(self):
         assert dottest(Conv(RNG.standard_normal(3), ishape=(8,), dim=1), num=5)
 

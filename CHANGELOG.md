@@ -52,6 +52,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `HStack` docstring: `apply` returns the outputs `Aᵢxᵢ`, not the inputs.
   `VStack` and `HStack` examples are runnable and tested (doctests).
 - `Analysis2` and `Synthesis2` raise `ValueError` if `shape` is not 2D.
+- `Conv` raises `ValueError` if `dim` is not in `[1, len(ishape)]`.
 
 ### Changed
 

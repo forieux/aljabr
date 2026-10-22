@@ -253,9 +253,10 @@ class Conv(LinOp):
     Raises
     ------
     ValueError
-        If `ir` has less than `dim` axes, if its batch axes do not broadcast to
-        the input ones, or if it is larger than the input on a convolved axis.
-        If `ir` is complex (from `udft.ir2fr`).
+        If `dim` is not in ``[1, len(ishape)]``, if `ir` has less than `dim`
+        axes, if its batch axes do not broadcast to the input ones, or if it is
+        larger than the input on a convolved axis. If `ir` is complex (from
+        `udft.ir2fr`).
 
     Notes
     -----
@@ -273,6 +274,8 @@ class Conv(LinOp):
     def __init__(self, ir: Array, ishape: Shape, dim: int, name: str = "Conv"):
         self._udft = udft
 
+        if not 1 <= dim <= len(ishape):
+            raise ValueError(f"`dim`={dim} must be in [1, len(ishape)={len(ishape)}]")
         if ir.ndim < dim:
             raise ValueError(f"`ir` must have at least `dim`={dim} dimensions")
         # Leading axes of `ir` are batch axes broadcast against the batch axes
