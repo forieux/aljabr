@@ -35,6 +35,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `FreqFilter` docstring: the operator acts on the half-spectrum.
 - `Slice` no longer allocates an `ishape` array to infer `oshape`.
 - Timings use `time.perf_counter`.
+- `CircConv` raises `ValueError` if `imp_resp.ndim != len(shape)`.
 
 ### Changed
 

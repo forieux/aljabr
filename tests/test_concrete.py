@@ -284,6 +284,20 @@ class TestCircConv:
     def test_fwadjtest(self):
         assert fwadjtest(CircConv(RNG.standard_normal(3), (8,)), num=5)
 
+    @pytest.mark.parametrize(
+        ("ir_shape", "shape"), [((3,), (8, 10)), ((2, 3, 3), (8, 10))]
+    )
+    def test_ir_ndim_mismatch_raises(self, ir_shape, shape):
+        with pytest.raises(ValueError, match="ndim"):
+            CircConv(np.ones(ir_shape), shape)
+
+    def test_1d_conv_of_2d_array(self):
+        ir = RNG.standard_normal(3)
+        x = RNG.standard_normal((4, 8))
+        y = CircConv(ir[None, :], x.shape).forward(x)
+        for row_x, row_y in zip(x, y):
+            np.testing.assert_allclose(row_y, CircConv(ir, (8,)).forward(row_x))
+
 
 # ---------------------------------------------------------------------------
 # FreqFilter

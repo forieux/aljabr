@@ -434,7 +434,8 @@ class CircConv(LinOp):
     Parameters
     ----------
     imp_resp : Array
-        The impulse response.
+        The impulse response, with the same number of dimensions as `shape`.
+        Its origin is at the center (see `udft.ir2fr`).
     shape : tuple of int
         Shape of the input and output arrays.
     name : str, optional
@@ -444,9 +445,21 @@ class CircConv(LinOp):
     ----------
     imp_resp : Array
         The impulse response.
+
+    Raises
+    ------
+    ValueError
+        If ``imp_resp.ndim != len(shape)``. A 1D convolution of a 2D array,
+        for instance, needs an `imp_resp` of shape ``(1, K)``.
     """
 
     def __init__(self, imp_resp: Array, shape: Shape, name: str = "CConv"):
+        if imp_resp.ndim != len(shape):
+            raise ValueError(
+                f"`imp_resp.ndim` ({imp_resp.ndim}) must equal `len(shape)` "
+                f"({len(shape)})"
+            )
+
         self._udft = udft
 
         self.imp_resp = imp_resp
