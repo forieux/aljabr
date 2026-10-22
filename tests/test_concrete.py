@@ -1,4 +1,6 @@
+import copy
 import importlib.util
+import pickle
 
 import numpy as np
 import pytest
@@ -686,3 +688,55 @@ def test_complex_circ_conv_on_full_spectrum():
     F = DFT(shape, len(shape))
     op = F.H @ Diag(udft.ir2fr(ir, shape, onesided=False)) @ F
     assert dottest(op, num=3)
+
+
+# ---------------------------------------------------------------------------
+# Pickle and deep copy (multiprocessing, joblib, saving)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "make",
+    [
+        lambda: Identity((4, 6)),
+        lambda: Diag(RNG.standard_normal((4, 6))),
+        lambda: DFT((4, 6), 2),
+        lambda: RealDFT((4, 6), 2),
+        lambda: Conv(np.ones((3, 3)), (8, 8), 2),
+        lambda: DirectConv(np.ones((3, 3)), (8, 8)),
+        lambda: FreqFilter(np.ones((3, 3)), (8, 8)),
+        lambda: CircConv(np.ones((3, 3)), (8, 8)),
+        lambda: Diff(0, (4, 6)),
+        lambda: Sampling((4, 6), (np.array([0, 1]), np.array([2, 3]))),
+        lambda: Slice((4, 6), np.index_exp[::2]),
+        pytest.param(lambda: DWT((8, 8), 1), marks=needs_pywt),
+        pytest.param(lambda: Analysis2((8, 8), 1), marks=needs_pywt),
+        pytest.param(lambda: Synthesis2((8, 8), 1), marks=needs_pywt),
+    ],
+    ids=[
+        "Identity",
+        "Diag",
+        "DFT",
+        "RealDFT",
+        "Conv",
+        "DirectConv",
+        "FreqFilter",
+        "CircConv",
+        "Diff",
+        "Sampling",
+        "Slice",
+        "DWT",
+        "Analysis2",
+        "Synthesis2",
+    ],
+)
+@pytest.mark.parametrize(
+    "clone",
+    [lambda op: pickle.loads(pickle.dumps(op)), copy.deepcopy],
+    ids=["pickle", "deepcopy"],
+)
+def test_pickle_and_deepcopy(make, clone):
+    op = make()
+    other = clone(op)
+    x = RNG.standard_normal(op.ishape)
+    np.testing.assert_allclose(other.forward(x), op.forward(x))

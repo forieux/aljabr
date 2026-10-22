@@ -29,12 +29,16 @@ diagonal, difference, sampling operators, ...
 """
 
 import types
+from typing import Any
 
 import array_api_compat as arr_api
 import numpy as np
 import udft
 
-pywt: types.ModuleType | None
+# `Any` rather than `ModuleType | None`: the methods use `pywt` once the
+# constructor checked it is installed, where `None` can not be narrowed.
+# Modules are not stored on `self`, since a module can not be pickled.
+pywt: Any
 spsignal: types.ModuleType | None
 
 try:
@@ -154,16 +158,14 @@ class DFT(LinOp):
     """
 
     def __init__(self, shape: Shape, ndim: int, name: str = "DFT"):
-        self._udft = udft
-
         super().__init__(shape, shape, name=name)
         self.dim = ndim
 
     def forward(self, point: Array) -> Array:
-        return self._udft.dftn(point, ndim=self.dim)
+        return udft.dftn(point, ndim=self.dim)
 
     def adjoint(self, point: Array) -> Array:
-        return self._udft.idftn(point, ndim=self.dim)
+        return udft.idftn(point, ndim=self.dim)
 
     def fwadj(self, point: Array) -> Array:
         return point
@@ -209,17 +211,15 @@ class RealDFT(LinOp):
     """
 
     def __init__(self, shape: Shape, ndim: int, name: str = "rDFT"):
-        self._udft = udft
-
         shape = tuple(shape)  # tuple concatenation below, `shape` may be a list
         super().__init__(shape, shape[:-1] + (shape[-1] // 2 + 1,), name=name)
         self.dim = ndim
 
     def forward(self, point: Array) -> Array:
-        return self._udft.rdftn(point, ndim=self.dim)
+        return udft.rdftn(point, ndim=self.dim)
 
     def adjoint(self, point: Array) -> Array:
-        return self._udft.irdftn(point, self.ishape[-self.dim :])
+        return udft.irdftn(point, self.ishape[-self.dim :])
 
     def fwadj(self, point: Array) -> Array:
         return point
@@ -274,8 +274,6 @@ class Conv(LinOp):
     """
 
     def __init__(self, ir: Array, ishape: Shape, dim: int, name: str = "Conv"):
-        self._udft = udft
-
         if not 1 <= dim <= len(ishape):
             raise ValueError(f"`dim`={dim} must be in [1, len(ishape)={len(ishape)}]")
         if ir.ndim < dim:
@@ -314,7 +312,7 @@ class Conv(LinOp):
 
         self.dim = dim
         self.imp_resp = ir
-        self.freq_resp = self._udft.ir2fr(ir, self.ishape[-dim:])
+        self.freq_resp = udft.ir2fr(ir, self.ishape[-dim:])
 
         self.margins = kshape
         # Extract the valid part of the circular convolution result.
@@ -335,10 +333,10 @@ class Conv(LinOp):
         )
 
     def _dft(self, point: Array) -> Array:
-        return self._udft.rdftn(point, self.dim)
+        return udft.rdftn(point, self.dim)
 
     def _idft(self, point: Array) -> Array:
-        return self._udft.irdftn(point, self.ishape[-self.dim :])
+        return udft.irdftn(point, self.ishape[-self.dim :])
 
     def forward(self, point: Array) -> Array:
         return self._idft(self._dft(point) * self.freq_resp)[self._slices]
@@ -513,8 +511,6 @@ class CircConv(LinOp):
                 f"{tuple(shape)}"
             )
 
-        self._udft = udft
-
         self.imp_resp = imp_resp
         self.ffilter = FreqFilter(imp_resp, shape)
 
@@ -526,10 +522,10 @@ class CircConv(LinOp):
         return self.ffilter.diag
 
     def _dft(self, arr: Array) -> Array:
-        return self._udft.rdftn(arr, len(self.ishape))
+        return udft.rdftn(arr, len(self.ishape))
 
     def _idft(self, arr: Array) -> Array:
-        return self._udft.irdftn(arr, self.oshape)
+        return udft.irdftn(arr, self.oshape)
 
     def forward(self, point: Array) -> Array:
         return self._idft(self.ffilter.forward(self._dft(point)))
@@ -778,15 +774,14 @@ class DWT(LinOp):
     ):
         if pywt is None:
             raise ImportError("pywt is required for DWT")
-        self._pywt = pywt
-        _check_orthogonal(wavelet, self._pywt)
+        _check_orthogonal(wavelet, pywt)
 
         # With periodization, each level halves the approximation. There are as
         # many coefficients as samples, and the transform is orthogonal, only if
         # every size stays even, that is is divisible by 2**level.
         dyadic = min((n & -n).bit_length() - 1 for n in shape)  # powers of 2
         if level is None:
-            level = min(self._pywt.dwtn_max_level(shape, wavelet), dyadic)
+            level = min(pywt.dwtn_max_level(shape, wavelet), dyadic)
             if level == 0:
                 raise ValueError(
                     f"no decomposition level is possible for `shape` {shape} "
@@ -803,22 +798,20 @@ class DWT(LinOp):
         self.wlt = wavelet
         self.lvl = level
         self._mode = "periodization"
-        self._slices = self._pywt.coeffs_to_array(
-            self._pywt.wavedecn(
+        self._slices = pywt.coeffs_to_array(
+            pywt.wavedecn(
                 np.empty(shape), wavelet=wavelet, mode="periodization", level=level
             )
         )[1]
 
     def forward(self, point: Array) -> Array:
-        return self._pywt.coeffs_to_array(
-            self._pywt.wavedecn(
-                point, wavelet=self.wlt, mode=self._mode, level=self.lvl
-            )
+        return pywt.coeffs_to_array(
+            pywt.wavedecn(point, wavelet=self.wlt, mode=self._mode, level=self.lvl)
         )[0]
 
     def adjoint(self, point: Array) -> Array:
-        return self._pywt.waverecn(
-            self._pywt.array_to_coeffs(point, self._slices),
+        return pywt.waverecn(
+            pywt.array_to_coeffs(point, self._slices),
             wavelet=self.wlt,
             mode=self._mode,
         )
@@ -865,8 +858,7 @@ class Analysis2(LinOp):
     ):
         if pywt is None:
             raise ImportError("pywt is required for Analysis2")
-        self._pywt = pywt
-        _check_orthogonal(wavelet, self._pywt)
+        _check_orthogonal(wavelet, pywt)
 
         shape = tuple(shape)  # tuple concatenation below, `shape` may be a list
         if len(shape) != 2:
@@ -877,13 +869,13 @@ class Analysis2(LinOp):
         self.norm = True
 
     def forward(self, point: Array) -> Array:
-        coeffs = self._pywt.swt2(
+        coeffs = pywt.swt2(
             point, wavelet=self.wlt, level=self.lvl, norm=self.norm, trim_approx=True
         )
         return self.coeffs2cube(coeffs)
 
     def adjoint(self, point: Array) -> Array:
-        return self._pywt.iswt2(self.cube2coeffs(point), self.wlt, norm=self.norm)
+        return pywt.iswt2(self.cube2coeffs(point), self.wlt, norm=self.norm)
 
     def cube2coeffs(self, point: Array) -> list:
         """Return pywt coefficients from 3D array."""
