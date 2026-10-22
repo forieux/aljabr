@@ -61,6 +61,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   other than numpy.
 - Docs: `scipy.sparse.linalg.eigs` and `eigsh` need `aslinearoperator(A)`,
   since they read `A.dtype` that a `LinOp` lacks.
+- Guide: the `eigsh` example used the unitary FFT, which is not Hermitian.
 
 ### Changed
 

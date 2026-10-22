@@ -149,8 +149,8 @@ with `aslinearoperator`, which infers the dtype with one `matvec`:
 ```python
 import scipy.sparse.linalg as spla
 
-AtA = spla.aslinearoperator(F)  # wraps F transparently
-vals = spla.eigsh(AtA, k=5, return_eigenvectors=False)
+DhD = spla.aslinearoperator(D.G)
+vals = spla.eigsh(DhD, k=5, return_eigenvectors=False)
 ```
 
 ## Algebraic operators
