@@ -49,6 +49,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `Sampling` accepts index lists, broadcast index arrays and negative indices.
 - `Conv`, `DirectConv` and `CircConv` raise `ValueError` if `ir` is larger
   than the input on a convolved axis.
+- `HStack` docstring: `apply` returns the outputs `Aᵢxᵢ`, not the inputs.
+  `VStack` and `HStack` examples are runnable and tested (doctests).
 
 ### Changed
 

@@ -66,7 +66,8 @@ build-backend = "uv_build"
 packages = ["src/aljabr"]
 
 [tool.pytest.ini_options]
-testpaths = ["tests"]
+testpaths = ["tests", "src"]
+addopts = "--doctest-modules"
 
 [tool.pyrefly]
 project-includes = [

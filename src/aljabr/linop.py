@@ -926,13 +926,6 @@ class VStack(LinOp):
     ``VStack([A, B, C]).H`` returns ``HStack([Aᴴ, Bᴴ, Cᴴ])``, and
     ``HStack([A, B, C]).H`` returns ``VStack([Aᴴ, Bᴴ, Cᴴ])``.
 
-    So if y = vect([y₀, y₁, ...]) of shape (N, 1), and A = VStack([A₀, A₁,
-    ...]), then y = Ax can be obtained with
-
-    >>> y_list = A.apply(x)          # list of per-operator outputs
-    >>> y = A.forward(x)             # stacked column vector, shape A.oshape
-    >>> A.split(y)                   # per-operator shapes, same as y_list
-
     Parameters
     ----------
     oplist : iterable of LinOp
@@ -940,6 +933,19 @@ class VStack(LinOp):
     name : str, optional
         Name of the operator.
 
+    Examples
+    --------
+    >>> import numpy as np
+    >>> from aljabr import Diff, VStack
+    >>> A = VStack([Diff(0, (4, 5)), Diff(1, (4, 5))])
+    >>> x = np.ones((4, 5))
+    >>> [yi.shape for yi in A.apply(x)]  # per-operator outputs Aᵢx
+    [(3, 5), (4, 4)]
+    >>> y = A.forward(x)  # stacked column vector
+    >>> y.shape == A.oshape == (31, 1)
+    True
+    >>> [yi.shape for yi in A.split(y)]  # back to the per-operator outputs
+    [(3, 5), (4, 4)]
     """
 
     def __init__(self, oplist: Iterable[LinOp], name: str = "[·]"):
@@ -1014,13 +1020,6 @@ class HStack(LinOp):
     ``VStack([A, B, C]).H`` returns ``HStack([Aᴴ, Bᴴ, Cᴴ])``, and
     ``HStack([A, B, C]).H`` returns ``VStack([Aᴴ, Bᴴ, Cᴴ])``.
 
-    So if x = vect([x₀, x₁, ...]) of shape (M, 1), and A = HStack([A₀, A₁,
-    ...]), then y = Ax can be obtained with
-
-    >>> x_list = A.split(x)          # list of per-operator inputs
-    >>> y = A.forward(x)             # sum of op.forward(xᵢ), shape A.oshape
-    >>> A.apply(x)                   # per-operator outputs, same as x_list
-
     Parameters
     ----------
     oplist : iterable of LinOp
@@ -1028,6 +1027,18 @@ class HStack(LinOp):
     name : str, optional
         Name of the operator.
 
+    Examples
+    --------
+    >>> import numpy as np
+    >>> from aljabr import Diff, HStack
+    >>> A = HStack([Diff(0, (4, 5)).H, Diff(1, (4, 5)).H])
+    >>> x = np.ones((31, 1))  # vect([x₀, x₁])
+    >>> [xi.shape for xi in A.split(x)]  # per-operator inputs xᵢ
+    [(3, 5), (4, 4)]
+    >>> [yi.shape for yi in A.apply(x)]  # per-operator outputs Aᵢxᵢ
+    [(4, 5), (4, 5)]
+    >>> A.forward(x).shape == A.oshape == (4, 5)  # Σ Aᵢxᵢ
+    True
     """
 
     def __init__(self, oplist: Iterable[LinOp], name: str = "[·|·]"):
