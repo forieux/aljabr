@@ -39,7 +39,7 @@ from .linop import Array, LinOp, asmatrix
 splinalg: types.ModuleType | None
 
 try:
-    import scipy.sparse.linalg as splinalg  # ty: ignore
+    import scipy.sparse.linalg as splinalg
 except ImportError:
     splinalg = None
 

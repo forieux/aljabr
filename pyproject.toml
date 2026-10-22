@@ -54,6 +54,8 @@ dev = [
     "ipython>=9.9.0",
     "pyrefly>=1.0.0",
     "pytest>=8",
+    "pywavelets>=1.9.0",
+    "scipy>=1.17.1",
 ]
 
 [build-system]

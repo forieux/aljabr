@@ -38,12 +38,12 @@ pywt: types.ModuleType | None
 spsignal: types.ModuleType | None
 
 try:
-    import pywt  # ty: ignore
+    import pywt
 except ImportError:
     pywt = None
 
 try:
-    import scipy.signal as spsignal  # ty: ignore
+    import scipy.signal as spsignal
 except ImportError:
     spsignal = None
 

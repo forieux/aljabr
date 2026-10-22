@@ -52,6 +52,8 @@ dev = [
     { name = "ipython" },
     { name = "pyrefly" },
     { name = "pytest" },
+    { name = "pywavelets" },
+    { name = "scipy" },
 ]
 
 [package.metadata]
@@ -73,6 +75,8 @@ dev = [
     { name = "ipython", specifier = ">=9.9.0" },
     { name = "pyrefly", specifier = ">=1.0.0" },
     { name = "pytest", specifier = ">=8" },
+    { name = "pywavelets", specifier = ">=1.9.0" },
+    { name = "scipy", specifier = ">=1.17.1" },
 ]
 
 [[package]]
