@@ -32,6 +32,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `V.H.H is V` for VStack and HStack.
 - `forward`, `adjoint` and `fwadj` of subclasses accept extra arguments.
 - `Sampling.adjoint` keeps the input dtype.
+- `FreqFilter` docstring: the operator acts on the half-spectrum.
+
+### Changed
+
+- `FreqFilter` parameter `ishape` renamed `shape`: it is the direct-space
+  shape, not the operator `ishape`.
 
 ### Removed
 

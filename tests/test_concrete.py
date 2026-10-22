@@ -2,6 +2,7 @@ import importlib.util
 
 import numpy as np
 import pytest
+import udft
 from conftest import RNG
 
 from aljabr.concrete import (
@@ -13,6 +14,7 @@ from aljabr.concrete import (
     Diag,
     Diff,
     DirectConv,
+    FreqFilter,
     Identity,
     RealDFT,
     Sampling,
@@ -262,6 +264,24 @@ class TestCircConv:
 
     def test_fwadjtest(self):
         assert fwadjtest(CircConv(RNG.standard_normal(3), (8,)), num=5)
+
+
+# ---------------------------------------------------------------------------
+# FreqFilter
+# ---------------------------------------------------------------------------
+
+
+class TestFreqFilter:
+    def test_shape_is_half_spectrum(self):
+        op = FreqFilter(np.ones((3, 3)) / 9, shape=(8, 10))
+        assert op.ishape == op.oshape == (8, 6)
+
+    def test_is_circconv_in_fourier_space(self):
+        ir = RNG.standard_normal((3, 3))
+        x = RNG.standard_normal((8, 10))
+        op = FreqFilter(ir, x.shape)
+        y = udft.irdftn(op.forward(udft.rdftn(x, 2)), x.shape)
+        np.testing.assert_allclose(y, CircConv(ir, x.shape).forward(x))
 
 
 # ---------------------------------------------------------------------------

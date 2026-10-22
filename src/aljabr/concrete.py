@@ -396,28 +396,36 @@ class DirectConv(LinOp):
 class FreqFilter(Diag):
     """Frequency filter in Fourier space.
 
+    A `Diag` on the half-spectrum of a real array, as returned by
+    `udft.rdftn`, defined by an impulse response.
+
     Parameters
     ----------
     ir : Array
         The impulse response.
-    ishape : tuple of int
-        The shape of the input array (used to compute the frequency response).
+    shape : tuple of int
+        The shape of the real array in direct space, used to compute the
+        frequency response. It is not the `ishape` of the operator: see Notes.
     name : str, optional
         Name of the operator.
 
     Attributes
     ----------
     diag : Array
-        The frequency response of the filter.
+        The frequency response of the filter, from `udft.ir2fr(ir, shape)`.
 
     Notes
     -----
-    Almost like diagonal but assumes a complex Fourier space and is defined by an
-    impulse response. If you have the frequency response, just use Diag.
+    The operator applies to the half-spectrum, so its `ishape` and `oshape`
+    are ``shape[:-1] + (shape[-1] // 2 + 1,)``, not ``shape``.
+    For instance ``FreqFilter(ir, (8, 10)).ishape == (8, 6)``. Use it between
+    `udft.rdftn` and `udft.irdftn`, as `CircConv` does. If you have the
+    frequency response, just use Diag.
+
     """
 
-    def __init__(self, ir: Array, ishape: Shape, name: str = "Filter"):
-        super().__init__(udft.ir2fr(ir, ishape), name=name)
+    def __init__(self, ir: Array, shape: Shape, name: str = "Filter"):
+        super().__init__(udft.ir2fr(ir, shape), name=name)
 
 
 class CircConv(LinOp):
