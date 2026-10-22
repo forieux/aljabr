@@ -5,6 +5,7 @@ from conftest import RNG
 from aljabr.concrete import DFT, Diag, Diff
 from aljabr.utils import (
     cond,
+    fcond,
     herm,
     is_neg_def,
     is_pos_def,
@@ -120,3 +121,13 @@ class TestCond:
 
     def test_unitary(self):
         assert cond(DFT((8,), 1)) == pytest.approx(1.0)
+
+
+class TestFcond:
+    def test_lanczos(self):
+        diag = np.linspace(1.0, 10.0, 20)
+        assert fcond(Diag(diag), tol=1e-8) == pytest.approx(10.0)
+
+    @pytest.mark.parametrize(("diag", "expected"), [([1.0, 4.0], 4.0), ([3.0], 1.0)])
+    def test_small(self, diag, expected):
+        assert fcond(Diag(np.array(diag))) == pytest.approx(expected)

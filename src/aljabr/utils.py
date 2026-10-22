@@ -410,11 +410,14 @@ def fcond(linop: LinOp, tol: float = 0.1) -> float:
     if splinalg is None:
         raise ImportError("scipy is required for fcond")
 
-    eig = splinalg.eigsh(
-        splinalg.aslinearoperator(linop),
-        k=2,
-        return_eigenvectors=False,
-        which="BE",
-        tol=tol,
-    )
+    if linop.isize <= 2:
+        eig = np.linalg.eigvalsh(np.asarray(asmatrix(linop)))
+    else:
+        eig = splinalg.eigsh(
+            splinalg.aslinearoperator(linop),
+            k=2,
+            return_eigenvectors=False,
+            which="BE",
+            tol=tol,
+        )
     return np.max(np.abs(eig)) / np.min(np.abs(eig))
