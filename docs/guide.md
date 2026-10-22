@@ -63,7 +63,7 @@ F = FFT2((256, 256))  # Create the operator (like a matrix)
 print(F.ishape)  # (256, 256)
 print(F.oshape)  # (256, 256)
 
-x = np.empty(F.ishape)
+x = np.random.standard_normal(F.ishape)
 coef = F.forward(x)
 np.allclose(F.adjoint(coef), x)
 ```
@@ -323,7 +323,7 @@ FtF = F.G  # Symmetric wrapping F.fwadj
 z = FtF.forward(x)  # = F.fwadj(x)  (optimised path if overridden in F)
 ```
 
-`Adjoint(A)` is `A` for any `Symmetric` instance (same apply fo the `.H`)
+`Adjoint(A)` is `A` for any `Symmetric` instance (same applies to `.H`).
 
 ### `@` and the automatic detection
 
