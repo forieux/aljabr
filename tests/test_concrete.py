@@ -445,6 +445,10 @@ class TestDirectConv:
         op = DirectConv(np.ones((3, 4)), ishape=(8, 8))
         assert op.oshape == (6, 5)
 
+    def test_ir_ndim_larger_raises(self):
+        with pytest.raises(ValueError, match="must not exceed `len"):
+            DirectConv(np.ones((1, 3)), ishape=(8,))
+
     @pytest.mark.parametrize("kshape", [(3, 3), (4, 4), (2, 5)])
     def test_forward_is_valid_conv(self, kshape):
         ir, x = RNG.standard_normal(kshape), RNG.standard_normal((12, 13))

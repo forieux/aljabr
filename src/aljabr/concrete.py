@@ -368,7 +368,8 @@ class DirectConv(LinOp):
     Raises
     ------
     ValueError
-        If `ir` is larger than the input on a convolved axis.
+        If `ir` has more axes than the input, or if it is larger than the input
+        on a convolved axis.
 
     Notes
     -----
@@ -382,6 +383,10 @@ class DirectConv(LinOp):
         if spsignal is None:
             raise ImportError("scipy is required for DirectConv")
 
+        if ir.ndim > len(ishape):
+            raise ValueError(
+                f"`ir.ndim` ({ir.ndim}) must not exceed `len(ishape)` ({len(ishape)})"
+            )
         # Otherwise `oaconvolve` in "valid" mode swaps `ir` and the input
         if any(k > n for (n, k) in zip(ishape[-ir.ndim :], ir.shape)):
             raise ValueError(
