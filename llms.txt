@@ -11,7 +11,7 @@ Things to know before writing code with aljabr:
 - `A.H @ A` and `A.G` return a `Symmetric` operator using the optimized `fwadj`. `2.0 * A` and `A * 2.0` return `Scaled`; Python, NumPy and 0-d array scalars are all accepted.
 - Wrong input/output shapes only emit a `UserWarning` (not an exception). Timings are stored in `A.metadata`.
 - Always validate a hand-written operator with `dottest(A)` (adjoint correctness) and `fwadjtest(A)` (custom `fwadj`).
-- aljabr provides no solvers and no `A / y`: use your own algorithm or `scipy.sparse.linalg` (`cg`, `lsqr`, `eigsh`, …).
+- aljabr provides no solvers and no `A / y`: use your own algorithm or `scipy.sparse.linalg` (`cg`, `lsqr`, `eigsh`, …); `eigs` and `eigsh` need `spla.aslinearoperator(A)` since they read `A.dtype`, which a `LinOp` lacks.
 - Pre-alpha: the API may change.
 
 ## Docs

@@ -563,3 +563,28 @@ class TestOperatorOverloads:
         op = make_dense(4, 3)
         x = RNG.standard_normal(3)
         np.testing.assert_array_equal(op(x), op.forward(x))
+
+
+# ---------------------------------------------------------------------------
+# SciPy interoperability, as documented in the guide
+# ---------------------------------------------------------------------------
+
+
+class TestScipy:
+    def test_passed_directly(self):
+        spla = pytest.importorskip("scipy.sparse.linalg")
+        op = make_dense(6, 4)
+        y = RNG.standard_normal(6)
+        expected = np.linalg.lstsq(op.mat, y, rcond=None)[0]
+        x_lsqr = spla.lsqr(op, y, atol=1e-12, btol=1e-12)[0]
+        np.testing.assert_allclose(x_lsqr, expected)
+        x_cg, info = spla.cg(op.G, op.rmatvec(y).ravel(), rtol=1e-12)
+        assert info == 0
+        np.testing.assert_allclose(x_cg, expected)
+
+    def test_eigsh_with_aslinearoperator(self):
+        spla = pytest.importorskip("scipy.sparse.linalg")
+        op = make_dense(6, 4)
+        vals = spla.eigsh(spla.aslinearoperator(op.G), k=2, return_eigenvectors=False)
+        expected = np.linalg.eigvalsh(op.mat.T @ op.mat)[-2:]
+        np.testing.assert_allclose(np.sort(vals), expected)

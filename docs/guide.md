@@ -136,10 +136,15 @@ with `name`, `class`, `ishape → oshape`.
 
 ## SciPy compatibility
 
-Any `LinOp` can be passed directly to SciPy functions that accept a
-`LinearOperator` (e.g., `scipy.sparse.linalg.eigsh`, `cg`, `lsqr`). SciPy's
+Any `LinOp` can be used where SciPy expects a `LinearOperator`: SciPy's
 `aslinearoperator` recognises objects that expose `matvec`, `rmatvec`, and
-`shape` — which every `LinOp` does:
+`shape` — which every `LinOp` does. Most functions of `scipy.sparse.linalg`
+(`cg`, `gmres`, `lsqr`, `lsmr`, `svds`, …) call it internally, so a `LinOp` can
+be passed directly.
+
+`eigs` and `eigsh` are exceptions: they read `A.dtype` first, which a `LinOp`
+does not have since its output dtype depends on its input. Wrap the operator
+with `aslinearoperator`, which infers the dtype with one `matvec`:
 
 ```python
 import scipy.sparse.linalg as spla
@@ -147,9 +152,6 @@ import scipy.sparse.linalg as spla
 AtA = spla.aslinearoperator(F)  # wraps F transparently
 vals = spla.eigsh(AtA, k=5, return_eigenvectors=False)
 ```
-
-`LinOp` objects can also be passed directly without the wrapping step to
-functions that call `aslinearoperator` internally.
 
 ## Algebraic operators
 

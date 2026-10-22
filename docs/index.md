@@ -32,7 +32,7 @@ offering only readability and convenience.
 - Array-API compatible — works with NumPy, PyTorch, JAX, and others via
   [array-api-compat](https://data-apis.org/array-api-compat/)
 - Compatible with `scipy.sparse.linalg.LinearOperator` — can also be passed
-  directly as argument
+  directly as argument (wrap it with `aslinearoperator` for `eigs` and `eigsh`)
 - Concrete operators: `Identity`, `Diag`, `DFT`, `RealDFT`, `Conv`,
   `DirectConv`, `CircConv`, `FreqFilter`, `Diff`, `Sampling`, `Slice`,
   wavelet, …

@@ -59,6 +59,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `fcond` works for operators with `isize <= 2` (`eigsh` raised).
 - `unvectorize`, and so `VStack` and `HStack`, work with array API namespaces
   other than numpy.
+- Docs: `scipy.sparse.linalg.eigs` and `eigsh` need `aslinearoperator(A)`,
+  since they read `A.dtype` that a `LinOp` lacks.
 
 ### Changed
 

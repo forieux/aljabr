@@ -173,8 +173,10 @@ All accept an optional `name=` (except `Sampling`, `Slice`). Check shapes with
 ## Solving with SciPy
 
 A `LinOp` exposes `shape`, `matvec`, `rmatvec`, so it can be passed directly
-where SciPy expects a `LinearOperator`. Work on flattened vectors and reshape
-the result yourself.
+where SciPy expects a `LinearOperator` (`cg`, `gmres`, `lsqr`, `lsmr`, `svds`…).
+Exception: `eigs` and `eigsh` read `A.dtype` first, which a `LinOp` lacks: pass
+`spla.aslinearoperator(A)`. Work on flattened vectors and reshape the result
+yourself.
 
 ```python
 import scipy.sparse.linalg as spla
