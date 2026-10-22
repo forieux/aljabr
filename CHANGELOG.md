@@ -12,6 +12,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - type checker annotations fix
 - `LinOp.asmatrix` keeps the dtype returned by the operator.
 - `Identity.asmatrix` honours the `like` dtype and device.
+- `Diag.asmatrix`, `Dense.asmatrix` and `asmatrix(array)` honour the `like`
+  device.
+- `Diag.asmatrix` no longer uses the non-standard `xp.diag`.
+- `Conv.adjoint` and `Slice.adjoint` return arrays on the input device.
 
 ### Removed
 
@@ -22,6 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Add Iterator protocol to HStack and VStack.
+- `device` parameter to `dottest` and `fwadjtest`.
 
 ## [0.5.2] - 2026-05-19
 

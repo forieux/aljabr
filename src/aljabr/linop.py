@@ -491,7 +491,7 @@ def asmatrix(linop: Array | LinOp, like: Array | None = None) -> Array:
     if isinstance(linop, LinOp):
         return linop.asmatrix(like=like)
     if like is not None:
-        return arr_api.get_namespace(like).asarray(linop)
+        return arr_api.get_namespace(like).asarray(linop, device=arr_api.device(like))
     return np.asarray(linop)
 
 
@@ -759,9 +759,9 @@ class Dense(LinOp):
     def asmatrix(self, like: Array | None = None) -> Array:
         if like is None:
             xp = arr_api.get_namespace(self.mat)
-        else:
-            xp = arr_api.get_namespace(like)
-        return xp.asarray(self.mat)
+            return xp.asarray(self.mat)
+        xp = arr_api.get_namespace(like)
+        return xp.asarray(self.mat, device=arr_api.device(like))
 
 
 class ProdOp(LinOp):

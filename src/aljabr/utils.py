@@ -89,6 +89,7 @@ def dottest(
     atol: float = 1e-8,
     echo: bool = False,
     xp=np,
+    device=None,
 ) -> bool:
     """The dot test.
 
@@ -112,6 +113,9 @@ def dottest(
         If True, print the two sides of the equality for each test.
     xp : array namespace, optional
         The array namespace for generating test vectors (default: numpy).
+    device : device, optional
+        The device of the test vectors, as in `xp.asarray` (default: the
+        default device of `xp`).
 
     Returns
     -------
@@ -125,8 +129,8 @@ def dottest(
     """
     test = True
     for _ in range(num):
-        vvec = xp.asarray(randn(linop.isize))
-        uvec = xp.asarray(randn(linop.osize))
+        vvec = xp.asarray(randn(linop.isize), device=device)
+        uvec = xp.asarray(randn(linop.osize), device=device)
         # Use sum instead of more efficient vdot for compatibility with non-NumPy namespaces (e.g. torch)
         lhs = xp.sum(
             xp.conj(xp.reshape(linop.rmatvec(uvec), (-1,))) * xp.reshape(vvec, (-1,))
@@ -147,6 +151,7 @@ def fwadjtest(
     atol: float = 1e-8,
     echo: bool = False,
     xp=np,
+    device=None,
 ) -> bool:
     """Test `fwadj` validity.
 
@@ -170,6 +175,9 @@ def fwadjtest(
         If True, print the two sides of the equality for each test.
     xp : array namespace, optional
         The array namespace for generating test vectors (default: numpy).
+    device : device, optional
+        The device of the test vectors, as in `xp.asarray` (default: the
+        default device of `xp`).
 
     Returns
     -------
@@ -178,7 +186,7 @@ def fwadjtest(
     """
     test = True
     for _ in range(num):
-        vvec = xp.asarray(randn(linop.ishape))
+        vvec = xp.asarray(randn(linop.ishape), device=device)
         i = linop.fwadj(vvec)
         j = linop.adjoint(linop.forward(vvec))
         close = allclose(i, j, rtol=rtol, atol=atol)

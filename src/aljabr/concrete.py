@@ -129,9 +129,13 @@ class Diag(LinOp):
     def asmatrix(self, like: Array | None = None) -> Array:
         if like is None:
             xp = arr_api.get_namespace(self.diag)
+            diag = self.diag
         else:
             xp = arr_api.get_namespace(like)
-        return xp.diag(xp.reshape(self.diag, (-1,)))
+            diag = xp.asarray(self.diag, device=arr_api.device(like))
+        # `diag` is not in the array API standard: scale the identity columns
+        eye = xp.eye(self.isize, dtype=diag.dtype, device=arr_api.device(diag))
+        return eye * xp.reshape(diag, (1, -1))
 
 
 class DFT(LinOp):
@@ -281,7 +285,7 @@ class Conv(LinOp):
 
     def adjoint(self, point: Array) -> Array:
         xp = arr_api.get_namespace(self.freq_resp)
-        out = xp.zeros(self.ishape, dtype=point.dtype)
+        out = xp.zeros(self.ishape, dtype=point.dtype, device=arr_api.device(point))
         if arr_api.is_jax_array(out):
             out = out.at[self._slices].set(point)
         else:
@@ -552,7 +556,7 @@ class Slice(LinOp):
 
     def adjoint(self, point: Array) -> Array:
         xp = arr_api.get_namespace(point)
-        out = xp.zeros(self.ishape, dtype=point.dtype)
+        out = xp.zeros(self.ishape, dtype=point.dtype, device=arr_api.device(point))
         if arr_api.is_jax_array(out):
             out = out.at[self._idx].set(point)
         else:
