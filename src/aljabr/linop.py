@@ -261,11 +261,11 @@ class LinOp(abc.ABC):
     metadata : dict
         Timing information populated automatically after each method call. See
         the guide for details.
-    max_timings : int
-        Class attribute: number of durations kept for each of `forward`,
-        `adjoint` and `fwadj` (the most recent ones). Default 1000.
     """
 
+    #: Number of durations kept in `metadata` for each of `forward`, `adjoint`
+    #: and `fwadj` (the most recent ones). Set it on a class, or on `LinOp`,
+    #: before creating instances.
     max_timings: int = 1000
 
     # let numpy defer to __rmul__ instead of broadcasting element-wise

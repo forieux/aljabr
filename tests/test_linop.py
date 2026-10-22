@@ -641,5 +641,6 @@ def test_pickle_keeps_stack_H_H(clone):
 
 def test_copy_of_adjoint_shares_baseop():
     op = make_dense(4, 3)
-    assert copy.copy(op.H).baseop is op
-    assert copy.deepcopy(op.H).baseop is not op
+    adj = cast(Adjoint, op.H)
+    assert copy.copy(adj).baseop is op
+    assert copy.deepcopy(adj).baseop is not op

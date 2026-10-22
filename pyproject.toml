@@ -74,3 +74,5 @@ project-includes = [
     "**/*.py*",
     "**/*.ipynb",
 ]
+# `conftest` is imported by the tests
+search-path = ["tests"]
