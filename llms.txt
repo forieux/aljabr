@@ -1,0 +1,34 @@
+# aljabr
+
+> aljabr is a small Python (>= 3.12) library of implicit linear operators: linear maps defined by `forward` (A·x) and `adjoint` (Aᴴ·y) callables instead of an explicit matrix. Operators act on arrays of any shape (an image maps to an image), compose with `+`, `-`, `@`, `*`, scalars, `.H` (adjoint) and `.G` (Gram AᴴA), follow the array API standard (NumPy, PyTorch, JAX, … via array-api-compat) and can be passed to `scipy.sparse.linalg` solvers.
+
+Things to know before writing code with aljabr:
+
+- Install with `pip install aljabr` (extras: `aljabr[scipy]` for `DirectConv` and `fcond`, `aljabr[wavelet]` for `DWT`, `Analysis2`, `Synthesis2`). Everything is importable from the top-level package: `import aljabr` or `from aljabr import LinOp, Diff, dottest`.
+- Shapes are fixed at construction (`ishape`, `oshape` are array shapes, not vector lengths). `A.shape == (osize, isize)` is the equivalent matrix shape.
+- A new operator subclasses `LinOp`, calls `super().__init__(ishape, oshape, name=...)` and implements `forward` and `adjoint`; `fwadj` (AᴴA) can be overridden for speed. `BaseOp(forward, adjoint, ishape, oshape)` wraps plain callables instead.
+- `A(x)`, `A * x` and `A.forward(x)` apply A on an `ishape` array; `y * A` applies the adjoint; `A @ x_col` / `A.matvec` / `A.rmatvec` work on `(N, 1)` column vectors.
+- `A.H @ A` and `A.G` return a `Symmetric` operator using the optimized `fwadj`. `2.0 * A` returns `Scaled`; scalars must be Python `int`/`float`/`complex` (NumPy `float32` scalars are treated as arrays).
+- Wrong input/output shapes only emit a `UserWarning` (not an exception). Timings are stored in `A.metadata`.
+- Always validate a hand-written operator with `dottest(A)` (adjoint correctness) and `fwadjtest(A)` (custom `fwadj`).
+- aljabr provides no solvers and no `A / y`: use your own algorithm or `scipy.sparse.linalg` (`cg`, `lsqr`, `eigsh`, …).
+- Pre-alpha: the API may change.
+
+## Docs
+
+- [README](https://raw.githubusercontent.com/forieux/aljabr/main/README.md): overview, installation, quick example, comparison with SciPy `LinearOperator` and PyLops
+- [User guide](https://raw.githubusercontent.com/forieux/aljabr/main/docs/guide.md): subclassing `LinOp`, shapes, algebra (`+`, `-`, `*`, `@`), adjoint and Gram operators, `BaseOp`, SciPy interop, `asmatrix`, timing and shape checks, array API backends
+- [LLM skill](https://raw.githubusercontent.com/forieux/aljabr/main/skills/aljabr/SKILL.md): condensed usage guide for coding agents, with the full API cheat sheet and pitfalls
+- [HTML documentation](https://aljabr.readthedocs.io/): rendered guide and API reference
+
+## API
+
+- [linop.py](https://raw.githubusercontent.com/forieux/aljabr/main/src/aljabr/linop.py): `LinOp`, `BaseOp`, `Adjoint`, `Scaled`, `Symmetric`, `Dense`, `ProdOp`, `AddOp`, `SubOp`, `VStack`, `HStack`, `asmatrix`, `vectorize`, `unvectorize`
+- [concrete.py](https://raw.githubusercontent.com/forieux/aljabr/main/src/aljabr/concrete.py): `Identity`, `Diag`, `DFT`, `RealDFT`, `Conv`, `DirectConv`, `FreqFilter`, `CircConv`, `Diff`, `Sampling`, `Slice`, `DWT`, `Analysis2`, `Synthesis2`
+- [utils.py](https://raw.githubusercontent.com/forieux/aljabr/main/src/aljabr/utils.py): `dottest`, `fwadjtest`, `allclose`, `herm`, `is_sym`, `is_pos_def`, `is_semi_pos_def`, `is_neg_def`, `is_semi_neg_def`, `cond`, `fcond`
+
+## Optional
+
+- [Tests for linop](https://raw.githubusercontent.com/forieux/aljabr/main/tests/test_linop.py): executable examples of the base classes and algebra
+- [Tests for concrete operators](https://raw.githubusercontent.com/forieux/aljabr/main/tests/test_concrete.py): executable examples of each concrete operator
+- [Changelog](https://raw.githubusercontent.com/forieux/aljabr/main/CHANGELOG.md): version history

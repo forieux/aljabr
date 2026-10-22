@@ -23,6 +23,7 @@ source_suffix = {".rst": "restructuredtext", ".md": "markdown"}
 
 html_theme = "furo"
 html_static_path = ["_static"]
+html_extra_path = ["../llms.txt"]
 
 napoleon_numpy_docstring = True
 napoleon_google_docstring = False
