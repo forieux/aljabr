@@ -1,0 +1,32 @@
+{
+  "name": "aljabr",
+  "description": "Agent skill for aljabr, implicit linear operators in Python",
+  "owner": {
+    "name": "François Orieux",
+    "url": "https://pro.orieux.fr/"
+  },
+  "plugins": [
+    {
+      "name": "aljabr",
+      "source": ".",
+      "description": "Skill to write correct code with the aljabr library: implicit linear operators defined by forward and adjoint, their algebra, and tests",
+      "author": {
+        "name": "François Orieux"
+      },
+      "homepage": "https://aljabr.readthedocs.io/",
+      "repository": "https://github.com/forieux/aljabr",
+      "license": "MIT",
+      "keywords": [
+        "linear-operator",
+        "adjoint",
+        "inverse-problems",
+        "array-api",
+        "python"
+      ],
+      "category": "scientific-computing",
+      "skills": [
+        "./skills/aljabr"
+      ]
+    }
+  ]
+}

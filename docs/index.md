@@ -107,6 +107,19 @@ utils
 Pre-Alpha. The API may change. Feedback welcome:
 <francois.orieux@universite-paris-saclay.fr>
 
+## Use with AI agents
+
+- [`llms.txt`](https://aljabr.readthedocs.io/en/stable/llms.txt) follows the
+  [llms.txt](https://llmstxt.org/) proposal and gives agents a map of the
+  documentation.
+- [`skills/aljabr`](https://github.com/forieux/aljabr/blob/main/skills/aljabr/SKILL.md) is an [Agent Skill](https://agentskills.io) that teaches agents the conventions of aljabr. In Claude Code, install it from this repository, which is also a plugin marketplace:
+  ```
+  /plugin install aljabr --marketplace forieux/aljabr
+  ```
+  or with `/plugin marketplace add forieux/aljabr` then `/plugin install
+  aljabr@aljabr`. For other agents, copy the `skills/aljabr` directory into their
+  skills directory.
+
 ## How AI is used
 
 This project is not vibecoded. But with performant AI agents, I use them for bug
