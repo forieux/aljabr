@@ -116,6 +116,7 @@ Subclasses are automatically instrumented: `forward`, `adjoint`, `fwadj` emit a
 `UserWarning` on wrong input/output shapes, and timings go to
 `A.metadata["init"]` (float) and `A.metadata["forward" | "adjoint" | "fwadj"]`
 (`deque` of the last `max_timings`, default 1000, durations). Do not reimplement these.
+A `forward` that calls `super().forward` adds two durations per call.
 
 **Always validate** a new operator:
 

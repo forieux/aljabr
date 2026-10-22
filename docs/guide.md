@@ -277,6 +277,11 @@ methods.
 Both decorators are applied transparently — you do not need to do anything in
 your subclass.
 
+They wrap the methods of every class that defines them. If your `forward`
+calls `super().forward(x)` of a parent operator, both are wrapped: each call
+then adds two durations to `metadata["forward"]` (the inner and the total one)
+and checks the shapes twice. The result is unaffected, only the timings are.
+
 ## `BaseOp` — defining an operator without subclassing
 
 Instead of subclassing you can use `BaseOp` with a pair of callables
