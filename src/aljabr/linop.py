@@ -37,6 +37,7 @@ import math
 import numbers
 import time
 import warnings
+from collections import deque
 from collections.abc import Callable, Iterator, Sequence
 from functools import wraps
 from typing import Any
@@ -167,9 +168,9 @@ def timeit(func: Callable) -> Callable:
             not hasattr(self, "metadata") or self.metadata.get("init") is None
         )
 
-        timestamp = time.time()
+        timestamp = time.perf_counter()
         out = func(*args, **kwargs)
-        duration = time.time() - timestamp
+        duration = time.perf_counter() - timestamp
         fname: str = func.__name__  # ty: ignore[unresolved-attribute]
 
         if fname == "__init__":
@@ -257,7 +258,12 @@ class LinOp(abc.ABC):
     metadata : dict
         Timing information populated automatically after each method call. See
         the guide for details.
+    max_timings : int
+        Class attribute: number of durations kept for each of `forward`,
+        `adjoint` and `fwadj` (the most recent ones). Default 1000.
     """
+
+    max_timings: int = 1000
 
     # let numpy defer to __rmul__ instead of broadcasting element-wise
     __array_ufunc__ = None
@@ -283,9 +289,10 @@ class LinOp(abc.ABC):
 
         self.metadata: dict = {
             "init": None,
-            "forward": [],
-            "adjoint": [],
-            "fwadj": [],
+            # Bounded: iterative algorithms may call them millions of times
+            "forward": deque(maxlen=self.max_timings),
+            "adjoint": deque(maxlen=self.max_timings),
+            "fwadj": deque(maxlen=self.max_timings),
         }
 
     @property

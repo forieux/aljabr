@@ -81,6 +81,13 @@ class TestLinOpShapes:
         op.forward(np.ones(3))
         assert len(op.metadata["forward"]) == 1
 
+    def test_metadata_bounded(self, monkeypatch):
+        monkeypatch.setattr(LinOp, "max_timings", 3)
+        op = make_dense(4, 3)
+        for _ in range(5):
+            op.forward(np.ones(3))
+        assert len(op.metadata["forward"]) == 3
+
     def test_input_is_positional_only(self):
         # Subclasses are free to name the input, so it cannot be a keyword
         op = make_dense(4, 3)

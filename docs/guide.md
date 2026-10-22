@@ -253,16 +253,20 @@ methods.
 
 - **`timeit`** — wraps `__init__`, `forward`, `adjoint`, and `fwadj`. After
   each call the elapsed time is stored in the `metadata` dict on the instance.
-  `forward` and `adjoint` also accumulate a full history in lists:
+  `forward`, `adjoint` and `fwadj` keep the durations of their last
+  `max_timings` calls (1000 by default) in a `collections.deque`:
 
   ```python
   F = FFT2((256, 256))
   y = F.forward(x)
   print(F.metadata["init"])  # construction time (seconds)
-  print(F.metadata["forward"])  # [t1, t2, …] — all calls
+  print(F.metadata["forward"])  # deque([t1, t2, …]) — last calls
   print(F.metadata["forward"][-1])  # seconds, last call
   print(F.metadata["adjoint"])  # same for adjoint
   ```
+
+  Set `max_timings` on a class, or on `LinOp` for all, before creating
+  instances to keep more or fewer durations.
 
 - **`checkshape`** — wraps `forward`, `adjoint`, and `fwadj`. Emits a
   `UserWarning` if an input or output array has the wrong shape. This catches

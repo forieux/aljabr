@@ -34,11 +34,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `Sampling.adjoint` keeps the input dtype.
 - `FreqFilter` docstring: the operator acts on the half-spectrum.
 - `Slice` no longer allocates an `ishape` array to infer `oshape`.
+- Timings use `time.perf_counter`.
 
 ### Changed
 
 - `FreqFilter` parameter `ishape` renamed `shape`: it is the direct-space
   shape, not the operator `ishape`.
+- `metadata["forward" | "adjoint" | "fwadj"]` is a `deque` of the last
+  `LinOp.max_timings` (1000) durations instead of an unbounded list.
 
 ### Removed
 
