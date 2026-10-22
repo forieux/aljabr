@@ -231,9 +231,9 @@ class Conv(LinOp):
     Parameters
     ----------
     ir : Array
-        The impulse response, on its last `dim` axes. Leading axes, if any, are
-        batch axes broadcast against the batch axes of the input. The namespace
-        is inferred from this array.
+        The real impulse response, on its last `dim` axes. Leading axes, if
+        any, are batch axes broadcast against the batch axes of the input. The
+        namespace is inferred from this array.
     ishape : tuple of int
         The shape of the input. Images are on the last `dim` axes.
     dim : int
@@ -255,6 +255,7 @@ class Conv(LinOp):
     ValueError
         If `ir` has less than `dim` axes, if its batch axes do not broadcast to
         the input ones, or if it is larger than the input on a convolved axis.
+        If `ir` is complex (from `udft.ir2fr`).
 
     Notes
     -----
@@ -263,6 +264,9 @@ class Conv(LinOp):
     condition with zero filling.
 
     Uses the array namespace of the impulse response.
+
+    The operator is real, on the half-spectrum: `ir` and the input must be
+    real. For a complex `ir`, use `DirectConv`.
 
     """
 
@@ -426,7 +430,7 @@ class FreqFilter(Diag):
     Parameters
     ----------
     ir : Array
-        The impulse response.
+        The real impulse response.
     shape : tuple of int
         The shape of the real array in direct space, used to compute the
         frequency response. It is not the `ishape` of the operator: see Notes.
@@ -437,6 +441,12 @@ class FreqFilter(Diag):
     ----------
     diag : Array
         The frequency response of the filter, from `udft.ir2fr(ir, shape)`.
+
+    Raises
+    ------
+    ValueError
+        If `ir` is complex (from `udft.ir2fr`). On the full spectrum of
+        `udft.dftn`, use ``Diag(udft.ir2fr(ir, shape, real=False))``.
 
     Notes
     -----
@@ -459,8 +469,8 @@ class CircConv(LinOp):
     Parameters
     ----------
     imp_resp : Array
-        The impulse response, with the same number of dimensions as `shape`.
-        Its origin is at the center (see `udft.ir2fr`).
+        The real impulse response, with the same number of dimensions as
+        `shape`. Its origin is at the center (see `udft.ir2fr`).
     shape : tuple of int
         Shape of the input and output arrays.
     name : str, optional
@@ -476,7 +486,9 @@ class CircConv(LinOp):
     ValueError
         If ``imp_resp.ndim != len(shape)``. A 1D convolution of a 2D array,
         for instance, needs an `imp_resp` of shape ``(1, K)``. Or if
-        `imp_resp` is larger than `shape` on an axis.
+        `imp_resp` is larger than `shape` on an axis. If `imp_resp` is complex
+        (from `udft.ir2fr`): use ``F.H @ Diag(udft.ir2fr(imp_resp, shape,
+        real=False)) @ F`` with ``F = DFT(shape, len(shape))``.
     """
 
     def __init__(self, imp_resp: Array, shape: Shape, name: str = "CConv"):

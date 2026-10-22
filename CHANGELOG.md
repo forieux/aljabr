@@ -19,7 +19,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `is_*` correctly handle hermitian matrix.
 - `is_pos_def` docstring: broken LaTeX (`\f` escape).
 - `Conv` with an even kernel size
-- require `udft>=4.1.0` for correct normalisation
+- require `udft>=5.0.0` for correct normalisation. `Conv`, `CircConv` and
+  `FreqFilter` raise `ValueError` for a complex `ir`.
 - `Conv` with batch axes in `ir` (e.g. one kernel per channel)
 - `RealDFT` docstring: its adjoint is the inverse
 - `DWT`, `Analysis2` and `Synthesis2` raise `ValueError` for non-orthogonal

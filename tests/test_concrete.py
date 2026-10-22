@@ -618,3 +618,31 @@ def test_kernel_as_large_as_input(make):
     assert op.oshape == (6, 1)
     assert op.forward(RNG.standard_normal(op.ishape)).shape == op.oshape
     assert dottest(op, num=3)
+
+
+# ---------------------------------------------------------------------------
+# Complex impulse response
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "make",
+    [
+        lambda ir: Conv(ir, (8, 8), 2),
+        lambda ir: CircConv(ir, (8, 8)),
+        lambda ir: FreqFilter(ir, (8, 8)),
+    ],
+    ids=["Conv", "CircConv", "FreqFilter"],
+)
+def test_complex_ir_raises(make):
+    with pytest.raises(ValueError):
+        make(RNG.standard_normal((3, 3)) + 1j * RNG.standard_normal((3, 3)))
+
+
+def test_complex_circ_conv_on_full_spectrum():
+    # The alternative to `CircConv` for a complex `ir`, given in its docstring
+    shape = (8, 8)
+    ir = RNG.standard_normal((3, 3)) + 1j * RNG.standard_normal((3, 3))
+    F = DFT(shape, len(shape))
+    op = F.H @ Diag(udft.ir2fr(ir, shape, real=False)) @ F
+    assert dottest(op, num=3)

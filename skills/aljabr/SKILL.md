@@ -136,10 +136,10 @@ device, e.g. `device="cuda"` for an operator on GPU).
 | `Diag` | `(diag)` | element-wise product, `diag.shape → diag.shape` |
 | `DFT` | `(shape, ndim)` | unitary DFT on last `ndim` axes, complex output, `fwadj` = identity |
 | `RealDFT` | `(shape, ndim)` | `DFT` of a real input on the half spectrum, last axis → `n // 2 + 1`; adjoint = inverse, **not** the standard adjoint (see pitfalls) |
-| `Conv` | `(ir, ishape, dim)` | FFT convolution on last `dim` axes, **"valid"** output (`n - k + 1`); adjoint is "full" |
-| `DirectConv` | `(ir, ishape)` | same as `Conv` with `scipy.signal.oaconvolve`; NumPy only, needs scipy |
-| `CircConv` | `(imp_resp, shape)` | periodic convolution, `shape → shape`; `imp_resp.ndim == len(shape)` (e.g. `(1, K)` for 1D on 2D) |
-| `FreqFilter` | `(ir, shape)` | `Diag` on the half-spectrum (`udft.rdftn`) from an impulse response; `shape` is the direct-space shape, the operator's `ishape` is `shape[:-1] + (shape[-1] // 2 + 1,)` (use `Diag` if you already have the frequency response) |
+| `Conv` | `(ir, ishape, dim)` | FFT convolution on last `dim` axes, real `ir`, **"valid"** output (`n - k + 1`); adjoint is "full" |
+| `DirectConv` | `(ir, ishape)` | same as `Conv` with `scipy.signal.oaconvolve`, complex `ir` allowed; NumPy only, needs scipy |
+| `CircConv` | `(imp_resp, shape)` | periodic convolution, `shape → shape`, real `imp_resp`; `imp_resp.ndim == len(shape)` (e.g. `(1, K)` for 1D on 2D) |
+| `FreqFilter` | `(ir, shape)` | `Diag` on the half-spectrum (`udft.rdftn`) from a real impulse response; `shape` is the direct-space shape, the operator's `ishape` is `shape[:-1] + (shape[-1] // 2 + 1,)` (use `Diag` if you already have the frequency response) |
 | `Diff` | `(axis, ishape)` | first-order difference, `oshape[axis] = ishape[axis] - 1` |
 | `Slice` | `(ishape, idx)` | `x[idx]`, build `idx` with `np.index_exp[::2, 1]`; adjoint zero-fills |
 | `Sampling` | `(ishape, index)` | NumPy fancy indexing, `index` = one int array per axis (broadcast, negatives allowed); adjoint accumulates repeated indices; NumPy only |
