@@ -538,7 +538,12 @@ class Diff(LinOp):
              0  0  1
         """
         xp = arr_api.get_namespace(point)
-        return -xp.diff(point, prepend=0, append=0, axis=self.axis)
+        # `prepend` and `append` must be arrays (array API), with the dtype of
+        # `point` (a Python 0 is cast to int64 by numpy, then float32 → float64)
+        shape = list(point.shape)
+        shape[self.axis] = 1
+        zero = xp.zeros(tuple(shape), dtype=point.dtype, device=arr_api.device(point))
+        return -xp.diff(point, prepend=zero, append=zero, axis=self.axis)
 
 
 class Sampling(LinOp):

@@ -196,6 +196,21 @@ class TestDiff:
     def test_dottest_2d(self):
         assert dottest(Diff(axis=1, ishape=(4, 6)), num=5)
 
+    @pytest.mark.parametrize(
+        "dtype", [np.float32, np.float64, np.complex64, np.complex128]
+    )
+    @pytest.mark.parametrize("axis", [0, -1])
+    def test_adjoint_keeps_dtype(self, dtype, axis):
+        op = Diff(axis=axis, ishape=(4, 6))
+        y = RNG.standard_normal(op.oshape).astype(dtype)
+        out = op.adjoint(y)
+        assert out.dtype == dtype
+        np.testing.assert_allclose(
+            out,
+            -np.diff(y.astype(np.complex128), prepend=0, append=0, axis=axis),
+            rtol=1e-6,
+        )
+
 
 # ---------------------------------------------------------------------------
 # Slice

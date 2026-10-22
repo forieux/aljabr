@@ -32,6 +32,12 @@ class TestAdjointDevice:
         out = op.adjoint(on_device(RNG.standard_normal(op.oshape)))
         assert arr_api.device(out) == DEVICE
 
+    def test_diff(self):
+        op = Diff(0, (5, 3))
+        out = op.adjoint(on_device(RNG.standard_normal(op.oshape)))
+        assert arr_api.device(out) == DEVICE
+        assert dottest(op, xp=xp, device=DEVICE)
+
     @pytest.mark.xfail(strict=True, reason="udft.ir2fr ignores the ir device")
     def test_conv(self):
         op = Conv(on_device(np.ones((3, 3)) / 9), (8, 8), dim=2)
