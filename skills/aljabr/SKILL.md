@@ -141,8 +141,8 @@ device, e.g. `device="cuda"` for an operator on GPU).
 | `Diff` | `(axis, ishape)` | first-order difference, `oshape[axis] = ishape[axis] - 1` |
 | `Slice` | `(ishape, idx)` | `x[idx]`, build `idx` with `np.index_exp[::2, 1]`; adjoint zero-fills |
 | `Sampling` | `(ishape, index)` | NumPy fancy indexing, `index` = tuple of int arrays; adjoint accumulates repeated indices; NumPy only |
-| `DWT` | `(shape, level=None, wavelet="haar")` | unitary nD wavelet transform (periodization); needs pywt |
-| `Analysis2` | `(shape, level, wavelet="haar")` | 2D stationary wavelet analysis, `(H, W) → (3·level+1, H, W)`; needs pywt |
+| `DWT` | `(shape, level=None, wavelet="haar")` | unitary nD wavelet transform (periodization); orthogonal wavelets only (haar, dbN, symN, coifN); every size divisible by `2**level` (default: largest valid level); needs pywt |
+| `Analysis2` | `(shape, level, wavelet="haar")` | 2D stationary wavelet analysis, `(H, W) → (3·level+1, H, W)`; orthogonal wavelets only; needs pywt |
 | `Synthesis2` | `(shape, level, wavelet="haar")` | adjoint of `Analysis2`, `(3·level+1, H, W) → (H, W)` |
 
 All accept an optional `name=` (except `Sampling`, `Slice`). Check shapes with

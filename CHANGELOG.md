@@ -22,6 +22,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - require `udft>=4.1.0` for correct normalisation
 - `Conv` with batch axes in `ir` (e.g. one kernel per channel)
 - `RealDFT` docstring: its adjoint is the inverse
+- `DWT`, `Analysis2` and `Synthesis2` raise `ValueError` for non-orthogonal
+  wavelets.
+- `DWT` raises `ValueError` if `shape` is not divisible by `2**level` (wrong
+  number of coefficients). The default level is the largest compatible one.
 
 ### Removed
 

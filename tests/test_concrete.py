@@ -1,9 +1,13 @@
+import importlib.util
+
 import numpy as np
 import pytest
 from conftest import RNG
 
 from aljabr.concrete import (
     DFT,
+    DWT,
+    Analysis2,
     CircConv,
     Conv,
     Diag,
@@ -12,8 +16,13 @@ from aljabr.concrete import (
     RealDFT,
     Sampling,
     Slice,
+    Synthesis2,
 )
 from aljabr.utils import dottest, fwadjtest
+
+needs_pywt = pytest.mark.skipif(
+    importlib.util.find_spec("pywt") is None, reason="pywavelets not installed"
+)
 
 # ---------------------------------------------------------------------------
 # Identity
@@ -316,3 +325,62 @@ def valid_conv(x: np.ndarray, ir: np.ndarray) -> np.ndarray:
     """Reference "valid" convolution: Σₖ h[k]·x[m + K-1 - k]."""
     windows = np.lib.stride_tricks.sliding_window_view(x, ir.shape)
     return np.tensordot(windows, np.flip(ir), axes=ir.ndim)
+
+
+# ---------------------------------------------------------------------------
+# Wavelets
+# ---------------------------------------------------------------------------
+
+
+@needs_pywt
+class TestWavelets:
+    @pytest.mark.parametrize("wavelet", ["haar", "db2", "sym4"])
+    def test_dwt_orthogonal(self, wavelet):
+        op = DWT((64,), level=2, wavelet=wavelet)
+        assert dottest(op, num=3)
+        assert fwadjtest(op, num=3)
+
+    @pytest.mark.parametrize("wavelet", ["haar", "db2"])
+    def test_swt_orthogonal(self, wavelet):
+        assert dottest(Analysis2((32, 32), 2, wavelet), num=3)
+        assert dottest(Synthesis2((32, 32), 2, wavelet), num=3)
+
+    @pytest.mark.parametrize("wavelet", ["bior2.2", "rbio3.3"])
+    @pytest.mark.parametrize(
+        "make",
+        [
+            lambda w: DWT((64,), level=2, wavelet=w),
+            lambda w: Analysis2((32, 32), 2, w),
+            lambda w: Synthesis2((32, 32), 2, w),
+        ],
+        ids=["DWT", "Analysis2", "Synthesis2"],
+    )
+    def test_non_orthogonal_raises(self, make, wavelet):
+        with pytest.raises(ValueError, match="not orthogonal"):
+            make(wavelet)
+
+    @pytest.mark.parametrize(
+        ("shape", "level"), [((12,), 2), ((10,), 1), ((48, 64), 4)]
+    )
+    def test_dwt_divisible_level(self, shape, level):
+        op = DWT(shape, level=level)
+        assert op.forward(RNG.standard_normal(shape)).shape == op.oshape
+        assert dottest(op, num=3)
+        assert fwadjtest(op, num=3)
+
+    @pytest.mark.parametrize(("shape", "level"), [((10,), 2), ((9,), 1), ((12, 10), 2)])
+    def test_dwt_non_divisible_level_raises(self, shape, level):
+        with pytest.raises(ValueError, match="divisible"):
+            DWT(shape, level=level)
+
+    @pytest.mark.parametrize(
+        ("shape", "level"), [((64,), 6), ((48,), 4), ((48, 64), 4), ((12,), 2)]
+    )
+    def test_dwt_default_level(self, shape, level):
+        op = DWT(shape)
+        assert op.lvl == level
+        assert dottest(op, num=3)
+
+    def test_dwt_default_level_odd_size_raises(self):
+        with pytest.raises(ValueError, match="no decomposition level"):
+            DWT((9,))

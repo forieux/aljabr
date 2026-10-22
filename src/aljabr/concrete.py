@@ -603,6 +603,20 @@ class Slice(LinOp):
         return out
 
 
+def _check_orthogonal(wavelet: str, pywt_module: types.ModuleType) -> None:
+    """Raise `ValueError` if `wavelet` is not orthogonal.
+
+    The inverse transform of pywt is the adjoint only for orthogonal wavelets.
+    For biorthogonal ones (`biorX.Y`, `rbioX.Y`) the synthesis filters differ
+    from the analysis ones, so the inverse is not the adjoint.
+    """
+    if not pywt_module.Wavelet(wavelet).orthogonal:
+        raise ValueError(
+            f"wavelet {wavelet!r} is not orthogonal: its inverse transform is "
+            "not the adjoint. Use an orthogonal family (haar, dbN, symN, coifN)."
+        )
+
+
 class DWT(LinOp):
     """Unitary Discrete Wavelet Transform.
 
@@ -611,11 +625,19 @@ class DWT(LinOp):
     shape : tuple of int
         The input shape.
     level : int, optional
-        The decomposition level.
+        The decomposition level. All sizes of `shape` must be divisible by
+        `2**level`. Defaults to the largest level allowed by `shape` and the
+        wavelet filter length.
     wavelet : str, optional
-        The wavelet to use.
+        The wavelet to use. Must be orthogonal.
     name : str, optional
         Name of the operator.
+
+    Raises
+    ------
+    ValueError
+        If `wavelet` is not orthogonal, or if a size of `shape` is not
+        divisible by `2**level`.
 
     Attributes
     ----------
@@ -639,6 +661,24 @@ class DWT(LinOp):
         if pywt is None:
             raise ImportError("pywt is required for DWT")
         self._pywt = pywt
+        _check_orthogonal(wavelet, self._pywt)
+
+        # With periodization, each level halves the approximation. There are as
+        # many coefficients as samples, and the transform is orthogonal, only if
+        # every size stays even, that is is divisible by 2**level.
+        dyadic = min((n & -n).bit_length() - 1 for n in shape)  # powers of 2
+        if level is None:
+            level = min(self._pywt.dwtn_max_level(shape, wavelet), dyadic)
+            if level == 0:
+                raise ValueError(
+                    f"no decomposition level is possible for `shape` {shape} "
+                    f"with wavelet {wavelet!r} (odd or too small size)"
+                )
+        elif any(n % 2**level for n in shape):
+            raise ValueError(
+                f"all sizes of `shape` {shape} must be divisible by "
+                f"2**level = {2**level}"
+            )
 
         super().__init__(shape, shape, name=name)
 
@@ -679,9 +719,14 @@ class Analysis2(LinOp):
     level : int
         The decomposition level.
     wavelet : str, optional
-        The wavelet to use.
+        The wavelet to use. Must be orthogonal.
     name : str, optional
         Name of the operator.
+
+    Raises
+    ------
+    ValueError
+        If `wavelet` is not orthogonal.
 
     Notes
     -----
@@ -703,6 +748,7 @@ class Analysis2(LinOp):
         if pywt is None:
             raise ImportError("pywt is required for Analysis2")
         self._pywt = pywt
+        _check_orthogonal(wavelet, self._pywt)
 
         super().__init__(shape, (3 * level + 1,) + shape, name=name)
         self.wlt = wavelet
@@ -793,9 +839,14 @@ class Synthesis2(LinOp):
     level : int
         The decomposition level.
     wavelet : str, optional
-        The wavelet to use.
+        The wavelet to use. Must be orthogonal.
     name : str, optional
         Name of the operator.
+
+    Raises
+    ------
+    ValueError
+        If `wavelet` is not orthogonal.
     """
 
     def __init__(
