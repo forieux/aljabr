@@ -492,6 +492,17 @@ class TestWavelets:
         assert dottest(Analysis2((32, 32), 2, wavelet), num=3)
         assert dottest(Synthesis2((32, 32), 2, wavelet), num=3)
 
+    @pytest.mark.parametrize("shape", [(8,), (1, 8, 8), (2, 8, 8)])
+    @pytest.mark.parametrize("make", [Analysis2, Synthesis2])
+    def test_swt_not_2d_raises(self, make, shape):
+        with pytest.raises(ValueError, match="must be 2D"):
+            make(shape, 1)
+
+    def test_cube2coeffs_inverts_coeffs2cube(self):
+        op = Analysis2((8, 8), 2, "db2")
+        cube = op.forward(RNG.standard_normal(op.ishape))
+        np.testing.assert_array_equal(op.coeffs2cube(op.cube2coeffs(cube)), cube)
+
     @pytest.mark.parametrize("wavelet", ["haar", "db2"])
     def test_synthesis_irs(self, wavelet):
         op = Synthesis2((8, 8), 1, wavelet)

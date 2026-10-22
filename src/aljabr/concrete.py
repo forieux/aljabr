@@ -828,7 +828,7 @@ class Analysis2(LinOp):
     Raises
     ------
     ValueError
-        If `wavelet` is not orthogonal.
+        If `wavelet` is not orthogonal, or if `shape` is not 2D.
 
     Notes
     -----
@@ -853,6 +853,8 @@ class Analysis2(LinOp):
         _check_orthogonal(wavelet, self._pywt)
 
         shape = tuple(shape)  # tuple concatenation below, `shape` may be a list
+        if len(shape) != 2:
+            raise ValueError(f"`shape` {shape} must be 2D")
         super().__init__(shape, (3 * level + 1,) + shape, name=name)
         self.wlt = wavelet
         self.lvl = level
@@ -869,15 +871,12 @@ class Analysis2(LinOp):
 
     def cube2coeffs(self, point: Array) -> list:
         """Return pywt coefficients from 3D array."""
-        split = np.split(point, 3 * self.lvl + 1, axis=0)
-        coeffs_list: list = [np.squeeze(split[0])]
+        # Indexing, not `np.squeeze`, that would also remove a spatial axis of
+        # size 1
+        coeffs_list: list = [point[0]]
         for lvl in range(self.lvl):
             coeffs_list.append(
-                [
-                    np.squeeze(split[3 * lvl + 1]),
-                    np.squeeze(split[3 * lvl + 2]),
-                    np.squeeze(split[3 * lvl + 3]),
-                ]
+                [point[3 * lvl + 1], point[3 * lvl + 2], point[3 * lvl + 3]]
             )
         return coeffs_list
 
@@ -951,7 +950,7 @@ class Synthesis2(LinOp):
     Raises
     ------
     ValueError
-        If `wavelet` is not orthogonal.
+        If `wavelet` is not orthogonal, or if `shape` is not 2D.
     """
 
     def __init__(
