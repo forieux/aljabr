@@ -50,6 +50,7 @@ docs = [
 
 [dependency-groups]
 dev = [
+    "array-api-strict>=2.6.1",
     "ipython>=9.9.0",
     "pyrefly>=1.0.0",
     "pytest>=8",
