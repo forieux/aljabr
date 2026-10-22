@@ -14,6 +14,7 @@ from aljabr.linop import (
     Symmetric,
     VStack,
     asmatrix,
+    is_scalar,
     unvectorize,
     vectorize,
 )
@@ -426,6 +427,19 @@ class TestHStack:
         assert dottest(HStack([make_dense(3, 2), make_dense(3, 4)]), num=5)
 
 
+# Python, NumPy and 0-d array scalars that must scale an operator
+SCALARS = (
+    2,
+    2.0,
+    2 + 1j,
+    np.float32(2),
+    np.float64(2),
+    np.int64(2),
+    np.complex64(2 + 1j),
+    np.array(2.0),
+)
+
+
 # ---------------------------------------------------------------------------
 # Operator overloads
 # ---------------------------------------------------------------------------
@@ -444,6 +458,34 @@ class TestOperatorOverloads:
 
     def test_rmul_scalar_is_scaled(self):
         assert isinstance(2.0 * make_dense(4, 3), Scaled)
+
+    @pytest.mark.parametrize("scalar", SCALARS, ids=repr)
+    def test_scalar_left_and_right_is_scaled(self, scalar):
+        op = make_dense(4, 3)
+        x = RNG.standard_normal(3)
+        for scaled in (scalar * op, op * scalar, scalar @ op, op @ scalar):
+            assert isinstance(scaled, Scaled)
+            np.testing.assert_allclose(scaled.forward(x), scalar * op.forward(x))
+        assert dottest(scalar * op, num=3)
+
+    @pytest.mark.parametrize("scalar", SCALARS, ids=repr)
+    def test_is_scalar(self, scalar):
+        assert is_scalar(scalar)
+        assert is_scalar(scalar, shape=(3,))
+
+    @pytest.mark.parametrize("value", [np.ones(1), np.ones((2, 2)), [2.0], "2"])
+    def test_is_not_scalar(self, value):
+        assert not is_scalar(value)
+
+    def test_zero_dim_array_is_not_scalar_for_zero_dim_shape(self):
+        assert not is_scalar(np.array(2.0), shape=())
+        assert is_scalar(2.0, shape=())
+
+    def test_zero_dim_array_is_operand_for_zero_dim_operator(self):
+        # An operator on 0-d arrays applies to them instead of being scaled
+        op = BaseOp(lambda x: 2 * x, lambda y: 3 * y, ishape=(), oshape=())
+        assert op * np.array(5.0) == 10.0
+        assert np.array(5.0) * op == 15.0
 
     def test_matmul_column_is_matvec(self):
         op = make_dense(4, 3)

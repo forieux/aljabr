@@ -175,11 +175,17 @@ When the right operand is an **array**, `*` applies the operator:
 y = F * x  # F.forward(x), same as F(x)
 ```
 
-When the right operand is a **scalar**, `*` returns a scaled operator:
+When the other operand is a **scalar**, on either side, `*` returns a scaled
+operator:
 
 ```python
 G = 2.0 * F  # Scaled — G.forward(x) = 2 * F.forward(x)
+G = F * 2.0  # same
 ```
+
+Python scalars, NumPy scalars (like `np.float32`), and 0-d arrays (like a
+PyTorch or JAX scalar) are all scalars, except a 0-d array for an operator
+whose `ishape` (or `oshape` for the adjoint) is `()`: it is then an operand.
 
 When the right operand is a **LinOp**, `*` returns a composition:
 

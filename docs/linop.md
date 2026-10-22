@@ -64,4 +64,6 @@
 .. autofunction:: aljabr.linop.unvectorize
 
 .. autofunction:: aljabr.linop.asmatrix
+
+.. autofunction:: aljabr.linop.is_scalar
 ```

@@ -34,6 +34,7 @@ from __future__ import annotations
 
 import abc
 import math
+import numbers
 import time
 import warnings
 from collections.abc import Callable, Iterator, Sequence
@@ -61,6 +62,7 @@ __all__ = [
     "Symmetric",
     "VStack",
     "asmatrix",
+    "is_scalar",
     "unvectorize",
     "vectorize",
 ]
@@ -106,6 +108,32 @@ def unvectorize(point: Array, shapes: Sequence[Shape]) -> list[Array]:
     xp = arr_api.get_namespace(point)
     idxs: list[int] = np.cumsum([0] + [int(np.prod(s)) for s in shapes]).tolist()
     return [xp.reshape(point[idxs[i] : idxs[i + 1]], s) for i, s in enumerate(shapes)]
+
+
+def is_scalar(value: Any, shape: Shape | None = None) -> bool:
+    """Return True if `value` is a scalar that scales an operator.
+
+    This is the rule used by `*` and `@` to return a `Scaled` operator instead
+    of applying the operator.
+
+    Parameters
+    ----------
+    value : Any
+        The candidate scalar.
+    shape : tuple of int, optional
+        The shape of the arrays the operator acts on. If `()`, a 0-d array is
+        an operand, not a scalar.
+
+    Returns
+    -------
+    bool
+        True for Python and NumPy scalars (`numbers.Number`, including
+        `np.float32`) and for 0-d arrays (e.g. a PyTorch or JAX scalar) unless
+        `shape == ()`.
+    """
+    if isinstance(value, numbers.Number):
+        return True
+    return getattr(value, "ndim", None) == 0 and shape != ()
 
 
 def timeit(func: Callable) -> Callable:
@@ -398,13 +426,16 @@ class LinOp(abc.ABC):
         raise TypeError("the operand must be a linear operator")
 
     def __mul__(self, value: Array | LinOp) -> Array | LinOp:
-        """Left multiply `*` a LinOp or array.
+        """Left multiply `*` a LinOp, scalar or array.
 
-        If `value` is a `LinOp`, return a `ProdOp`. Else return `A·x`,
-        that is, the application of `forward(value)`.
+        If `value` is a `LinOp`, return a `ProdOp`. If `value` is a scalar
+        return a `Scaled`. Else return `A·x`, that is, the application of
+        `forward(value)`.
         """
         if isinstance(value, LinOp):
             return ProdOp(self, value)
+        if is_scalar(value, self.ishape):
+            return Scaled(self, value)
         return self.forward(value)
 
     def __rmul__(self, point: Array) -> Array | LinOp:
@@ -414,11 +445,9 @@ class LinOp(abc.ABC):
 
         Otherwise, `point` is treated as an array and returns `Aᴴ·y`, the
         adjoint application.
+
         """
-        if isinstance(
-            point,
-            (int, float, complex),
-        ):
+        if is_scalar(point, self.oshape):
             return Scaled(self, point)
         return self.adjoint(point)
 
@@ -430,7 +459,10 @@ class LinOp(abc.ABC):
         If `value` is the adjoint of `self` (or vice versa), return the
         Gram operator via `Symmetric.gram`.
 
+        If `value` is a scalar, return a `Scaled`.
+
         If `value` is an array, return `matvec(value)`.
+
         """
         if isinstance(value, LinOp):
             # Adjoint.__new__ unwraps double adjoints: Adjoint(Adjoint(A)) is A.
@@ -440,6 +472,9 @@ class LinOp(abc.ABC):
             if Adjoint(self) is value or self is Adjoint(value):
                 return Symmetric.gram(value)
             return ProdOp(self, value)
+        # matvec expects a column vector, so a 0-d array is always a scalar
+        if is_scalar(value):
+            return Scaled(self, value)
         return self.matvec(value)
 
     def __rmatmul__(self, point: Array | complex) -> Array | LinOp:
@@ -449,11 +484,9 @@ class LinOp(abc.ABC):
 
         Otherwise, `point` is treated as a column vector and returns `Aᴴ·y`
         via `rmatvec(point)`.
+
         """
-        if isinstance(
-            point,
-            (int, float, complex),
-        ):
+        if is_scalar(point):
             return Scaled(self, point)
         return self.rmatvec(point)
 
@@ -547,14 +580,14 @@ class Scaled(LinOp):
     ----------
     baseop : LinOp
         The base linear operator `B`.
-    scale : float or complex
+    scale : number or 0-d Array
         The scale factor `γ`.
 
     Attributes
     ----------
     baseop : LinOp
         The base linear operator `B`.
-    scale : complex or float
+    scale : number or 0-d Array
         The scale factor `γ`.
     """
 
@@ -571,7 +604,11 @@ class Scaled(LinOp):
         return self.scale * self.baseop.forward(point)
 
     def adjoint(self, point: Array) -> Array:
-        return self.scale.conjugate() * self.baseop.adjoint(point)
+        if isinstance(self.scale, numbers.Number):
+            conj = self.scale.conjugate()
+        else:  # 0-d array
+            conj = arr_api.get_namespace(self.scale).conj(self.scale)
+        return conj * self.baseop.adjoint(point)
 
     def fwadj(self, point: Array) -> Array:
         return abs(self.scale) ** 2 * self.baseop.fwadj(point)

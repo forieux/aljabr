@@ -67,3 +67,14 @@ class TestUtilsDevice:
 
     def test_fwadjtest(self):
         assert fwadjtest(Diag(on_device(RNG.standard_normal(5))), xp=xp, device=DEVICE)
+
+
+class TestScalarScaling:
+    def test_zero_dim_array_scale(self):
+        op = Diag(on_device(RNG.standard_normal(5)))
+        scaled = op * xp.asarray(1 + 2j, device=DEVICE)
+        u = on_device(RNG.standard_normal(5))
+        assert xp.all(
+            scaled.adjoint(u) == xp.asarray(1 - 2j, device=DEVICE) * op.adjoint(u)
+        )
+        assert dottest(scaled, xp=xp, device=DEVICE)

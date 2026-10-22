@@ -28,6 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   number of coefficients). The default level is the largest compatible one.
 - `DirectConv.adjoint` conjugates the impulse response (complex `ir`).
 - `DirectConv.ir` returns the impulse response as given.
+- `A * s`, `s * A`, `A @ s` and `s @ A` return a `Scaled`.
 
 ### Removed
 
@@ -41,6 +42,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `device` parameter to `dottest` and `fwadjtest`.
 - `herm` function returning the conjugate transpose `Mᴴ`.
 - `rtol` parameter to `is_*`.
+- `is_scalar` function: the scalar rule of `*` and `@`.
 
 ## [0.5.2] - 2026-05-19
 
