@@ -256,19 +256,25 @@ class Conv(LinOp):
 
         self.margins = ir.shape[-dim:]
         # Extract the valid part of the circular convolution result.
-        # The kernel is centered at K//2 (ifftshift convention). For each
-        # spatial axis of size N with kernel size K:
-        #   start = K//2
-        #   end   = start + (N - K + 1) = N - (K+1)//2 + 1
-        # This works for both odd and even K. The batch axes use slice(None).
+        # The kernel is centered at K//2 (ifftshift convention), so the
+        # circular output is yc[n] = Σₖ h[k]·x[n - k + K//2] while the valid
+        # output is yv[m] = Σₖ h[k]·x[m + K-1 - k] = yc[m + K-1 - K//2]. For
+        # each spatial axis of size N with kernel size K:
+        #   start = K-1 - K//2 = (K-1)//2
+        #   end   = start + (N - K + 1)
+        # For even K, start = K//2 - 1 (not K//2, which would include a
+        # wrapped-around sample). The batch axes use slice(None).
         # Note: use ishape[len(ishape)-dim+i] (spatial axes), not ishape[i]
         # (which would index batch axes when len(ishape) > dim).
         self._slices: tuple = tuple(
             [slice(None)] * (len(ishape) - dim)
             + [
                 slice(
-                    ir.shape[i] // 2,
-                    ishape[len(ishape) - dim + i] - (ir.shape[i] + 1) // 2 + 1,
+                    (ir.shape[i] - 1) // 2,
+                    (ir.shape[i] - 1) // 2
+                    + ishape[len(ishape) - dim + i]
+                    - ir.shape[i]
+                    + 1,
                 )
                 for i in range(dim)
             ]

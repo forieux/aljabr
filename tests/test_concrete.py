@@ -1,4 +1,5 @@
 import numpy as np
+import pytest
 from conftest import RNG
 
 from aljabr.concrete import (
@@ -224,3 +225,27 @@ class TestConv:
     def test_dottest_2d(self):
         ir = RNG.standard_normal((3, 3))
         assert dottest(Conv(ir, ishape=(8, 8), dim=2), num=3)
+
+    @pytest.mark.parametrize("kshape", [(3,), (4,), (5,), (2,)])
+    def test_forward_is_valid_conv_1d(self, kshape):
+        ir, x = RNG.standard_normal(kshape), RNG.standard_normal(12)
+        out = Conv(ir, ishape=x.shape, dim=1).forward(x)
+        np.testing.assert_allclose(out, np.convolve(x, ir, mode="valid"))
+
+    @pytest.mark.parametrize("kshape", [(3, 3), (4, 4), (3, 4), (2, 5)])
+    def test_forward_is_valid_conv_2d(self, kshape):
+        ir, x = RNG.standard_normal(kshape), RNG.standard_normal((12, 13))
+        out = Conv(ir, ishape=x.shape, dim=2).forward(x)
+        np.testing.assert_allclose(out, valid_conv(x, ir))
+
+    def test_forward_batch(self):
+        ir, x = RNG.standard_normal((4, 4)), RNG.standard_normal((2, 12, 13))
+        out = Conv(ir, ishape=x.shape, dim=2).forward(x)
+        for b in range(2):
+            np.testing.assert_allclose(out[b], valid_conv(x[b], ir))
+
+
+def valid_conv(x: np.ndarray, ir: np.ndarray) -> np.ndarray:
+    """Reference "valid" convolution: Σₖ h[k]·x[m + K-1 - k]."""
+    windows = np.lib.stride_tricks.sliding_window_view(x, ir.shape)
+    return np.tensordot(windows, np.flip(ir), axes=ir.ndim)

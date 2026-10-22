@@ -18,6 +18,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `Conv.adjoint` and `Slice.adjoint` return arrays on the input device.
 - `is_*` correctly handle hermitian matrix.
 - `is_pos_def` docstring: broken LaTeX (`\f` escape).
+- `Conv` with an even kernel size
+- require `udft>=4.1.0` for correct normalisation
 
 ### Removed
 
