@@ -209,6 +209,7 @@ class RealDFT(LinOp):
     def __init__(self, shape: Shape, ndim: int, name: str = "rDFT"):
         self._udft = udft
 
+        shape = tuple(shape)  # tuple concatenation below, `shape` may be a list
         super().__init__(shape, shape[:-1] + (shape[-1] // 2 + 1,), name=name)
         self.dim = ndim
 
@@ -425,7 +426,8 @@ class FreqFilter(Diag):
     """
 
     def __init__(self, ir: Array, shape: Shape, name: str = "Filter"):
-        super().__init__(udft.ir2fr(ir, shape), name=name)
+        # `udft.ir2fr` concatenates `shape` with tuples: it may be a list
+        super().__init__(udft.ir2fr(ir, tuple(shape)), name=name)
 
 
 class CircConv(LinOp):
@@ -783,6 +785,7 @@ class Analysis2(LinOp):
         self._pywt = pywt
         _check_orthogonal(wavelet, self._pywt)
 
+        shape = tuple(shape)  # tuple concatenation below, `shape` may be a list
         super().__init__(shape, (3 * level + 1,) + shape, name=name)
         self.wlt = wavelet
         self.lvl = level

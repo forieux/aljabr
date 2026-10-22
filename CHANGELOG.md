@@ -41,6 +41,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `Synthesis2.get_irs` and `get_frs` were shifted by one sample.
 - `Analysis2.get_frs` and `Synthesis2.get_frs` pass `axes` to `rfftn`.
 - `VStack` and `HStack` accept any iterable of operators (e.g. a generator).
+- `RealDFT`, `FreqFilter`, `CircConv`, `Analysis2` and `Synthesis2` accept a
+  shape given as a list.
 
 ### Changed
 

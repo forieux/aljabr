@@ -518,3 +518,47 @@ class TestWavelets:
     def test_dwt_default_level_odd_size_raises(self):
         with pytest.raises(ValueError, match="no decomposition level"):
             DWT((9,))
+
+
+# ---------------------------------------------------------------------------
+# Shapes given as lists
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "make",
+    [
+        lambda s: Identity(s),
+        lambda s: DFT(s, 2),
+        lambda s: RealDFT(s, 2),
+        lambda s: Conv(np.ones((3, 3)), s, 2),
+        lambda s: DirectConv(np.ones((3, 3)), s),
+        lambda s: FreqFilter(np.ones((3, 3)), s),
+        lambda s: CircConv(np.ones((3, 3)), s),
+        lambda s: Diff(0, s),
+        lambda s: Sampling(s, (np.array([0, 1]), np.array([2, 3]))),
+        lambda s: Slice(s, np.index_exp[::2]),
+        pytest.param(lambda s: DWT(s, 1), marks=needs_pywt),
+        pytest.param(lambda s: Analysis2(s, 1), marks=needs_pywt),
+        pytest.param(lambda s: Synthesis2(s, 1), marks=needs_pywt),
+    ],
+    ids=[
+        "Identity",
+        "DFT",
+        "RealDFT",
+        "Conv",
+        "DirectConv",
+        "FreqFilter",
+        "CircConv",
+        "Diff",
+        "Sampling",
+        "Slice",
+        "DWT",
+        "Analysis2",
+        "Synthesis2",
+    ],
+)
+def test_list_shape(make):
+    from_list, from_tuple = make([8, 8]), make((8, 8))
+    assert from_list.ishape == from_tuple.ishape
+    assert from_list.oshape == from_tuple.oshape
