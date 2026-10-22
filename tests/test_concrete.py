@@ -244,6 +244,37 @@ class TestConv:
         for b in range(2):
             np.testing.assert_allclose(out[b], valid_conv(x[b], ir))
 
+    def test_kernel_per_channel(self):
+        ir, x = RNG.standard_normal((2, 4, 3)), RNG.standard_normal((2, 12, 13))
+        op = Conv(ir, ishape=x.shape, dim=2)
+        assert op.oshape == (2, 9, 11)
+        out = op.forward(x)
+        for b in range(2):
+            np.testing.assert_allclose(out[b], valid_conv(x[b], ir[b]))
+        assert dottest(op, num=3)
+
+    def test_kernel_broadcast_batch(self):
+        ir, x = RNG.standard_normal((1, 3, 3)), RNG.standard_normal((2, 12, 12))
+        op = Conv(ir, ishape=x.shape, dim=2)
+        assert op.oshape == (2, 10, 10)
+        np.testing.assert_allclose(
+            op.forward(x), Conv(ir[0], ishape=x.shape, dim=2).forward(x)
+        )
+        assert dottest(op, num=3)
+
+    @pytest.mark.parametrize(
+        ("irshape", "ishape"),
+        [
+            ((3, 3, 3), (2, 12, 12)),  # batch 3 does not match 2
+            ((2, 1, 3, 3), (2, 12, 12)),  # more batch axes than the input
+            ((4, 3, 3), (12, 12)),  # batch axes but input has none
+            ((3,), (12, 12)),  # fewer axes than `dim`
+        ],
+    )
+    def test_invalid_kernel_batch(self, irshape, ishape):
+        with pytest.raises(ValueError):
+            Conv(RNG.standard_normal(irshape), ishape=ishape, dim=2)
+
 
 def valid_conv(x: np.ndarray, ir: np.ndarray) -> np.ndarray:
     """Reference "valid" convolution: Σₖ h[k]·x[m + K-1 - k]."""

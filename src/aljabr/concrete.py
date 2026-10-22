@@ -204,8 +204,9 @@ class Conv(LinOp):
     Parameters
     ----------
     ir : Array
-        The impulse response. Must have at least `dim` dimensions. The array
-        namespace is inferred from this array.
+        The impulse response, on its last `dim` axes. Leading axes, if any, are
+        batch axes broadcast against the batch axes of the input. The namespace
+        is inferred from this array.
     ishape : tuple of int
         The shape of the input. Images are on the last `dim` axes.
     dim : int
@@ -235,18 +236,32 @@ class Conv(LinOp):
     def __init__(self, ir: Array, ishape: Shape, dim: int, name: str = "Conv"):
         self._udft = udft
 
-        # oshape: batch dims are unchanged (pad=1 → s-1+1=s), convolved dims
-        # shrink by the kernel size (pad=K → s-K+1, valid convolution).
+        if ir.ndim < dim:
+            raise ValueError(f"`ir` must have at least `dim`={dim} dimensions")
+        # Leading axes of `ir` are batch axes broadcast against the batch axes
+        # of the input (e.g. one kernel per channel). They must not change the
+        # output batch shape, otherwise the adjoint would have to sum over them.
+        batch = tuple(ishape[: len(ishape) - dim])
+        try:
+            broadcast_ok = np.broadcast_shapes(ir.shape[:-dim], batch) == batch
+        except ValueError:
+            broadcast_ok = False
+        if not broadcast_ok:
+            raise ValueError(
+                f"`ir` batch shape {ir.shape[:-dim]} must broadcast to the input "
+                f"batch shape {batch}"
+            )
+
+        # oshape: batch dims are unchanged, convolved dims shrink by the kernel
+        # size (K → N-K+1, valid convolution).
         #
-        # Example: ishape=(B, H, W), ir.shape=(Kh, Kw), dim=2
+        # Example: ishape=(B, H, W), ir.shape=(Kh, Kw) or (B, Kh, Kw), dim=2
         #
-        # pads = (1,) + (Kh, Kw) → oshape = (B, H-Kh+1, W-Kw+1)
+        # oshape = (B, H-Kh+1, W-Kw+1)
+        kshape = ir.shape[-dim:]
         super().__init__(
             ishape=ishape,
-            oshape=tuple(
-                s - pad + 1
-                for (s, pad) in zip(ishape, (len(ishape) - dim) * (1,) + ir.shape)
-            ),
+            oshape=batch + tuple(n - k + 1 for (n, k) in zip(ishape[-dim:], kshape)),
             name=name,
         )
 
@@ -254,7 +269,7 @@ class Conv(LinOp):
         self.imp_resp = ir
         self.freq_resp = self._udft.ir2fr(ir, self.ishape[-dim:])
 
-        self.margins = ir.shape[-dim:]
+        self.margins = kshape
         # Extract the valid part of the circular convolution result.
         # The kernel is centered at K//2 (ifftshift convention), so the
         # circular output is yc[n] = Σₖ h[k]·x[n - k + K//2] while the valid
@@ -264,19 +279,11 @@ class Conv(LinOp):
         #   end   = start + (N - K + 1)
         # For even K, start = K//2 - 1 (not K//2, which would include a
         # wrapped-around sample). The batch axes use slice(None).
-        # Note: use ishape[len(ishape)-dim+i] (spatial axes), not ishape[i]
-        # (which would index batch axes when len(ishape) > dim).
         self._slices: tuple = tuple(
-            [slice(None)] * (len(ishape) - dim)
+            [slice(None)] * len(batch)
             + [
-                slice(
-                    (ir.shape[i] - 1) // 2,
-                    (ir.shape[i] - 1) // 2
-                    + ishape[len(ishape) - dim + i]
-                    - ir.shape[i]
-                    + 1,
-                )
-                for i in range(dim)
+                slice((k - 1) // 2, (k - 1) // 2 + n - k + 1)
+                for (n, k) in zip(ishape[-dim:], kshape)
             ]
         )
 
