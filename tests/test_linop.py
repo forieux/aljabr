@@ -443,6 +443,13 @@ class TestVStack:
         assert v.H.H is v
         assert v.H.H.H is v.H
 
+    def test_gram_detected(self):
+        v = VStack([make_dense(2, 3), make_dense(4, 3)])
+        h = HStack([make_dense(3, 2), make_dense(3, 4)])
+        for op in (v, v.H, h, h.H):
+            assert isinstance(op.H @ op, Symmetric)
+            assert isinstance(op @ op.H, Symmetric)
+
     def test_HStack_H_H_is_self(self):
         h = HStack([make_dense(3, 2), make_dense(3, 4)])
         assert h.H.H is h

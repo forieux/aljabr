@@ -321,11 +321,15 @@ class LinOp(abc.ABC):
     @property
     def H(self) -> LinOp:
         """Return `Adjoint(self)`."""
+        # Not cached, on purpose, unlike `VStack.H`: `Adjoint(A.H) is A` already
+        # holds for `@`, and a cache would add a reference cycle, an adjoint of
+        # the original after `copy.copy(A)`, and a stale `name`.
         return Adjoint(self)
 
     @property
     def G(self) -> LinOp:
         """Return the Gram operator `Aᴴ·A` as a `Symmetric`."""
+        # Not cached, on purpose: same reasons as `H`
         return Symmetric.gram(self)
 
     @abc.abstractmethod
@@ -974,6 +978,9 @@ class VStack(LinOp):
     @property
     def H(self) -> HStack:
         """Return `HStack([Aᴴ, Bᴴ, ...])`, cached, with `S.H.H is S`."""
+        # Cached since `@` detects `Sᴴ·S` by identity: `Adjoint` delegates to
+        # this `H` instead of unwrapping, so a new stack would never match.
+        # Not needed for a plain `LinOp`, where `Adjoint(A.H) is A`.
         if self._hstack is None:
             self._hstack = HStack([Adjoint(op) for op in self.oplist])
             # So that `S.H.H is S`, like `Adjoint`
@@ -1067,6 +1074,7 @@ class HStack(LinOp):
     @property
     def H(self) -> VStack:
         """Return `VStack([Aᴴ, Bᴴ, ...])`, cached, with `S.H.H is S`."""
+        # Cached for the detection of `Sᴴ·S` by `@`: see `VStack.H`
         if self._vstack is None:
             self._vstack = VStack([Adjoint(op) for op in self.oplist])
             # So that `S.H.H is S`, like `Adjoint`
