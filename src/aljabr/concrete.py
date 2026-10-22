@@ -168,7 +168,12 @@ class DFT(LinOp):
 
 
 class RealDFT(LinOp):
-    """Real Discrete Fourier Transform on the last N axes.
+    r"""Real Discrete Fourier Transform on the last N axes.
+
+    This is the unitary `DFT` of a real input, computed only on the
+    non-redundant half of the spectrum: the last axis has length `n // 2 + 1`,
+    the other half being given by the Hermitian symmetry. It is not a separate
+    operator with its own geometry, it is `DFT` restricted to real signals.
 
     Parameters
     ----------
@@ -178,6 +183,27 @@ class RealDFT(LinOp):
         The number of last axes over which to compute the DFT.
     name : str, optional
         Name of the operator.
+
+    Notes
+    -----
+    **Exception to the adjoint convention.** Consistently with `DFT`,
+    `adjoint` is the inverse transform (`irdftn`) and `fwadj` is the identity.
+    This is the adjoint of `DFT` on the full, Hermitian-symmetric, spectrum.
+    On the half spectrum, it corresponds to the weighted inner product
+
+    .. math::
+
+        \langle u, v \rangle_w = \Re \sum_k w_k \bar{u}_k v_k,
+
+    where `w_k = 1` on the last axis for the frequency 0 (and `n / 2` if `n`
+    is even), and `w_k = 2` otherwise, since these frequencies stand for
+    themselves and their conjugate. Then `⟨Aᴴu, x⟩ = ⟨u, A·x⟩_w` and
+    `‖A·x‖_w = ‖x‖` (Parseval).
+
+    It is **not** the adjoint for the standard inner product of the half
+    spectrum: `‖A·x‖ ≠ ‖x‖` and `dottest` fails. Use `RealDFT` as a change of
+    representation, e.g. `Aᴴ·Λ·A` with a diagonal `Λ` from `udft.ir2fr` as in
+    `CircConv`, not inside generic algorithms relying on the standard adjoint.
     """
 
     def __init__(self, shape: Shape, ndim: int, name: str = "rDFT"):

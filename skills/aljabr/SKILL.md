@@ -133,7 +133,7 @@ device, e.g. `device="cuda"` for an operator on GPU).
 | `Identity` | `(shape)` | `shape → shape` |
 | `Diag` | `(diag)` | element-wise product, `diag.shape → diag.shape` |
 | `DFT` | `(shape, ndim)` | unitary DFT on last `ndim` axes, complex output, `fwadj` = identity |
-| `RealDFT` | `(shape, ndim)` | unitary real DFT, last axis → `n // 2 + 1` |
+| `RealDFT` | `(shape, ndim)` | `DFT` of a real input on the half spectrum, last axis → `n // 2 + 1`; adjoint = inverse, **not** the standard adjoint (see pitfalls) |
 | `Conv` | `(ir, ishape, dim)` | FFT convolution on last `dim` axes, **"valid"** output (`n - k + 1`); adjoint is "full" |
 | `DirectConv` | `(ir, ishape)` | same as `Conv` with `scipy.signal.oaconvolve`; NumPy only, needs scipy |
 | `CircConv` | `(imp_resp, shape)` | periodic convolution, `shape → shape` |
@@ -213,6 +213,12 @@ or `array_api_compat.get_namespace(x)` to stay agnostic.
   same-size periodic model. `Diff` also loses one sample on its axis.
 - `A @ A.H` returns a `Symmetric` built from `A.H.fwadj`, which is the
   generic `A·Aᴴ` (no optimized path).
+- `RealDFT.adjoint` is the inverse (`irdftn`) and `fwadj` the identity, as
+  for `DFT` on the full Hermitian spectrum. On the half spectrum this is the
+  adjoint for a weighted inner product (weight 2 except frequencies 0 and
+  `n/2`), not the standard one: `dottest(RealDFT(...))` fails by design. Use
+  it as a change of representation (`Aᴴ·Λ·A`), not in generic solvers; use
+  `DFT` there.
 - Do not call `asmatrix`, `is_*`, or `cond` on large operators: they cost
   `isize` forward calls and an `osize × isize` dense matrix.
 

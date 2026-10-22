@@ -122,6 +122,42 @@ class TestRealDFT:
         assert mat.shape == (5, 8)
         np.testing.assert_allclose(mat, np.fft.rfft(np.eye(8), axis=0, norm="ortho"))
 
+    # The adjoint is the one of DFT on the Hermitian-symmetric spectrum, that is
+    # for the weighted inner product of the half spectrum (see docstring).
+
+    @pytest.mark.parametrize(
+        ("shape", "ndim"), [((8,), 1), ((9,), 1), ((6, 8), 2), ((3, 5, 7), 2)]
+    )
+    def test_weighted_dottest(self, shape, ndim):
+        op = RealDFT(shape, ndim)
+        x = RNG.standard_normal(op.ishape)
+        u = RNG.standard_normal(op.oshape) + 1j * RNG.standard_normal(op.oshape)
+        weights = half_spectrum_weights(shape[-1])
+        np.testing.assert_allclose(
+            np.vdot(op.adjoint(u), x),
+            np.real(np.sum(weights * np.conj(u) * op.forward(x))),
+        )
+
+    @pytest.mark.parametrize("size", [8, 9])
+    def test_weighted_parseval(self, size):
+        x = RNG.standard_normal(size)
+        coeffs = RealDFT((size,), 1).forward(x)
+        np.testing.assert_allclose(
+            np.sum(half_spectrum_weights(size) * np.abs(coeffs) ** 2), np.sum(x**2)
+        )
+
+    def test_not_standard_adjoint(self):
+        assert not dottest(RealDFT((8,), 1), num=3)
+
+
+def half_spectrum_weights(size: int) -> np.ndarray:
+    """Weights 1 for frequencies 0 and size/2 (if even), 2 for the others."""
+    weights = np.full(size // 2 + 1, 2.0)
+    weights[0] = 1
+    if size % 2 == 0:
+        weights[-1] = 1
+    return weights
+
 
 # ---------------------------------------------------------------------------
 # Diff

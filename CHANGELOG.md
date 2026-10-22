@@ -21,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `Conv` with an even kernel size
 - require `udft>=4.1.0` for correct normalisation
 - `Conv` with batch axes in `ir` (e.g. one kernel per channel)
+- `RealDFT` docstring: its adjoint is the inverse
 
 ### Removed
 
