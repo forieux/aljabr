@@ -108,6 +108,8 @@ class Diag(LinOp):
 
     def __init__(self, diag: Array, name: str = "D"):
         xp = arr_api.get_namespace(diag)
+        # Converts ndarray subclasses such as `np.matrix`, where `*` in
+        # `forward` would be a matrix product
         self.diag = xp.asarray(diag)
         super().__init__(
             self.diag.shape,

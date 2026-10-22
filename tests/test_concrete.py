@@ -63,6 +63,12 @@ class TestDiag:
         op = Diag(RNG.standard_normal(5))
         assert op.ishape == op.oshape == (5,)
 
+    @pytest.mark.filterwarnings("ignore:the matrix subclass:PendingDeprecationWarning")
+    def test_matrix_diag_is_elementwise(self):
+        # `np.matrix` is converted, otherwise `*` would be a matrix product
+        op = Diag(np.matrix([[1.0, 2.0]]))
+        np.testing.assert_array_equal(op.forward(np.array([[3.0, 4.0]])), [[3.0, 8.0]])
+
     def test_forward(self):
         d = np.array([1.0, 2.0, 3.0])
         np.testing.assert_array_equal(Diag(d).forward(np.ones(3)), d)
