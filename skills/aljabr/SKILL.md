@@ -94,6 +94,8 @@ class Mask(LinOp):
         return self.forward(x)  # MᴴM = M for a mask
 ```
 
+The input is positional-only: call `M.forward(x)`, never `M.forward(x=x)`.
+
 For a one-off operator, `BaseOp` avoids the class:
 
 ```python
@@ -113,7 +115,7 @@ explicit 2D matrix.
 Subclasses are automatically instrumented: `forward`, `adjoint`, `fwadj` emit a
 `UserWarning` on wrong input/output shapes, and timings go to
 `A.metadata["init"]` (float) and `A.metadata["forward" | "adjoint" | "fwadj"]`
-(list of durations). Do not reimplement these.
+(`deque` of the last `max_timings`, default 1000, durations). Do not reimplement these.
 
 **Always validate** a new operator:
 
@@ -136,8 +138,8 @@ device, e.g. `device="cuda"` for an operator on GPU).
 | `RealDFT` | `(shape, ndim)` | `DFT` of a real input on the half spectrum, last axis → `n // 2 + 1`; adjoint = inverse, **not** the standard adjoint (see pitfalls) |
 | `Conv` | `(ir, ishape, dim)` | FFT convolution on last `dim` axes, **"valid"** output (`n - k + 1`); adjoint is "full" |
 | `DirectConv` | `(ir, ishape)` | same as `Conv` with `scipy.signal.oaconvolve`; NumPy only, needs scipy |
-| `CircConv` | `(imp_resp, shape)` | periodic convolution, `shape → shape` |
-| `FreqFilter` | `(ir, ishape)` | `Diag` in Fourier space from an impulse response (use `Diag` if you already have the frequency response) |
+| `CircConv` | `(imp_resp, shape)` | periodic convolution, `shape → shape`; `imp_resp.ndim == len(shape)` (e.g. `(1, K)` for 1D on 2D) |
+| `FreqFilter` | `(ir, shape)` | `Diag` on the half-spectrum (`udft.rdftn`) from an impulse response; `shape` is the direct-space shape, the operator's `ishape` is `shape[:-1] + (shape[-1] // 2 + 1,)` (use `Diag` if you already have the frequency response) |
 | `Diff` | `(axis, ishape)` | first-order difference, `oshape[axis] = ishape[axis] - 1` |
 | `Slice` | `(ishape, idx)` | `x[idx]`, build `idx` with `np.index_exp[::2, 1]`; adjoint zero-fills |
 | `Sampling` | `(ishape, index)` | NumPy fancy indexing, `index` = tuple of int arrays; adjoint accumulates repeated indices; NumPy only |
@@ -201,10 +203,11 @@ or `array_api_compat.get_namespace(x)` to stay agnostic.
 
 ## Pitfalls
 
-- Scalars for `s * A` must be Python `int`, `float`, `complex` (or
-  `np.float64`, a `float` subclass). A `np.float32`, 0-d array or tensor
-  scalar is treated as an array and calls `A.adjoint(s)`: write
-  `float(s) * A`.
+- Scalars (Python, NumPy such as `np.float32`, or 0-d arrays) give a
+  `Scaled` on either side: `s * A`, `A * s`, `s @ A`, `A @ s`. Exception: for
+  an operator on 0-d arrays (`ishape == ()`), a 0-d array is an operand. With
+  a 0-d array of a library that does not defer to `LinOp` (e.g.
+  `array_api_strict`), `s * A` raises `TypeError`: write `A * s`.
 - `x * A` (array on the left) is the **adjoint**, not the forward. `A @ x`
   expects a column vector `(N, 1)`, not an `ishape` array: use `A(x)` on
   shaped arrays.

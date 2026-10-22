@@ -8,7 +8,7 @@ Things to know before writing code with aljabr:
 - Shapes are fixed at construction (`ishape`, `oshape` are array shapes, not vector lengths). `A.shape == (osize, isize)` is the equivalent matrix shape.
 - A new operator subclasses `LinOp`, calls `super().__init__(ishape, oshape, name=...)` and implements `forward` and `adjoint`; `fwadj` (AᴴA) can be overridden for speed. `BaseOp(forward, adjoint, ishape, oshape)` wraps plain callables instead.
 - `A(x)`, `A * x` and `A.forward(x)` apply A on an `ishape` array; `y * A` applies the adjoint; `A @ x_col` / `A.matvec` / `A.rmatvec` work on `(N, 1)` column vectors.
-- `A.H @ A` and `A.G` return a `Symmetric` operator using the optimized `fwadj`. `2.0 * A` returns `Scaled`; scalars must be Python `int`/`float`/`complex` (NumPy `float32` scalars are treated as arrays).
+- `A.H @ A` and `A.G` return a `Symmetric` operator using the optimized `fwadj`. `2.0 * A` and `A * 2.0` return `Scaled`; Python, NumPy and 0-d array scalars are all accepted.
 - Wrong input/output shapes only emit a `UserWarning` (not an exception). Timings are stored in `A.metadata`.
 - Always validate a hand-written operator with `dottest(A)` (adjoint correctness) and `fwadjtest(A)` (custom `fwadj`).
 - aljabr provides no solvers and no `A / y`: use your own algorithm or `scipy.sparse.linalg` (`cg`, `lsqr`, `eigsh`, …).
@@ -23,7 +23,7 @@ Things to know before writing code with aljabr:
 
 ## API
 
-- [linop.py](https://raw.githubusercontent.com/forieux/aljabr/main/src/aljabr/linop.py): `LinOp`, `BaseOp`, `Adjoint`, `Scaled`, `Symmetric`, `Dense`, `ProdOp`, `AddOp`, `SubOp`, `VStack`, `HStack`, `asmatrix`, `vectorize`, `unvectorize`
+- [linop.py](https://raw.githubusercontent.com/forieux/aljabr/main/src/aljabr/linop.py): `LinOp`, `BaseOp`, `Adjoint`, `Scaled`, `Symmetric`, `Dense`, `ProdOp`, `AddOp`, `SubOp`, `VStack`, `HStack`, `asmatrix`, `is_scalar`, `vectorize`, `unvectorize`
 - [concrete.py](https://raw.githubusercontent.com/forieux/aljabr/main/src/aljabr/concrete.py): `Identity`, `Diag`, `DFT`, `RealDFT`, `Conv`, `DirectConv`, `FreqFilter`, `CircConv`, `Diff`, `Sampling`, `Slice`, `DWT`, `Analysis2`, `Synthesis2`
 - [utils.py](https://raw.githubusercontent.com/forieux/aljabr/main/src/aljabr/utils.py): `dottest`, `fwadjtest`, `allclose`, `herm`, `is_sym`, `is_pos_def`, `is_semi_pos_def`, `is_neg_def`, `is_semi_neg_def`, `cond`, `fcond`
 
