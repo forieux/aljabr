@@ -413,6 +413,16 @@ class TestVStack:
         with pytest.raises(ValueError):
             VStack([])
 
+    def test_generator(self):
+        ops = [make_dense(2, 3), make_dense(4, 3)]
+        v = VStack(op for op in ops)
+        assert v.oplist == ops
+        assert v.oshape == (6, 1)
+
+    def test_empty_generator_raises(self):
+        with pytest.raises(ValueError, match="empty"):
+            VStack(op for op in [])
+
     def test_incompatible_ishape(self):
         with pytest.raises(ValueError):
             VStack([make_dense(2, 3), make_dense(2, 4)])
@@ -459,6 +469,16 @@ class TestHStack:
     def test_H_is_VStack(self):
         h = HStack([make_dense(3, 2), make_dense(3, 4)])
         assert isinstance(h.H, VStack)
+
+    def test_generator(self):
+        ops = [make_dense(3, 2), make_dense(3, 4)]
+        h = HStack(op for op in ops)
+        assert h.oplist == ops
+        assert h.ishape == (6, 1)
+
+    def test_empty_generator_raises(self):
+        with pytest.raises(ValueError, match="empty"):
+            HStack(op for op in [])
 
     def test_dottest(self):
         assert dottest(HStack([make_dense(3, 2), make_dense(3, 4)]), num=5)

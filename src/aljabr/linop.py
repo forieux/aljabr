@@ -38,7 +38,7 @@ import numbers
 import time
 import warnings
 from collections import deque
-from collections.abc import Callable, Iterator, Sequence
+from collections.abc import Callable, Iterable, Iterator, Sequence
 from functools import wraps
 from typing import Any
 
@@ -935,28 +935,29 @@ class VStack(LinOp):
 
     Parameters
     ----------
-    oplist : sequence of LinOp
+    oplist : iterable of LinOp
         Operators to stack. All must share the same ``ishape``.
     name : str, optional
         Name of the operator.
 
     """
 
-    def __init__(self, oplist: Sequence[LinOp], name: str = "[·]"):
-        if not oplist:
-            raise ValueError("oplist must not be empty")
-        if len({op.ishape for op in oplist}) > 1:
-            raise ValueError("all operators must have the same ishape")
-
+    def __init__(self, oplist: Iterable[LinOp], name: str = "[·]"):
+        # First, since a generator can be consumed only once
         self.oplist: list[LinOp] = list(oplist)
 
-        osizes = [math.prod(op.oshape) for op in oplist]
-        self._oshapes: list[Shape] = [op.oshape for op in oplist]
+        if not self.oplist:
+            raise ValueError("oplist must not be empty")
+        if len({op.ishape for op in self.oplist}) > 1:
+            raise ValueError("all operators must have the same ishape")
+
+        osizes = [math.prod(op.oshape) for op in self.oplist]
+        self._oshapes: list[Shape] = [op.oshape for op in self.oplist]
 
         self._hstack: HStack | None = None
 
         super().__init__(
-            oplist[0].ishape,
+            self.oplist[0].ishape,
             (sum(osizes), 1),
             name=name,
         )
@@ -1022,29 +1023,30 @@ class HStack(LinOp):
 
     Parameters
     ----------
-    oplist : sequence of LinOp
+    oplist : iterable of LinOp
         Operators to stack. All must share the same ``oshape``.
     name : str, optional
         Name of the operator.
 
     """
 
-    def __init__(self, oplist: Sequence[LinOp], name: str = "[·|·]"):
-        if not oplist:
-            raise ValueError("oplist must not be empty")
-        if len({op.oshape for op in oplist}) > 1:
-            raise ValueError("all operators must have the same oshape")
-
+    def __init__(self, oplist: Iterable[LinOp], name: str = "[·|·]"):
+        # First, since a generator can be consumed only once
         self.oplist: list[LinOp] = list(oplist)
 
-        isizes = [math.prod(op.ishape) for op in oplist]
-        self._ishapes: list[Shape] = [op.ishape for op in oplist]
+        if not self.oplist:
+            raise ValueError("oplist must not be empty")
+        if len({op.oshape for op in self.oplist}) > 1:
+            raise ValueError("all operators must have the same oshape")
+
+        isizes = [math.prod(op.ishape) for op in self.oplist]
+        self._ishapes: list[Shape] = [op.ishape for op in self.oplist]
 
         self._vstack: VStack | None = None
 
         super().__init__(
             (sum(isizes), 1),
-            oplist[0].oshape,
+            self.oplist[0].oshape,
             name=name,
         )
 

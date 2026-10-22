@@ -40,6 +40,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   other than numpy.
 - `Synthesis2.get_irs` and `get_frs` were shifted by one sample.
 - `Analysis2.get_frs` and `Synthesis2.get_frs` pass `axes` to `rfftn`.
+- `VStack` and `HStack` accept any iterable of operators (e.g. a generator).
 
 ### Changed
 
