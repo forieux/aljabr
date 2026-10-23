@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `-A` and `A / s` (scalar `s`) return a `Scaled`.
+
+### Changed
+
+- A `Scaled` of a `Scaled` is flattened: `D * 2 * 3` is `Scaled(D, 6)`.
+
 ## [0.6.0] - 2026-10-23
 
 ### Fixed

@@ -441,6 +441,16 @@ class LinOp(abc.ABC):
             return SubOp(self, value)
         raise TypeError("the operand must be a linear operator")
 
+    def __neg__(self) -> LinOp:
+        """Negate (as `-A`) to return a `Scaled` by `-1`."""
+        return Scaled(self, -1)
+
+    def __truediv__(self, value: complex) -> LinOp:
+        """Divide (as `A / s`) by a scalar to return a `Scaled` by `1 / s`."""
+        if is_scalar(value):
+            return Scaled(self, 1 / value)
+        raise TypeError("the divisor must be a scalar")
+
     def __mul__(self, value: Array | LinOp) -> Array | LinOp:
         """Left multiply `*` a LinOp, scalar or array.
 
@@ -605,11 +615,20 @@ class Scaled(LinOp):
         The base linear operator `B`.
     scale : number or 0-d Array
         The scale factor `γ`.
+
+    Notes
+    -----
+    A `Scaled` of a `Scaled` is flattened: ``Scaled(Scaled(B, α), β)`` has
+    `baseop` `B` and `scale` ``α·β``.
     """
 
     def __init__(self, baseop: LinOp, scale: complex):
+        # Flattened, else `D * 2 * 3` or `-(D / 2)` nest one level per scalar
+        if isinstance(baseop, Scaled):
+            scale = baseop.scale * scale
+            baseop = baseop.baseop
         self.baseop = baseop
-        self.scale = scale
+        self.scale: complex = scale
         super().__init__(
             baseop.ishape,
             baseop.oshape,

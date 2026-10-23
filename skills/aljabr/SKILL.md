@@ -46,7 +46,7 @@ A = D.H             # Adjoint, a LinOp: A.forward is D.adjoint
 D.H.H is D          # True, no wrapper chain
 G = D.H @ D         # Symmetric (Gram), uses D.fwadj — same as D.G
 P = D @ aj.Identity((64, 64))           # ProdOp (also D * Op)
-S = 0.5 * D         # Scaled
+S = 0.5 * D         # Scaled ; also -D and D / 2
 R = D.G + 0.1 * aj.Diff(1, (64, 64)).G  # AddOp ; `-` gives SubOp
 V = aj.VStack([aj.Diff(0, (64, 64)), aj.Diff(1, (64, 64))])  # x → [D0x; D1x]
 ```
@@ -212,6 +212,8 @@ or `array_api_compat.get_namespace(x)` to stay agnostic.
 - `x * A` (array on the left) is the **adjoint**, not the forward. `A @ x`
   expects a column vector `(N, 1)`, not an `ishape` array: use `A(x)` on
   shaped arrays.
+- `sum(ops)` raises `TypeError` (it starts from `0`, not an operator): write
+  `sum(ops[1:], ops[0])` or `functools.reduce(operator.add, ops)`.
 - Shape mismatches only warn; treat any `UserWarning` from aljabr as a bug.
 - `Conv` and `DirectConv` reduce the size ("valid"); use `CircConv` for a
   same-size periodic model. `Diff` also loses one sample on its axis.

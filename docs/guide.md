@@ -172,6 +172,10 @@ D = I - W  # SubOp — forward: x − 0.5·x
 
 Both operands must share the same `ishape` and `oshape` (even if they have the same `shape`).
 
+Note that the built-in `sum(ops)` fails since it starts from the integer `0`,
+which is not an operator. You can write `sum(ops[1:], ops[0])` or use
+`functools.reduce`.
+
 ### `*` — apply or scale
 
 When the right operand is an **array**, `*` applies the operator:
@@ -187,6 +191,8 @@ operator:
 G = 2.0 * F  # Scaled — G.forward(x) = 2 * F.forward(x)
 G = F * 2.0  # same
 ```
+
+`-F` and `F / 2.0` also return a `Scaled`, by `-1` and `1 / 2.0`.
 
 Python scalars, NumPy scalars (like `np.float32`), and 0-d arrays (like a
 PyTorch or JAX scalar) are all scalars, except a 0-d array for an operator

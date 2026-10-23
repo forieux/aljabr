@@ -534,6 +534,38 @@ class TestOperatorOverloads:
             np.testing.assert_allclose(scaled.forward(x), scalar * op.forward(x))
         assert dottest(scalar * op, num=3)
 
+    def test_neg_is_scaled(self):
+        op = make_dense(4, 3)
+        x = RNG.standard_normal(3)
+        assert isinstance(-op, Scaled)
+        np.testing.assert_allclose((-op).forward(x), -op.forward(x))
+        assert dottest(-op, num=3)
+
+    @pytest.mark.parametrize("scalar", SCALARS, ids=repr)
+    def test_truediv_scalar_is_scaled(self, scalar):
+        op = make_dense(4, 3)
+        x = RNG.standard_normal(3)
+        assert isinstance(op / scalar, Scaled)
+        np.testing.assert_allclose((op / scalar).forward(x), op.forward(x) / scalar)
+        assert dottest(op / scalar, num=3)
+
+    @pytest.mark.parametrize("value", [np.ones(3), make_dense(4, 3)], ids=repr)
+    def test_truediv_non_scalar_raises(self, value):
+        with pytest.raises(TypeError):
+            make_dense(4, 3) / value
+
+    @pytest.mark.parametrize("scalar", SCALARS, ids=repr)
+    def test_nested_is_flattened(self, scalar):
+        op = make_dense(4, 3)
+        x = RNG.standard_normal(3)
+        for scaled in (op * scalar * 3, scalar * -op, -(op / scalar)):
+            assert isinstance(scaled, Scaled)
+            assert scaled.baseop is op
+        np.testing.assert_allclose(
+            (op * scalar * 3).forward(x), 3 * scalar * op.forward(x)
+        )
+        assert dottest(scalar * -op, num=3)
+
     @pytest.mark.parametrize("scalar", SCALARS, ids=repr)
     def test_is_scalar(self, scalar):
         assert is_scalar(scalar)
