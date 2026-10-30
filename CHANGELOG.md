@@ -16,6 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - A `Scaled` of a `Scaled` is flattened: `D * 2 * 3` is `Scaled(D, 6)`.
+- `Dense` defaults to 1D shapes `(n,)` and `(m,)` instead of columns `(n, 1)`
+  and `(m, 1)`.
 
 ## [0.6.0] - 2026-10-23
 

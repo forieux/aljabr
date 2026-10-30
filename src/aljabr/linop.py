@@ -789,9 +789,9 @@ class Dense(LinOp):
         A 2D array representing the operator. The namespace is inferred
         from this array.
     ishape : tuple of int, optional
-        Input shape. Defaults to ``(matrix.shape[1], 1)``.
+        Input shape. Defaults to ``(matrix.shape[1],)``.
     oshape : tuple of int, optional
-        Output shape. Defaults to ``(matrix.shape[0], 1)``.
+        Output shape. Defaults to ``(matrix.shape[0],)``.
     name : str, optional
         Name of the operator.
     """
@@ -807,9 +807,9 @@ class Dense(LinOp):
             raise ValueError("matrix must be 2-dimensional")
 
         if ishape is None:
-            ishape = (matrix.shape[1], 1)
+            ishape = (matrix.shape[1],)
         if oshape is None:
-            oshape = (matrix.shape[0], 1)
+            oshape = (matrix.shape[0],)
 
         if math.prod(ishape) != matrix.shape[1]:
             raise ValueError("`ishape` must = matrix.shape[1]")

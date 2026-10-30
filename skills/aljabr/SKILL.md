@@ -110,7 +110,7 @@ F = aj.BaseOp(
 
 Other building blocks: `Symmetric(forward, shape)` for a self-adjoint operator
 given by one function, `Dense(matrix, ishape=None, oshape=None)` to wrap an
-explicit 2D matrix.
+explicit 2D matrix (1D shapes `(n,)` and `(m,)` by default).
 
 Subclasses are automatically instrumented: `forward`, `adjoint`, `fwadj` emit a
 `UserWarning` on wrong input/output shapes, and timings go to

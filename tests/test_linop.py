@@ -163,6 +163,14 @@ class TestDense:
         mat = RNG.standard_normal((3, 4))
         np.testing.assert_allclose(asmatrix(Dense(mat, ishape=(4,), oshape=(3,))), mat)
 
+    def test_default_shapes_are_1d(self, recwarn):
+        mat = RNG.standard_normal((3, 4))
+        op = Dense(mat)
+        assert (op.ishape, op.oshape) == ((4,), (3,))
+        x = RNG.standard_normal(4)
+        np.testing.assert_allclose(op(x), mat @ x)
+        assert not recwarn.list
+
     def test_invalid_ndim(self):
         with pytest.raises(ValueError):
             Dense(np.ones((2, 3, 4)))
