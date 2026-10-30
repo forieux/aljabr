@@ -10,6 +10,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - `-A` and `A / s` (scalar `s`) return a `Scaled`.
+- `matvec` and `rmatvec` (so `A @ x`) warn if `x` is not a vector `(N, 1)` or
+  `(N,)`, instead of reshaping it silently.
 - `dottest` and `fwadjtest` warn on failure with the rel error, and accept
   `complex_vectors=True`.
 

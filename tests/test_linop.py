@@ -593,6 +593,24 @@ class TestOperatorOverloads:
         assert op * np.array(5.0) == 10.0
         assert np.array(5.0) * op == 15.0
 
+    @pytest.mark.parametrize("col", [False, True])
+    def test_matvec_on_vector_does_not_warn(self, col, recwarn):
+        op = Dense(np.ones((15, 20)), ishape=(4, 5), oshape=(3, 5))
+        op.matvec(np.ones((20, 1) if col else (20,)))
+        op.rmatvec(np.ones((15, 1) if col else (15,)))
+        assert not recwarn.list
+
+    @pytest.mark.parametrize("shape", [(4, 5), (5, 4), (1, 20)])
+    def test_matmul_on_non_vector_warns(self, shape):
+        op = Dense(np.ones((15, 20)), ishape=(4, 5), oshape=(3, 5))
+        with pytest.warns(UserWarning, match="is not a vector"):
+            op @ np.ones(shape)
+
+    def test_rmatmul_on_non_vector_warns(self):
+        op = Dense(np.ones((15, 20)), ishape=(4, 5), oshape=(3, 5))
+        with pytest.warns(UserWarning, match="is not a vector"):
+            np.ones((3, 5)) @ op
+
     def test_matmul_column_is_matvec(self):
         op = make_dense(4, 3)
         x = RNG.standard_normal((3, 1))

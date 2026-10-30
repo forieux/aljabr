@@ -125,6 +125,10 @@ u_col = F.rmatvec(y_col)  # u = yᵀ F = Fᴴ y — adjoint on flat vector y
 Internally, `matvec` reshapes to `ishape`, calls `forward`, then flattens the
 result; `rmatvec` does the same through `adjoint`.
 
+A 1D vector `(isize,)` is also accepted, as SciPy passes. Any other shape emits
+a `UserWarning`, even with the right number of elements: `F @ x` on an image
+`x` would otherwise silently return a column. Use `F(x)` on shaped arrays.
+
 ### String representation
 
 `__repr__` returns a compact description

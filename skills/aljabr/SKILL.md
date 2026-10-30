@@ -213,8 +213,8 @@ or `array_api_compat.get_namespace(x)` to stay agnostic.
   a 0-d array of a library that does not defer to `LinOp` (e.g.
   `array_api_strict`), `s * A` raises `TypeError`: write `A * s`.
 - `x * A` (array on the left) is the **adjoint**, not the forward. `A @ x`
-  expects a column vector `(N, 1)`, not an `ishape` array: use `A(x)` on
-  shaped arrays.
+  expects a column vector `(N, 1)` or `(N,)`, not an `ishape` array (it
+  warns and returns a column): use `A(x)` on shaped arrays.
 - `sum(ops)` raises `TypeError` (it starts from `0`, not an operator): write
   `sum(ops[1:], ops[0])` or `functools.reduce(operator.add, ops)`.
 - Shape mismatches only warn; treat any `UserWarning` from aljabr as a bug.

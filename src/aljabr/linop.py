@@ -348,13 +348,28 @@ class LinOp(abc.ABC):
         Parameters
         ----------
         point : Array
-            Column vector of shape ``(N, 1)``.
+            Column vector of shape ``(N, 1)``, or 1D of shape ``(N,)``.
 
         Returns
         -------
         Array
             Column vector of shape ``(M, 1)``.
+
+        Warns
+        -----
+        UserWarning
+            If `point` has another shape, even with `N` elements: it is
+            reshaped to `ishape` anyway, which is likely a mistake (use
+            `forward` on an `ishape` array).
         """
+        # (N,) is accepted since scipy calls matvec with 1D vectors
+        if point.shape not in ((self.isize,), (self.isize, 1)):
+            warnings.warn(
+                f"Input shape {point.shape} from `[{type(self)}]{self.name}.matvec` "
+                f"is not a vector ({self.isize}, 1) or ({self.isize},): use "
+                f"`forward` for an array of shape ishape={self.ishape}",
+                stacklevel=2,
+            )
         xp = arr_api.get_namespace(point)
         return xp.reshape(self.forward(xp.reshape(point, self.ishape)), (-1, 1))
 
@@ -364,13 +379,27 @@ class LinOp(abc.ABC):
         Parameters
         ----------
         point : Array
-            Column vector of shape ``(M, 1)``.
+            Column vector of shape ``(M, 1)``, or 1D of shape ``(M,)``.
 
         Returns
         -------
         Array
             Column vector of shape ``(N, 1)``.
+
+        Warns
+        -----
+        UserWarning
+            If `point` has another shape, even with `M` elements: it is
+            reshaped to `oshape` anyway, which is likely a mistake (use
+            `adjoint` on an `oshape` array).
         """
+        if point.shape not in ((self.osize,), (self.osize, 1)):
+            warnings.warn(
+                f"Input shape {point.shape} from `[{type(self)}]{self.name}.rmatvec` "
+                f"is not a vector ({self.osize}, 1) or ({self.osize},): use "
+                f"`adjoint` for an array of shape oshape={self.oshape}",
+                stacklevel=2,
+            )
         xp = arr_api.get_namespace(point)
         return xp.reshape(self.adjoint(xp.reshape(point, self.oshape)), (-1, 1))
 
