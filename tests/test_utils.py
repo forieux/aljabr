@@ -60,7 +60,7 @@ class TestIsSym:
         assert not is_sym(np.array([[2, 1j], [1j, 2]]))
 
     def test_gram_operator(self):
-        assert is_sym(Diff(0, (5,)).G)
+        assert is_sym(Diff((5,), 0).G)
         assert is_sym(DFT((4, 4), 2).G)
 
 
@@ -94,7 +94,7 @@ class TestDefiniteness:
     @pytest.mark.parametrize("size", [5, 16, 33, 64])
     def test_semi_def_with_zero_eigenvalue(self, size):
         # The constant vector is in the kernel of DᴴD
-        gram = Diff(0, (size,)).G
+        gram = Diff((size,), 0).G
         assert is_semi_pos_def(gram)
         assert not is_pos_def(gram)
         assert is_semi_neg_def(-1.0 * gram)
@@ -148,8 +148,8 @@ class TestDottest:
             assert not dottest(op)
 
     def test_success_does_not_warn(self, recwarn):
-        assert dottest(Diff(0, (4, 5)), num=3)
-        assert dottest(Diff(0, (4, 5)), num=3, complex_vectors=True)
+        assert dottest(Diff((4, 5), 0), num=3)
+        assert dottest(Diff((4, 5), 0), num=3, complex_vectors=True)
         assert not recwarn.list
 
     def test_complex_vectors_detect_dropped_imaginary_part(self):
@@ -167,7 +167,7 @@ class TestFwadjtest:
             assert not fwadjtest(op)
 
     def test_success_does_not_warn(self, recwarn):
-        assert fwadjtest(Diff(0, (4, 5)), num=3, complex_vectors=True)
+        assert fwadjtest(Diff((4, 5), 0), num=3, complex_vectors=True)
         assert not recwarn.list
 
     def test_complex_vectors_detect_dropped_imaginary_part(self):

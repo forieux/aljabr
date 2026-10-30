@@ -34,7 +34,7 @@ public name is importable from the top level: `import aljabr` or
 import numpy as np
 import aljabr as aj
 
-D = aj.Diff(axis=0, ishape=(64, 64))   # (64, 64) → (63, 64)
+D = aj.Diff(ishape=(64, 64), axis=0)   # (64, 64) → (63, 64)
 x = np.random.randn(64, 64)
 
 y = D(x)            # == D.forward(x) == D * x
@@ -47,8 +47,8 @@ D.H.H is D          # True, no wrapper chain
 G = D.H @ D         # Symmetric (Gram), uses D.fwadj — same as D.G
 P = D @ aj.Identity((64, 64))           # ProdOp (also D * Op)
 S = 0.5 * D         # Scaled ; also -D and D / 2
-R = D.G + 0.1 * aj.Diff(1, (64, 64)).G  # AddOp ; `-` gives SubOp
-V = aj.VStack([aj.Diff(0, (64, 64)), aj.Diff(1, (64, 64))])  # x → [D0x; D1x]
+R = D.G + 0.1 * aj.Diff((64, 64), 1).G  # AddOp ; `-` gives SubOp
+V = aj.VStack([aj.Diff((64, 64), 0), aj.Diff((64, 64), 1)])  # x → [D0x; D1x]
 ```
 
 Composition rules (a `ValueError` is raised otherwise):
@@ -139,17 +139,17 @@ test emits a `UserWarning` with the relative error.
 | `Identity` | `(shape)` | `shape → shape` |
 | `Diag` | `(diag)` | element-wise product, `diag.shape → diag.shape` |
 | `DFT` | `(shape, ndim)` | unitary DFT on last `ndim` axes, complex output, `fwadj` = identity |
-| `RealDFT` | `(shape, ndim)` | `DFT` of a real input on the half spectrum, last axis → `n // 2 + 1`; adjoint = inverse, **not** the standard adjoint (see pitfalls) |
-| `Conv` | `(ir, ishape, dim)` | FFT convolution on last `dim` axes, real `ir`, **"valid"** output (`n - k + 1`); adjoint is "full" |
+| `RealDFT` | `(ishape, ndim)` | `DFT` of a real input on the half spectrum, last axis → `n // 2 + 1`; adjoint = inverse, **not** the standard adjoint (see pitfalls) |
+| `Conv` | `(ir, ishape, ndim)` | FFT convolution on last `ndim` axes, real `ir`, **"valid"** output (`n - k + 1`); adjoint is "full" |
 | `DirectConv` | `(ir, ishape)` | same as `Conv` with `scipy.signal.oaconvolve`, complex `ir` allowed; NumPy only, needs scipy |
-| `CircConv` | `(imp_resp, shape)` | periodic convolution, `shape → shape`, real `imp_resp`; `imp_resp.ndim == len(shape)` (e.g. `(1, K)` for 1D on 2D) |
+| `CircConv` | `(ir, shape)` | periodic convolution, `shape → shape`, real `ir`; `ir.ndim == len(shape)` (e.g. `(1, K)` for 1D on 2D) |
 | `FreqFilter` | `(ir, shape)` | `Diag` on the half-spectrum (`udft.rdftn`) from a real impulse response; `shape` is the direct-space shape, the operator's `ishape` is `shape[:-1] + (shape[-1] // 2 + 1,)` (use `Diag` if you already have the frequency response) |
-| `Diff` | `(axis, ishape)` | first-order difference, `oshape[axis] = ishape[axis] - 1` |
-| `Slice` | `(ishape, idx)` | `x[idx]`, build `idx` with `np.index_exp[::2, 1]`; adjoint zero-fills |
+| `Diff` | `(ishape, axis)` | first-order difference, `oshape[axis] = ishape[axis] - 1` |
+| `Slice` | `(ishape, index)` | `x[index]`, build `index` with `np.index_exp[::2, 1]`; adjoint zero-fills |
 | `Sampling` | `(ishape, index)` | NumPy fancy indexing, `index` = one int array per axis (broadcast, negatives allowed); adjoint accumulates repeated indices; NumPy only |
 | `DWT` | `(shape, level=None, wavelet="haar")` | unitary nD wavelet transform (periodization); orthogonal wavelets only (haar, dbN, symN, coifN); every size divisible by `2**level` (default: largest valid level, at most `pywt.dwtn_max_level`; a larger one works but pywt warns about boundary effects); needs pywt |
-| `Analysis2` | `(shape, level, wavelet="haar")` | 2D stationary wavelet analysis, `(H, W) → (3·level+1, H, W)`; orthogonal wavelets only; needs pywt |
-| `Synthesis2` | `(shape, level, wavelet="haar")` | adjoint of `Analysis2`, `(3·level+1, H, W) → (H, W)` |
+| `Analysis2` | `(ishape, level, wavelet="haar")` | 2D stationary wavelet analysis, `(H, W) → (3·level+1, H, W)`; orthogonal wavelets only; needs pywt |
+| `Synthesis2` | `(oshape, level, wavelet="haar")` | adjoint of `Analysis2`, `(3·level+1, H, W) → (H, W)` |
 
 All accept an optional `name=` (except `Sampling`, `Slice`). Check shapes with
 `print(op)`, e.g. `Conv (Conv): (64, 64) → (60, 60)`.
@@ -185,8 +185,8 @@ yourself.
 ```python
 import scipy.sparse.linalg as spla
 
-H = aj.Conv(np.ones((5, 5)) / 25, ishape=(64, 64), dim=2)   # blur, (64,64)→(60,60)
-D0, D1 = aj.Diff(0, H.ishape), aj.Diff(1, H.ishape)
+H = aj.Conv(np.ones((5, 5)) / 25, ishape=(64, 64), ndim=2)   # blur, (64,64)→(60,60)
+D0, D1 = aj.Diff(H.ishape, 0), aj.Diff(H.ishape, 1)
 data = H(x_true) + 0.01 * np.random.randn(*H.oshape)
 
 # Tikhonov: (HᴴH + μ(D0ᴴD0 + D1ᴴD1)) x = Hᴴ y

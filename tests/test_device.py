@@ -33,13 +33,13 @@ class TestAdjointDevice:
         assert arr_api.device(out) == DEVICE
 
     def test_diff(self):
-        op = Diff(0, (5, 3))
+        op = Diff((5, 3), 0)
         out = op.adjoint(on_device(RNG.standard_normal(op.oshape)))
         assert arr_api.device(out) == DEVICE
         assert dottest(op, xp=xp, device=DEVICE)
 
     def test_conv(self):
-        op = Conv(on_device(np.ones((3, 3)) / 9), (8, 8), dim=2)
+        op = Conv(on_device(np.ones((3, 3)) / 9), (8, 8), ndim=2)
         out = op.adjoint(on_device(RNG.standard_normal(op.oshape)))
         assert arr_api.device(out) == DEVICE
 
@@ -51,7 +51,7 @@ class TestAdjointDevice:
 
 class TestAsmatrixDevice:
     def test_linop(self):
-        assert arr_api.device(Diff(0, (4,)).asmatrix(like=like())) == DEVICE
+        assert arr_api.device(Diff((4,), 0).asmatrix(like=like())) == DEVICE
 
     def test_identity(self):
         assert arr_api.device(Identity((3,)).asmatrix(like=like())) == DEVICE
@@ -94,8 +94,8 @@ class TestStackDevice:
     @pytest.mark.parametrize(
         "make",
         [
-            lambda: VStack([Diff(0, (4, 5)), Diff(1, (4, 5))]),
-            lambda: HStack([Diff(0, (4, 5)).H, Diff(1, (4, 5)).H]),
+            lambda: VStack([Diff((4, 5), 0), Diff((4, 5), 1)]),
+            lambda: HStack([Diff((4, 5), 0).H, Diff((4, 5), 1).H]),
         ],
         ids=["VStack", "HStack"],
     )

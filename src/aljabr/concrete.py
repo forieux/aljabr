@@ -147,7 +147,7 @@ class DFT(LinOp):
 
     Parameters
     ----------
-    shape : tuple of int
+    ishape : tuple of int
         The shape of the input.
     ndim : int
         The number of last axes over which to compute the DFT.
@@ -155,8 +155,9 @@ class DFT(LinOp):
         Name of the operator.
     """
 
-    def __init__(self, shape: Shape, ndim: int, name: str = "DFT"):
-        super().__init__(shape, shape, name=name)
+    def __init__(self, ishape: Shape, ndim: int, name: str = "DFT"):
+        super().__init__(ishape, ishape, name=name)
+        # LinOp.ndim` is the matrix one, always 2
         self.dim = ndim
 
     def forward(self, point: Array) -> Array:
@@ -179,8 +180,9 @@ class RealDFT(LinOp):
 
     Parameters
     ----------
-    shape : tuple of int
-        The shape of the input.
+    ishape : tuple of int
+        The shape of the input. The output shape is
+        ``ishape[:-1] + (ishape[-1] // 2 + 1,)``.
     ndim : int
         The number of last axes over which to compute the DFT.
     name : str, optional
@@ -208,9 +210,10 @@ class RealDFT(LinOp):
     `CircConv`, not inside generic algorithms relying on the standard adjoint.
     """
 
-    def __init__(self, shape: Shape, ndim: int, name: str = "rDFT"):
-        shape = tuple(shape)  # tuple concatenation below, `shape` may be a list
-        super().__init__(shape, shape[:-1] + (shape[-1] // 2 + 1,), name=name)
+    def __init__(self, ishape: Shape, ndim: int, name: str = "rDFT"):
+        ishape = tuple(ishape)  # tuple concatenation below, may be a list
+        super().__init__(ishape, ishape[:-1] + (ishape[-1] // 2 + 1,), name=name)
+        # `LinOp.ndim` is the matrix one, always 2
         self.dim = ndim
 
     def forward(self, point: Array) -> Array:
@@ -231,29 +234,30 @@ class Conv(LinOp):
     Parameters
     ----------
     ir : Array
-        The real impulse response, on its last `dim` axes. Leading axes, if
+        The real impulse response, on its last `ndim` axes. Leading axes, if
         any, are batch axes broadcast against the batch axes of the input. The
         namespace is inferred from this array.
     ishape : tuple of int
-        The shape of the input. Images are on the last `dim` axes.
-    dim : int
+        The shape of the input. Images are on the last `ndim` axes.
+    ndim : int
         Number of last axes over which convolution applies.
     name : str, optional
         Name of the operator.
 
     Attributes
     ----------
-    imp_resp : Array
+    ir : Array
         The impulse response.
     freq_resp : Array
         The frequency response.
     dim : int
-        The last `dim` axes where convolution applies.
+        The `ndim` parameter: the number of last axes where convolution
+        applies.
 
     Raises
     ------
     ValueError
-        If `dim` is not in ``[1, len(ishape)]``, if `ir` has less than `dim`
+        If `ndim` is not in ``[1, len(ishape)]``, if `ir` has less than `ndim`
         axes, if its batch axes do not broadcast to the input ones, or if it is
         larger than the input on a convolved axis. If `ir` is complex (from
         `udft.ir2fr`).
@@ -271,46 +275,46 @@ class Conv(LinOp):
 
     """
 
-    def __init__(self, ir: Array, ishape: Shape, dim: int, name: str = "Conv"):
-        if not 1 <= dim <= len(ishape):
-            raise ValueError(f"`dim`={dim} must be in [1, len(ishape)={len(ishape)}]")
-        if ir.ndim < dim:
-            raise ValueError(f"`ir` must have at least `dim`={dim} dimensions")
+    def __init__(self, ir: Array, ishape: Shape, ndim: int, name: str = "Conv"):
+        if not 1 <= ndim <= len(ishape):
+            raise ValueError(f"`ndim`={ndim} must be in [1, len(ishape)={len(ishape)}]")
+        if ir.ndim < ndim:
+            raise ValueError(f"`ir` must have at least `ndim`={ndim} dimensions")
         # Leading axes of `ir` are batch axes broadcast against the batch axes
         # of the input (e.g. one kernel per channel). They must not change the
         # output batch shape, otherwise the adjoint would have to sum over them.
-        batch = tuple(ishape[: len(ishape) - dim])
+        batch = tuple(ishape[: len(ishape) - ndim])
         try:
-            broadcast_ok = np.broadcast_shapes(ir.shape[:-dim], batch) == batch
+            broadcast_ok = np.broadcast_shapes(ir.shape[:-ndim], batch) == batch
         except ValueError:
             broadcast_ok = False
         if not broadcast_ok:
             raise ValueError(
-                f"`ir` batch shape {ir.shape[:-dim]} must broadcast to the input "
+                f"`ir` batch shape {ir.shape[:-ndim]} must broadcast to the input "
                 f"batch shape {batch}"
             )
 
         # oshape: batch dims are unchanged, convolved dims shrink by the kernel
         # size (K → N-K+1, valid convolution).
         #
-        # Example: ishape=(B, H, W), ir.shape=(Kh, Kw) or (B, Kh, Kw), dim=2
+        # Example: ishape=(B, H, W), ir.shape=(Kh, Kw) or (B, Kh, Kw), ndim=2
         #
         # oshape = (B, H-Kh+1, W-Kw+1)
-        kshape = ir.shape[-dim:]
-        if any(k > n for (n, k) in zip(ishape[-dim:], kshape)):
+        kshape = ir.shape[-ndim:]
+        if any(k > n for (n, k) in zip(ishape[-ndim:], kshape)):
             raise ValueError(
                 f"`ir` shape {kshape} must not exceed the input shape "
-                f"{tuple(ishape[-dim:])} on the convolved axes"
+                f"{tuple(ishape[-ndim:])} on the convolved axes"
             )
         super().__init__(
             ishape=ishape,
-            oshape=batch + tuple(n - k + 1 for (n, k) in zip(ishape[-dim:], kshape)),
+            oshape=batch + tuple(n - k + 1 for (n, k) in zip(ishape[-ndim:], kshape)),
             name=name,
         )
 
-        self.dim = dim
-        self.imp_resp = ir
-        self.freq_resp = udft.ir2fr(ir, self.ishape[-dim:])
+        self.dim = ndim
+        self.ir = ir
+        self.freq_resp = udft.ir2fr(ir, self.ishape[-ndim:])
 
         self.margins = kshape
         # Extract the valid part of the circular convolution result.
@@ -326,7 +330,7 @@ class Conv(LinOp):
             [slice(None)] * len(batch)
             + [
                 slice((k - 1) // 2, (k - 1) // 2 + n - k + 1)
-                for (n, k) in zip(ishape[-dim:], kshape)
+                for (n, k) in zip(ishape[-ndim:], kshape)
             ]
         )
 
@@ -474,7 +478,7 @@ class CircConv(LinOp):
 
     Parameters
     ----------
-    imp_resp : Array
+    ir : Array
         The real impulse response, with the same number of dimensions as
         `shape`. Its origin is at the center (see `udft.ir2fr`).
     shape : tuple of int
@@ -484,33 +488,31 @@ class CircConv(LinOp):
 
     Attributes
     ----------
-    imp_resp : Array
+    ir : Array
         The impulse response.
 
     Raises
     ------
     ValueError
-        If ``imp_resp.ndim != len(shape)``. A 1D convolution of a 2D array,
-        for instance, needs an `imp_resp` of shape ``(1, K)``. Or if
-        `imp_resp` is larger than `shape` on an axis. If `imp_resp` is complex
-        (from `udft.ir2fr`): use ``F.H @ Diag(udft.ir2fr(imp_resp, shape,
+        If ``ir.ndim != len(shape)``. A 1D convolution of a 2D array,
+        for instance, needs an `ir` of shape ``(1, K)``. Or if
+        `ir` is larger than `shape` on an axis. If `ir` is complex
+        (from `udft.ir2fr`): use ``F.H @ Diag(udft.ir2fr(ir, shape,
         onesided=False)) @ F`` with ``F = DFT(shape, len(shape))``.
     """
 
-    def __init__(self, imp_resp: Array, shape: Shape, name: str = "CConv"):
-        if imp_resp.ndim != len(shape):
+    def __init__(self, ir: Array, shape: Shape, name: str = "CConv"):
+        if ir.ndim != len(shape):
             raise ValueError(
-                f"`imp_resp.ndim` ({imp_resp.ndim}) must equal `len(shape)` "
-                f"({len(shape)})"
+                f"`ir.ndim` ({ir.ndim}) must equal `len(shape)` ({len(shape)})"
             )
-        if any(k > n for (n, k) in zip(shape, imp_resp.shape)):
+        if any(k > n for (n, k) in zip(shape, ir.shape)):
             raise ValueError(
-                f"`imp_resp` shape {imp_resp.shape} must not exceed `shape` "
-                f"{tuple(shape)}"
+                f"`ir` shape {ir.shape} must not exceed `shape` {tuple(shape)}"
             )
 
-        self.imp_resp = imp_resp
-        self.ffilter = FreqFilter(imp_resp, shape)
+        self.ir = ir
+        self.ffilter = FreqFilter(ir, shape)
 
         super().__init__(ishape=shape, oshape=shape, name=name)
 
@@ -542,10 +544,10 @@ class Diff(LinOp):
 
     Parameters
     ----------
-    axis : int
-        The axis along which to perform the diff.
     ishape : tuple of int
         The shape of the input array.
+    axis : int
+        The axis along which to perform the diff.
     name : str, optional
         Name of the operator.
 
@@ -555,7 +557,7 @@ class Diff(LinOp):
         The axis along which the differences are performed.
     """
 
-    def __init__(self, axis: int, ishape: Shape, name: str = "Diff"):
+    def __init__(self, ishape: Shape, axis: int, name: str = "Diff"):
         oshape = list(ishape)
         oshape[axis] = ishape[axis] - 1
         super().__init__(ishape, tuple(oshape), name=name + f"[{axis}]")
@@ -669,9 +671,9 @@ class Slice(LinOp):
     ----------
     ishape : tuple of int
         The shape of the input array.
-    idx : index expression
+    index : index expression
         The index expression to apply (use ``np.index_exp`` to build it).
-        The output shape is the shape of ``x[idx]`` for ``x`` of shape ``ishape``.
+        The output shape is the shape of ``x[index]`` for ``x`` of shape ``ishape``.
     See Also
     --------
     Sampling : when you have an array of indices that can handle multiple
@@ -679,37 +681,37 @@ class Slice(LinOp):
 
     Notes
     -----
-    Use `np.index_exp` to build the `idx` argument.
+    Use `np.index_exp` to build the `index` argument.
 
     Examples
     --------
-    >>> s = Slice((10, 10), idx=np.index_exp[::2, 1])
+    >>> s = Slice((10, 10), index=np.index_exp[::2, 1])
     >>> y = s.forward(np.empty((10, 10)))  # shape (5,)
     >>> x = s.adjoint(y)                   # shape (10, 10)
     """
 
-    def __init__(self, ishape: Shape, idx: tuple):
+    def __init__(self, ishape: Shape, index: tuple):
         # A broadcast view: no allocation of `ishape`, only of the output for
         # advanced indexing.
-        oshape = np.broadcast_to(np.int8(0), ishape)[idx].shape
-        super().__init__(ishape, oshape, name=f"S[{idx}]")
-        self._idx = idx
+        oshape = np.broadcast_to(np.int8(0), ishape)[index].shape
+        super().__init__(ishape, oshape, name=f"S[{index}]")
+        self._index = index
 
     @property
-    def idx(self) -> tuple:
+    def index(self) -> tuple:
         """The index expression."""
-        return self._idx
+        return self._index
 
     def forward(self, point: Array) -> Array:
-        return point[self._idx]
+        return point[self._index]
 
     def adjoint(self, point: Array) -> Array:
         xp = arr_api.get_namespace(point)
         out = xp.zeros(self.ishape, dtype=point.dtype, device=arr_api.device(point))
         if arr_api.is_jax_array(out):
-            out = out.at[self._idx].set(point)
+            out = out.at[self._index].set(point)
         else:
-            out[self._idx] = point
+            out[self._index] = point
         return out
 
 
@@ -825,8 +827,8 @@ class Analysis2(LinOp):
 
     Parameters
     ----------
-    shape : tuple of (int, int)
-        The input shape.
+    ishape : tuple of (int, int)
+        The input shape, the image one.
     level : int
         The decomposition level.
     wavelet : str, optional
@@ -837,7 +839,7 @@ class Analysis2(LinOp):
     Raises
     ------
     ValueError
-        If `wavelet` is not orthogonal, or if `shape` is not 2D.
+        If `wavelet` is not orthogonal, or if `ishape` is not 2D.
 
     Notes
     -----
@@ -851,7 +853,7 @@ class Analysis2(LinOp):
 
     def __init__(
         self,
-        shape: tuple[int, int],
+        ishape: Shape,
         level: int,
         wavelet: str = "haar",
         name: str = "A",
@@ -860,9 +862,9 @@ class Analysis2(LinOp):
             raise ImportError("pywt is required for Analysis2")
         _check_orthogonal(wavelet, pywt)
 
-        ishape = tuple(shape)  # tuple concatenation below, `shape` may be a list
+        ishape = tuple(ishape)  # tuple concatenation below, may be a list
         if len(ishape) != 2:
-            raise ValueError(f"`shape` {ishape} must be 2D")
+            raise ValueError(f"`ishape` {ishape} must be 2D")
         super().__init__(ishape, (3 * level + 1,) + ishape, name=name)
         self.wlt = wavelet
         self.lvl = level
@@ -948,8 +950,8 @@ class Synthesis2(LinOp):
 
     Parameters
     ----------
-    shape : tuple of (int, int)
-        The input shape.
+    oshape : tuple of (int, int)
+        The output shape, the image one.
     level : int
         The decomposition level.
     wavelet : str, optional
@@ -960,17 +962,17 @@ class Synthesis2(LinOp):
     Raises
     ------
     ValueError
-        If `wavelet` is not orthogonal, or if `shape` is not 2D.
+        If `wavelet` is not orthogonal, or if `oshape` is not 2D.
     """
 
     def __init__(
         self,
-        shape: tuple[int, int],
+        oshape: Shape,
         level: int,
         wavelet: str = "haar",
         name: str = "S",
     ):
-        self.analysis = Analysis2(shape, level, wavelet)
+        self.analysis = Analysis2(oshape, level, wavelet)
         super().__init__(self.analysis.oshape, self.analysis.ishape, name=name)
         self.wlt = self.analysis.wlt
         self.lvl = self.analysis.lvl

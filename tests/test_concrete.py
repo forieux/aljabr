@@ -378,48 +378,48 @@ class TestFreqFilter:
 
 class TestConv:
     def test_shape_1d(self):
-        op = Conv(np.ones(3), ishape=(8,), dim=1)
+        op = Conv(np.ones(3), ishape=(8,), ndim=1)
         assert op.ishape == (8,)
         assert op.oshape == (6,)  # 8 - 3 + 1
 
     def test_shape_2d(self):
         ir = np.ones((3, 3))
-        op = Conv(ir, ishape=(8, 8), dim=2)
+        op = Conv(ir, ishape=(8, 8), ndim=2)
         assert op.oshape == (6, 6)
 
     @pytest.mark.parametrize("dim", [0, 2])
     def test_dim_out_of_range_raises(self, dim):
         with pytest.raises(ValueError, match="must be in"):
-            Conv(np.ones((3, 3)), ishape=(8,), dim=dim)
+            Conv(np.ones((3, 3)), ishape=(8,), ndim=dim)
 
     def test_dottest_1d(self):
-        assert dottest(Conv(RNG.standard_normal(3), ishape=(8,), dim=1), num=5)
+        assert dottest(Conv(RNG.standard_normal(3), ishape=(8,), ndim=1), num=5)
 
     def test_dottest_2d(self):
         ir = RNG.standard_normal((3, 3))
-        assert dottest(Conv(ir, ishape=(8, 8), dim=2), num=3)
+        assert dottest(Conv(ir, ishape=(8, 8), ndim=2), num=3)
 
     @pytest.mark.parametrize("kshape", [(3,), (4,), (5,), (2,)])
     def test_forward_is_valid_conv_1d(self, kshape):
         ir, x = RNG.standard_normal(kshape), RNG.standard_normal(12)
-        out = Conv(ir, ishape=x.shape, dim=1).forward(x)
+        out = Conv(ir, ishape=x.shape, ndim=1).forward(x)
         np.testing.assert_allclose(out, np.convolve(x, ir, mode="valid"))
 
     @pytest.mark.parametrize("kshape", [(3, 3), (4, 4), (3, 4), (2, 5)])
     def test_forward_is_valid_conv_2d(self, kshape):
         ir, x = RNG.standard_normal(kshape), RNG.standard_normal((12, 13))
-        out = Conv(ir, ishape=x.shape, dim=2).forward(x)
+        out = Conv(ir, ishape=x.shape, ndim=2).forward(x)
         np.testing.assert_allclose(out, valid_conv(x, ir))
 
     def test_forward_batch(self):
         ir, x = RNG.standard_normal((4, 4)), RNG.standard_normal((2, 12, 13))
-        out = Conv(ir, ishape=x.shape, dim=2).forward(x)
+        out = Conv(ir, ishape=x.shape, ndim=2).forward(x)
         for b in range(2):
             np.testing.assert_allclose(out[b], valid_conv(x[b], ir))
 
     def test_kernel_per_channel(self):
         ir, x = RNG.standard_normal((2, 4, 3)), RNG.standard_normal((2, 12, 13))
-        op = Conv(ir, ishape=x.shape, dim=2)
+        op = Conv(ir, ishape=x.shape, ndim=2)
         assert op.oshape == (2, 9, 11)
         out = op.forward(x)
         for b in range(2):
@@ -428,10 +428,10 @@ class TestConv:
 
     def test_kernel_broadcast_batch(self):
         ir, x = RNG.standard_normal((1, 3, 3)), RNG.standard_normal((2, 12, 12))
-        op = Conv(ir, ishape=x.shape, dim=2)
+        op = Conv(ir, ishape=x.shape, ndim=2)
         assert op.oshape == (2, 10, 10)
         np.testing.assert_allclose(
-            op.forward(x), Conv(ir[0], ishape=x.shape, dim=2).forward(x)
+            op.forward(x), Conv(ir[0], ishape=x.shape, ndim=2).forward(x)
         )
         assert dottest(op, num=3)
 
@@ -446,7 +446,7 @@ class TestConv:
     )
     def test_invalid_kernel_batch(self, irshape, ishape):
         with pytest.raises(ValueError):
-            Conv(RNG.standard_normal(irshape), ishape=ishape, dim=2)
+            Conv(RNG.standard_normal(irshape), ishape=ishape, ndim=2)
 
 
 # ---------------------------------------------------------------------------
@@ -473,7 +473,7 @@ class TestDirectConv:
         ir, x = RNG.standard_normal((4, 3)), RNG.standard_normal((12, 13))
         np.testing.assert_allclose(
             DirectConv(ir, ishape=x.shape).forward(x),
-            Conv(ir, ishape=x.shape, dim=2).forward(x),
+            Conv(ir, ishape=x.shape, ndim=2).forward(x),
         )
 
     def test_dottest(self):
@@ -603,7 +603,7 @@ class TestWavelets:
         lambda s: DirectConv(np.ones((3, 3)), s),
         lambda s: FreqFilter(np.ones((3, 3)), s),
         lambda s: CircConv(np.ones((3, 3)), s),
-        lambda s: Diff(0, s),
+        lambda s: Diff(s, 0),
         lambda s: Sampling(s, (np.array([0, 1]), np.array([2, 3]))),
         lambda s: Slice(s, np.index_exp[::2]),
         pytest.param(lambda s: DWT(s, 1), marks=needs_pywt),
@@ -707,7 +707,7 @@ def test_complex_circ_conv_on_full_spectrum():
         lambda: DirectConv(np.ones((3, 3)), (8, 8)),
         lambda: FreqFilter(np.ones((3, 3)), (8, 8)),
         lambda: CircConv(np.ones((3, 3)), (8, 8)),
-        lambda: Diff(0, (4, 6)),
+        lambda: Diff((4, 6), 0),
         lambda: Sampling((4, 6), (np.array([0, 1]), np.array([2, 3]))),
         lambda: Slice((4, 6), np.index_exp[::2]),
         pytest.param(lambda: DWT((8, 8), 1), marks=needs_pywt),
@@ -741,3 +741,30 @@ def test_pickle_and_deepcopy(make, clone):
     other = clone(op)
     x = RNG.standard_normal(op.ishape)
     np.testing.assert_allclose(other.forward(x), op.forward(x))
+
+
+# ---------------------------------------------------------------------------
+# Consistent parameter and attribute names
+# ---------------------------------------------------------------------------
+
+
+def test_consistent_names():
+    ir = np.ones((3, 3)) / 9
+    assert Conv(ir, ishape=(8, 8), ndim=2).ir is ir
+    assert CircConv(ir=ir, shape=(8, 8)).ir is ir
+    assert DirectConv(ir=ir, ishape=(8, 8)).ir is ir
+    assert RealDFT(ishape=(8, 8), ndim=2).oshape == (8, 5)
+    assert Diff((4, 5), 1).oshape == (4, 4)
+    assert Slice((10,), index=np.index_exp[::2]).index == np.index_exp[::2]
+
+
+@needs_pywt
+def test_wavelet_shape_names():
+    assert Analysis2(ishape=(8, 8), level=1).ishape == (8, 8)
+    assert Synthesis2(oshape=(8, 8), level=1).oshape == (8, 8)
+
+
+def test_diff_old_argument_order_raises():
+    # `Diff(axis, ishape)` before 0.7: fails loudly, not silently
+    with pytest.raises(TypeError):
+        Diff(0, (4, 5))  # pyrefly: ignore[bad-argument-type]

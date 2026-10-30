@@ -73,7 +73,7 @@ For a non-square operator (e.g., a difference along axis 0):
 ```python
 from aljabr import Diff
 
-D = Diff(axis=0, ishape=(256, 256))
+D = Diff(ishape=(256, 256), axis=0)
 print(D.ishape)  # (256, 256)
 print(D.oshape)  # (255, 256)  — one fewer row after diff on axis 0.
 ```
@@ -238,7 +238,7 @@ and small operators:
 M = F.asmatrix()  # shape (65536, 65536) — very large for 256²!
 
 # More realistic example
-D_small = Diff(axis=0, ishape=(4, 4))
+D_small = Diff(ishape=(4, 4), axis=0)
 print(D_small.asmatrix())
 ```
 

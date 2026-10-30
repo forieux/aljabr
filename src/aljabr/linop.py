@@ -642,8 +642,6 @@ class Scaled(LinOp):
     ----------
     baseop : LinOp
         The base linear operator `B`.
-    scale : number or 0-d Array
-        The scale factor `γ`.
 
     Notes
     -----
@@ -657,6 +655,9 @@ class Scaled(LinOp):
             scale = baseop.scale * scale
             baseop = baseop.baseop
         self.baseop = baseop
+        # Annotated for the type checkers, so documented here and not in the
+        # Attributes section, that Sphinx would duplicate
+        #: The scale factor `γ`, a number or a 0-d array.
         self.scale: complex = scale
         super().__init__(
             baseop.ishape,
@@ -998,7 +999,7 @@ class VStack(LinOp):
     --------
     >>> import numpy as np
     >>> from aljabr import Diff, VStack
-    >>> A = VStack([Diff(0, (4, 5)), Diff(1, (4, 5))])
+    >>> A = VStack([Diff((4, 5), 0), Diff((4, 5), 1)])
     >>> x = np.ones((4, 5))
     >>> [yi.shape for yi in A.apply(x)]  # per-operator outputs Aᵢx
     [(3, 5), (4, 4)]
@@ -1095,7 +1096,7 @@ class HStack(LinOp):
     --------
     >>> import numpy as np
     >>> from aljabr import Diff, HStack
-    >>> A = HStack([Diff(0, (4, 5)).H, Diff(1, (4, 5)).H])
+    >>> A = HStack([Diff((4, 5), 0).H, Diff((4, 5), 1).H])
     >>> x = np.ones((31, 1))  # vect([x₀, x₁])
     >>> [xi.shape for xi in A.split(x)]  # per-operator inputs xᵢ
     [(3, 5), (4, 4)]

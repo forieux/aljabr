@@ -77,7 +77,7 @@ z = F.adjoint(y)  # Fᴴ·y
 z = y * F  # (= Fʰ·yᵗ)
 
 # Algebraic composition
-A = aljabr.Diff(axis=0, ishape=(256, 256))
+A = aljabr.Diff(ishape=(256, 256), axis=0)
 B = A.H @ A  # AᴴA as a Symmetric operator
 
 # Validate with the dot test
