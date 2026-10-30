@@ -167,7 +167,8 @@ class TestRealDFT:
         )
 
     def test_not_standard_adjoint(self):
-        assert not dottest(RealDFT((8,), 1), num=3)
+        with pytest.warns(UserWarning, match="dot test failed"):
+            assert not dottest(RealDFT((8,), 1), num=3)
 
 
 def half_spectrum_weights(size: int) -> np.ndarray:

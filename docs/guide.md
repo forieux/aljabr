@@ -288,7 +288,7 @@ calls `super().forward(x)` of a parent operator, both are wrapped: each call
 then adds two durations to `metadata["forward"]` (the inner and the total one)
 and checks the shapes twice. The result is unaffected, only the timings are.
 
-## `BaseOp` — defining an operator without subclassing
+## `BaseOp`
 
 Instead of subclassing you can use `BaseOp` with a pair of callables
 
@@ -307,7 +307,7 @@ fft2_op = BaseOp(
 `BaseOp` accepts an optional `fwadj` callable for the same optimisation as
 above. It is otherwise identical to a hand-written subclass.
 
-## The adjoint: `Adjoint` and `.H`
+## `Adjoint` and `.H`
 
 `.H` returns the adjoint as a proper `LinOp`, not just a callable:
 

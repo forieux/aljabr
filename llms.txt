@@ -10,7 +10,7 @@ Things to know before writing code with aljabr:
 - `A(x)`, `A * x` and `A.forward(x)` apply A on an `ishape` array; `y * A` applies the adjoint; `A @ x_col` / `A.matvec` / `A.rmatvec` work on `(N, 1)` column vectors.
 - `A.H @ A` and `A.G` return a `Symmetric` operator using the optimized `fwadj`. `2.0 * A`, `A * 2.0`, `-A` and `A / 2.0` return `Scaled`; Python, NumPy and 0-d array scalars are all accepted.
 - Wrong input/output shapes only emit a `UserWarning` (not an exception). Timings are stored in `A.metadata`.
-- Always validate a hand-written operator with `dottest(A)` (adjoint correctness) and `fwadjtest(A)` (custom `fwadj`).
+- Always validate a hand-written operator with `dottest(A)` (adjoint correctness) and `fwadjtest(A)` (custom `fwadj`); add `complex_vectors=True` for an operator on complex input. A failure warns with the relative error.
 - aljabr provides no solvers and no `A / y`: use your own algorithm or `scipy.sparse.linalg` (`cg`, `lsqr`, `eigsh`, …); `eigs` and `eigsh` need `spla.aslinearoperator(A)` since they read `A.dtype`, which a `LinOp` lacks.
 - Pre-alpha: the API may change.
 

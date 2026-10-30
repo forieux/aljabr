@@ -3,9 +3,12 @@ import pytest
 from conftest import RNG
 
 from aljabr.concrete import DFT, Diag, Diff
+from aljabr.linop import BaseOp
 from aljabr.utils import (
     cond,
+    dottest,
     fcond,
+    fwadjtest,
     herm,
     is_neg_def,
     is_pos_def,
@@ -131,3 +134,44 @@ class TestFcond:
     @pytest.mark.parametrize(("diag", "expected"), [([1.0, 4.0], 4.0), ([3.0], 1.0)])
     def test_small(self, diag, expected):
         assert fcond(Diag(np.array(diag))) == pytest.approx(expected)
+
+
+# ---------------------------------------------------------------------------
+# dottest, fwadjtest
+# ---------------------------------------------------------------------------
+
+
+class TestDottest:
+    def test_failure_warns_both_sides(self):
+        op = BaseOp(lambda x: 2 * x, lambda y: 3 * y, (5,), (5,))
+        with pytest.warns(UserWarning, match=r"dot test failed.*relative error"):
+            assert not dottest(op)
+
+    def test_success_does_not_warn(self, recwarn):
+        assert dottest(Diff(0, (4, 5)), num=3)
+        assert dottest(Diff(0, (4, 5)), num=3, complex_vectors=True)
+        assert not recwarn.list
+
+    def test_complex_vectors_detect_dropped_imaginary_part(self):
+        # Not linear on complex input, but passes with real vectors
+        op = BaseOp(lambda x: 2 * np.real(x), lambda y: 2 * np.real(y), (5,), (5,))
+        assert dottest(op, num=3)
+        with pytest.warns(UserWarning, match="dot test failed"):
+            assert not dottest(op, num=3, complex_vectors=True)
+
+
+class TestFwadjtest:
+    def test_failure_warns(self):
+        op = BaseOp(lambda x: x, lambda y: y, (5,), (5,), fwadj=lambda x: 2 * x)
+        with pytest.warns(UserWarning, match=r"fwadj test failed.*relative error"):
+            assert not fwadjtest(op)
+
+    def test_success_does_not_warn(self, recwarn):
+        assert fwadjtest(Diff(0, (4, 5)), num=3, complex_vectors=True)
+        assert not recwarn.list
+
+    def test_complex_vectors_detect_dropped_imaginary_part(self):
+        op = BaseOp(lambda x: x, lambda y: y, (5,), (5,), fwadj=lambda x: np.real(x))
+        assert fwadjtest(op, num=3)
+        with pytest.warns(UserWarning, match="fwadj test failed"):
+            assert not fwadjtest(op, num=3, complex_vectors=True)

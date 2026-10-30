@@ -29,6 +29,7 @@ estimation,...
 """
 
 import types
+import warnings
 
 import array_api_compat as arr_api
 import numpy as np
@@ -91,6 +92,7 @@ def dottest(
     echo: bool = False,
     xp=np,
     device=None,
+    complex_vectors: bool = False,
 ) -> bool:
     """The dot test.
 
@@ -117,11 +119,20 @@ def dottest(
     device : device, optional
         The device of the test vectors, as in `xp.asarray` (default: the
         default device of `xp`).
+    complex_vectors : bool, optional
+        If True, the test vectors are complex, to also test the operator on
+        the imaginary part of its input. Default to real vectors, since some
+        operators accept only real input.
 
     Returns
     -------
     bool
         True if all `num` tests pass.
+
+    Warns
+    -----
+    UserWarning
+        For each failed test, with the two sides of the equality.
 
     Notes
     -----
@@ -130,8 +141,14 @@ def dottest(
     """
     test = True
     for _ in range(num):
-        vvec = xp.asarray(randn(linop.isize), device=device)
-        uvec = xp.asarray(randn(linop.osize), device=device)
+        vvec = randn(linop.isize)
+        uvec = randn(linop.osize)
+        if complex_vectors:
+            # Not `+=`: in place, NumPy can not cast a complex sum to float
+            vvec = vvec + 1j * randn(linop.isize)
+            uvec = uvec + 1j * randn(linop.osize)
+        vvec = xp.asarray(vvec, device=device)
+        uvec = xp.asarray(uvec, device=device)
         # Use sum instead of more efficient vdot for compatibility with non-NumPy namespaces (e.g. torch)
         lhs = xp.sum(
             xp.conj(xp.reshape(linop.rmatvec(uvec), (-1,))) * xp.reshape(vvec, (-1,))
@@ -139,9 +156,17 @@ def dottest(
         rhs = xp.sum(
             xp.conj(xp.reshape(uvec, (-1,))) * xp.reshape(linop.matvec(vvec), (-1,))
         )
-        test = test and allclose(lhs, rhs, rtol=rtol, atol=atol)
+        close = allclose(lhs, rhs, rtol=rtol, atol=atol)
+        test = test and close
         if echo:
             print(f"(Aᴴ·u)ᴴ·v = {lhs} ≈ {rhs} = uᴴ·(A·v)")
+        if not close:
+            warnings.warn(
+                f"dot test failed for {linop!r}. (Aᴴ·u)ᴴ·v = {complex(lhs)} "
+                f"≠ {complex(rhs)} = uᴴ·(A·v), relative error "
+                f"{relerr(lhs, rhs):.2e}",
+                stacklevel=2,
+            )
     return test
 
 
@@ -153,6 +178,7 @@ def fwadjtest(
     echo: bool = False,
     xp=np,
     device=None,
+    complex_vectors: bool = False,
 ) -> bool:
     """Test `fwadj` validity.
 
@@ -179,22 +205,48 @@ def fwadjtest(
     device : device, optional
         The device of the test vectors, as in `xp.asarray` (default: the
         default device of `xp`).
+    complex_vectors : bool, optional
+        If True, the test vectors are complex, to also test the operator on
+        the imaginary part of its input. Default to real vectors, since some
+        operators accept only real input.
 
     Returns
     -------
     bool
         True if all `num` tests pass.
+
+    Warns
+    -----
+    UserWarning
+        For each failed test, with the relative error.
     """
     test = True
     for _ in range(num):
-        vvec = xp.asarray(randn(linop.ishape), device=device)
+        vvec = randn(linop.ishape)
+        if complex_vectors:
+            vvec = vvec + 1j * randn(linop.ishape)
+        vvec = xp.asarray(vvec, device=device)
         i = linop.fwadj(vvec)
         j = linop.adjoint(linop.forward(vvec))
         close = allclose(i, j, rtol=rtol, atol=atol)
         test = test and close
         if echo:
             print(f"(Aᴴ·A)·v = {i} ≈ {j} = Aᴴ·(A·v)")
+        if not close:
+            warnings.warn(
+                f"fwadj test failed for {linop!r}. (Aᴴ·A)·v ≠ Aᴴ·(A·v), "
+                f"relative error {relerr(i, j):.2e} (max norm)",
+                stacklevel=2,
+            )
     return test
+
+
+def relerr(a: Array, b: Array) -> float:
+    """Return `max|a - b| / max|b|` (`inf` if `b` is zero), for messages."""
+    xp = arr_api.get_namespace(a, b)
+    err = float(xp.max(xp.abs(a - b)))
+    ref = float(xp.max(xp.abs(b)))
+    return err / ref if ref else float("inf")
 
 
 def herm(mat: Array) -> Array:

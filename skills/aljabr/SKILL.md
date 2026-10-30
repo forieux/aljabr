@@ -126,8 +126,11 @@ assert aj.fwadjtest(M, num=5)   # fwadj(x) == adjoint(forward(x))
 ```
 
 Both accept `rtol`, `atol`, `echo=True` (print both sides), `xp=` (array
-namespace for the random test vectors, e.g. `xp=torch`) and `device=` (their
-device, e.g. `device="cuda"` for an operator on GPU).
+namespace for the random test vectors, e.g. `xp=torch`), `device=` (their
+device, e.g. `device="cuda"` for an operator on GPU) and
+`complex_vectors=True` (complex test vectors, for an operator that must handle
+complex input: real vectors miss one that drops the imaginary part). A failed
+test emits a `UserWarning` with the relative error.
 
 ## Concrete operators
 
