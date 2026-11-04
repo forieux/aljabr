@@ -7,10 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-11-05
+
 ### Changed
 
 - **Breaking**, `BaseOp` is renamed `FuncOp`: it is not a base class to inherit
   from, but an operator built from callables.
+- The docstrings of `herm`, `is_sym` and `is_*_def` state the math property.
 
 ## [0.7.0] - 2026-10-30
 

@@ -250,7 +250,13 @@ def relerr(a: Array, b: Array) -> float:
 
 
 def herm(mat: Array) -> Array:
-    """Return the conjugate transpose `Mᴴ` of a matrix.
+    r"""Return the conjugate transpose `Mᴴ` of a matrix.
+
+    Its coefficients are
+
+    .. math::
+
+        (M^H)_{ij} = \overline{M_{ji}}.
 
     Parameters
     ----------
@@ -267,9 +273,16 @@ def herm(mat: Array) -> Array:
 
 
 def is_sym(linop: Array | LinOp) -> bool:
-    """Return True if `linop` is symmetric, that is `M = Mᴴ`.
+    r"""Return True if `linop` is symmetric, that is `M = Mᴴ`.
 
-    For a complex matrix, this is the Hermitian property (as for `Symmetric`).
+    For a complex matrix, this is the Hermitian property (as for `Symmetric`)
+
+    .. math::
+
+        M_{ij} = \overline{M_{ji}} \quad \forall i, j,
+
+    or equivalently :math:`y^H (M x) = (M y)^H x` for all vectors :math:`x` and
+    :math:`y`.
 
     Parameters
     ----------
@@ -302,6 +315,13 @@ def _herm_part_eigvals(linop: Array | LinOp, rtol: float | None) -> tuple:
 def is_pos_def(linop: Array | LinOp, rtol: float | None = None) -> bool:
     r"""Return True if `linop` is positive definite.
 
+    That is
+
+    .. math::
+
+        \Re(x^H M x) > 0 \quad \forall x \neq 0
+        \iff \lambda_{\min}(M + M^H) > 0.
+
     Parameters
     ----------
     linop : Array or LinOp
@@ -316,12 +336,18 @@ def is_pos_def(linop: Array | LinOp, rtol: float | None = None) -> bool:
 
     Notes
     -----
-    A positive definite matrix $M$ has strictly positive eigenvalues, but the
-    converse is not true for non-Hermitian matrices. The function therefore
-    tests all eigenvalues of $M + M^H$: since $\Re(x^H M x) = x^H \frac{M +
-    M^H}{2} x$ for any vector $x$, the condition $\Re(x^H M x) > 0$ is
-    equivalent to the positive definiteness of the Hermitian matrix $M + M^H$.
-    For a Hermitian $M$, this is the usual definition.
+    The eigenvalues of a positive definite matrix :math:`M` have a strictly
+    positive real part, but the converse is not true for non-Hermitian
+    matrices. The function therefore tests all eigenvalues of :math:`M + M^H`:
+    since
+
+    .. math::
+
+        \Re(x^H M x) = x^H \frac{M + M^H}{2} x
+
+    for any vector :math:`x`, the condition :math:`\Re(x^H M x) > 0` is
+    equivalent to the positive definiteness of the Hermitian matrix
+    :math:`M + M^H`. For a Hermitian :math:`M`, this is the usual definition.
     """
     eig, tol = _herm_part_eigvals(linop, rtol)
     xp = arr_api.get_namespace(eig)
@@ -329,7 +355,14 @@ def is_pos_def(linop: Array | LinOp, rtol: float | None = None) -> bool:
 
 
 def is_semi_pos_def(linop: Array | LinOp, rtol: float | None = None) -> bool:
-    """Return True if `linop` is semi positive definite.
+    r"""Return True if `linop` is semi positive definite.
+
+    That is
+
+    .. math::
+
+        \Re(x^H M x) \geq 0 \quad \forall x
+        \iff \lambda_{\min}(M + M^H) \geq 0.
 
     Parameters
     ----------
@@ -353,7 +386,14 @@ def is_semi_pos_def(linop: Array | LinOp, rtol: float | None = None) -> bool:
 
 
 def is_neg_def(linop: Array | LinOp, rtol: float | None = None) -> bool:
-    """Return True if `linop` is negative definite.
+    r"""Return True if `linop` is negative definite.
+
+    That is
+
+    .. math::
+
+        \Re(x^H M x) < 0 \quad \forall x \neq 0
+        \iff \lambda_{\max}(M + M^H) < 0.
 
     Parameters
     ----------
@@ -377,7 +417,14 @@ def is_neg_def(linop: Array | LinOp, rtol: float | None = None) -> bool:
 
 
 def is_semi_neg_def(linop: Array | LinOp, rtol: float | None = None) -> bool:
-    """Return True if `linop` is semi negative definite.
+    r"""Return True if `linop` is semi negative definite.
+
+    That is
+
+    .. math::
+
+        \Re(x^H M x) \leq 0 \quad \forall x
+        \iff \lambda_{\max}(M + M^H) \leq 0.
 
     Parameters
     ----------
