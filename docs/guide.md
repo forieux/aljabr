@@ -127,8 +127,7 @@ Internally, `matvec` reshapes to `ishape`, calls `forward`, then flattens the
 result; `rmatvec` does the same through `adjoint`.
 
 Any other input shape emits a `UserWarning`, even with the right number of
-elements: `F @ x` on an image `x` would otherwise silently return a column. Use
-`F(x)` on shaped arrays.
+elements.
 
 ### String representation
 
