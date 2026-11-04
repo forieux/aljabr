@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Breaking**, `BaseOp` is renamed `FuncOp`: it is not a base class to inherit
+  from, but an operator built from callables.
+
 ## [0.7.0] - 2026-10-30
 
 ### Added

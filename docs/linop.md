@@ -1,13 +1,17 @@
-# `linop` — Base classes and algebraic operators
+# `linop` — Base class and algebraic operators
 
-## Base classes
+## Base class
 
 ```{eval-rst}
 .. autoclass:: aljabr.linop.LinOp
    :members:
    :show-inheritance:
+```
 
-.. autoclass:: aljabr.linop.BaseOp
+## Operators from callables
+
+```{eval-rst}
+.. autoclass:: aljabr.linop.FuncOp
    :members:
    :show-inheritance:
 ```

@@ -8,8 +8,8 @@ from conftest import RNG, make_dense
 
 from aljabr.linop import (
     Adjoint,
-    BaseOp,
     Dense,
+    FuncOp,
     HStack,
     LinOp,
     ProdOp,
@@ -115,9 +115,9 @@ class TestLinOpShapes:
 # ---------------------------------------------------------------------------
 
 
-def make_fft(n: int) -> BaseOp:
-    """Return the unitary 1D FFT as a BaseOp (complex output from real input)."""
-    return BaseOp(
+def make_fft(n: int) -> FuncOp:
+    """Return the unitary 1D FFT as a FuncOp (complex output from real input)."""
+    return FuncOp(
         forward=lambda x: np.fft.fft(x, norm="ortho"),
         adjoint=lambda y: np.fft.ifft(y, norm="ortho"),
         ishape=(n,),
@@ -127,13 +127,13 @@ def make_fft(n: int) -> BaseOp:
 
 class TestLinOpAsmatrix:
     def test_real_operator_is_float64(self):
-        op = BaseOp(lambda x: 2 * x, lambda y: 2 * y, ishape=(3,), oshape=(3,))
+        op = FuncOp(lambda x: 2 * x, lambda y: 2 * y, ishape=(3,), oshape=(3,))
         mat = op.asmatrix()
         assert mat.dtype == np.float64
         np.testing.assert_array_equal(mat, 2 * np.eye(3))
 
     def test_non_square(self):
-        op = BaseOp(lambda x: x[:2], lambda y: np.r_[y, 0], ishape=(3,), oshape=(2,))
+        op = FuncOp(lambda x: x[:2], lambda y: np.r_[y, 0], ishape=(3,), oshape=(2,))
         np.testing.assert_array_equal(op.asmatrix(), np.eye(2, 3))
 
     def test_complex_operator_keeps_imaginary_part(self):
@@ -146,7 +146,7 @@ class TestLinOpAsmatrix:
         np.testing.assert_allclose(op.H.asmatrix(), op.asmatrix().conj().T)
 
     def test_like_dtype(self):
-        op = BaseOp(lambda x: 2 * x, lambda y: 2 * y, ishape=(3,), oshape=(3,))
+        op = FuncOp(lambda x: 2 * x, lambda y: 2 * y, ishape=(3,), oshape=(3,))
         assert op.asmatrix(like=np.zeros(1, dtype=np.float32)).dtype == np.float32
 
 
@@ -185,14 +185,14 @@ class TestDense:
 
 
 # ---------------------------------------------------------------------------
-# BaseOp
+# FuncOp
 # ---------------------------------------------------------------------------
 
 
-class TestBaseOp:
+class TestFuncOp:
     def test_from_callables_dottest(self):
         mat = RNG.standard_normal((3, 4))
-        op = BaseOp(
+        op = FuncOp(
             forward=lambda x: mat @ x,
             adjoint=lambda y: mat.T @ y,
             ishape=(4,),
@@ -203,7 +203,7 @@ class TestBaseOp:
     def test_custom_fwadj(self):
         mat = RNG.standard_normal((3, 4))
         ata = mat.T @ mat
-        op = BaseOp(
+        op = FuncOp(
             forward=lambda x: mat @ x,
             adjoint=lambda y: mat.T @ y,
             fwadj=lambda x: ata @ x,
@@ -589,7 +589,7 @@ class TestOperatorOverloads:
 
     def test_zero_dim_array_is_operand_for_zero_dim_operator(self):
         # An operator on 0-d arrays applies to them instead of being scaled
-        op = BaseOp(lambda x: 2 * x, lambda y: 3 * y, ishape=(), oshape=())
+        op = FuncOp(lambda x: 2 * x, lambda y: 3 * y, ishape=(), oshape=())
         assert op * np.array(5.0) == 10.0
         assert np.array(5.0) * op == 15.0
 

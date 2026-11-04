@@ -199,8 +199,7 @@ G = F * 2.0  # same
 `-F` and `F / 2.0` also return a `Scaled`, by `-1` and `1 / 2.0`.
 
 Python scalars, NumPy scalars (like `np.float32`), and 0-d arrays (like a
-PyTorch or JAX scalar) are all scalars, except a 0-d array for an operator
-whose `ishape` (or `oshape` for the adjoint) is `()`: it is then an operand.
+PyTorch or JAX scalar) are all scalars.
 
 When the right operand is a **LinOp**, `*` returns a composition:
 
@@ -228,7 +227,7 @@ S = F @ F.H  # also Symmetric
 This automatic detection avoids wrapping $A^H A$ in a generic `ProdOp` when a
 `Symmetric` is the right result.
 
-## `asmatrix` — materialise the operator
+## `asmatrix`
 
 `asmatrix()` builds the explicit dense matrix by applying `forward` to each
 canonical basis vector and stacking the results as columns. Useful for debugging
@@ -292,14 +291,14 @@ calls `super().forward(x)` of a parent operator, both are wrapped: each call
 then adds two durations to `metadata["forward"]` (the inner and the total one)
 and checks the shapes twice. The result is unaffected, only the timings are.
 
-## `BaseOp`
+## `FuncOp`
 
-Instead of subclassing you can use `BaseOp` with a pair of callables
+Instead of subclassing you can use `FuncOp` with a pair of callables
 
 ```python
-from aljabr import BaseOp
+from aljabr import FuncOp
 
-fft2_op = BaseOp(
+fft2_op = FuncOp(
     forward=lambda x: np.fft.fft2(x, norm="ortho"),
     adjoint=lambda y: np.fft.ifft2(y, norm="ortho"),
     ishape=(256, 256),
@@ -308,7 +307,7 @@ fft2_op = BaseOp(
 )
 ```
 
-`BaseOp` accepts an optional `fwadj` callable for the same optimisation as
+`FuncOp` accepts an optional `fwadj` callable for the same optimisation as
 above. It is otherwise identical to a hand-written subclass.
 
 ## `Adjoint` and `.H`
@@ -356,7 +355,7 @@ For a `Symmetric` `S`, `forward` and `adjoint` are identical (no separate adjoin
 computation). `fwadj` inherits from `LinOp` and computes `S²x`, which is the
 correct `SᴴS` for a self-adjoint operator. When you override `fwadj` in your
 subclass — as in the `FFT2` example above — the `Symmetric` produced by `.G` or
-`@` automatically uses that override.
+`@` automatically uses that implementation.
 
 ## Array-agnostic operators
 

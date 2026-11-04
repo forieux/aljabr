@@ -97,10 +97,10 @@ class Mask(LinOp):
 
 The input is positional-only: call `M.forward(x)`, never `M.forward(x=x)`.
 
-For a one-off operator, `BaseOp` avoids the class:
+For a one-off operator, `FuncOp` avoids the class:
 
 ```python
-F = aj.BaseOp(
+F = aj.FuncOp(
     forward=lambda x: np.fft.fft2(x, norm="ortho"),
     adjoint=lambda y: np.fft.ifft2(y, norm="ortho"),
     ishape=(64, 64), oshape=(64, 64),

@@ -3,7 +3,7 @@ import pytest
 from conftest import RNG
 
 from aljabr.concrete import DFT, Diag, Diff
-from aljabr.linop import BaseOp
+from aljabr.linop import FuncOp
 from aljabr.utils import (
     cond,
     dottest,
@@ -143,7 +143,7 @@ class TestFcond:
 
 class TestDottest:
     def test_failure_warns_both_sides(self):
-        op = BaseOp(lambda x: 2 * x, lambda y: 3 * y, (5,), (5,))
+        op = FuncOp(lambda x: 2 * x, lambda y: 3 * y, (5,), (5,))
         with pytest.warns(UserWarning, match=r"dot test failed.*relative error"):
             assert not dottest(op)
 
@@ -154,7 +154,7 @@ class TestDottest:
 
     def test_complex_vectors_detect_dropped_imaginary_part(self):
         # Not linear on complex input, but passes with real vectors
-        op = BaseOp(lambda x: 2 * np.real(x), lambda y: 2 * np.real(y), (5,), (5,))
+        op = FuncOp(lambda x: 2 * np.real(x), lambda y: 2 * np.real(y), (5,), (5,))
         assert dottest(op, num=3)
         with pytest.warns(UserWarning, match="dot test failed"):
             assert not dottest(op, num=3, complex_vectors=True)
@@ -162,7 +162,7 @@ class TestDottest:
 
 class TestFwadjtest:
     def test_failure_warns(self):
-        op = BaseOp(lambda x: x, lambda y: y, (5,), (5,), fwadj=lambda x: 2 * x)
+        op = FuncOp(lambda x: x, lambda y: y, (5,), (5,), fwadj=lambda x: 2 * x)
         with pytest.warns(UserWarning, match=r"fwadj test failed.*relative error"):
             assert not fwadjtest(op)
 
@@ -171,7 +171,7 @@ class TestFwadjtest:
         assert not recwarn.list
 
     def test_complex_vectors_detect_dropped_imaginary_part(self):
-        op = BaseOp(lambda x: x, lambda y: y, (5,), (5,), fwadj=lambda x: np.real(x))
+        op = FuncOp(lambda x: x, lambda y: y, (5,), (5,), fwadj=lambda x: np.real(x))
         assert fwadjtest(op, num=3)
         with pytest.warns(UserWarning, match="fwadj test failed"):
             assert not fwadjtest(op, num=3, complex_vectors=True)

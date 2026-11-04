@@ -52,8 +52,8 @@ __all__ = [
     "AddOp",
     "Adjoint",
     "Array",
-    "BaseOp",
     "Dense",
+    "FuncOp",
     "HStack",
     "LinOp",
     "ProdOp",
@@ -583,7 +583,7 @@ def asmatrix(linop: Array | LinOp, like: Array | None = None) -> Array:
     return np.asarray(linop)
 
 
-class BaseOp(LinOp):
+class FuncOp(LinOp):
     """A `LinOp` defined by callables rather than subclassing.
 
     Parameters
