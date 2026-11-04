@@ -110,11 +110,12 @@ print(repr(F))  # F (FFT2): (256, 256) → (256, 256)
 y = F(x)  # equivalent to F.forward(x)
 ```
 
-### Column-vector interface: `matvec` and `rmatvec`
+### Vector interface: `matvec` and `rmatvec`
 
-`matvec` and `rmatvec` expect column vectors for inputs and outputs, of shape
-`(isize, 1)` and `(osize, 1)` respectively. They are useful when an algorithm
-expects 1D vectors regardless of the operator's native shapes:
+`matvec` takes a vector of shape `(isize, 1)` or `(isize,)` and `rmatvec` one of
+shape `(osize, 1)` or `(osize,)`. Whatever the input, the output is a column
+vector, of shape `(osize, 1)` and `(isize, 1)` respectively. They are useful
+when an algorithm expects vectors regardless of the operator's native shapes:
 
 ```python
 x_col = x.reshape(-1, 1)  # (65536, 1)
@@ -125,9 +126,9 @@ u_col = F.rmatvec(y_col)  # u = yᵀ F = Fᴴ y — adjoint on flat vector y
 Internally, `matvec` reshapes to `ishape`, calls `forward`, then flattens the
 result; `rmatvec` does the same through `adjoint`.
 
-A 1D vector `(isize,)` is also accepted, as SciPy passes. Any other shape emits
-a `UserWarning`, even with the right number of elements: `F @ x` on an image
-`x` would otherwise silently return a column. Use `F(x)` on shaped arrays.
+Any other input shape emits a `UserWarning`, even with the right number of
+elements: `F @ x` on an image `x` would otherwise silently return a column. Use
+`F(x)` on shaped arrays.
 
 ### String representation
 
@@ -210,11 +211,11 @@ H = F * D  # ProdOp — H.forward(x) = F.forward(D.forward(x))
 
 ### `@` — matrix-multiply style
 
-`@` behaves like `*` but uses `matvec`/`rmatvec` for array operands (column
-vectors), and detects the special case $A^H \cdot A$:
+`@` behaves like `*` but uses `matvec`/`rmatvec` for array operands (vectors),
+and detects the special case $A^H \cdot A$:
 
 ```python
-# On arrays (column vectors): uses matvec
+# On arrays (vectors): uses matvec
 y_col = F @ x_col  # F.matvec(x_col)
 
 # On LinOp: composition

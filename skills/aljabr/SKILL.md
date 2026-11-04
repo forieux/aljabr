@@ -25,8 +25,9 @@ public name is importable from the top level: `import aljabr` or
 - `forward(x)` takes an `ishape` array and returns an `oshape` array.
   `adjoint(y)` does the reverse. `fwadj(x)` returns `Aᴴ·A·x` (default
   `adjoint(forward(x))`).
-- `matvec` / `rmatvec`: same as `forward` / `adjoint` but on `(N, 1)` column
-  vectors (reshape in, flatten out).
+- `matvec` / `rmatvec`: same as `forward` / `adjoint` but on vectors. The input
+  is `(N, 1)` or `(N,)` (other shapes warn), the output is always a column
+  `(M, 1)`.
 
 ## Applying and composing
 
@@ -138,7 +139,7 @@ test emits a `UserWarning` with the relative error.
 |---|---|---|
 | `Identity` | `(shape)` | `shape → shape` |
 | `Diag` | `(diag)` | element-wise product, `diag.shape → diag.shape` |
-| `DFT` | `(shape, ndim)` | unitary DFT on last `ndim` axes, complex output, `fwadj` = identity |
+| `DFT` | `(ishape, ndim)` | unitary DFT on last `ndim` axes, complex output, `fwadj` = identity |
 | `RealDFT` | `(ishape, ndim)` | `DFT` of a real input on the half spectrum, last axis → `n // 2 + 1`; adjoint = inverse, **not** the standard adjoint (see pitfalls) |
 | `Conv` | `(ir, ishape, ndim)` | FFT convolution on last `ndim` axes, real `ir`, **"valid"** output (`n - k + 1`); adjoint is "full" |
 | `DirectConv` | `(ir, ishape)` | same as `Conv` with `scipy.signal.oaconvolve`, complex `ir` allowed; NumPy only, needs scipy |

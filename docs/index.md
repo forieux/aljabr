@@ -14,7 +14,7 @@ The foundation is the `LinOp` type. Everything else — concrete operators,
 utilities, algebraic composition — is built on top of it and optional. I made
 this library for my own usage.
 
-## Key differences from similar tools
+## Differences from similar tools
 
 **vs. `scipy.sparse.linalg.LinearOperator`** — input and output arrays can have
 any shape, not just vectors. A 2D FFT operator maps an image to an image. Shapes
@@ -63,7 +63,7 @@ import numpy as np
 import aljabr
 
 # Wrap the FFT as a linear operator
-F = aljabr.DFT(shape=(256, 256), ndim=2)
+F = aljabr.DFT(ishape=(256, 256), ndim=2)
 
 x = np.random.randn(256, 256)
 y = F.forward(x)  # F·x
